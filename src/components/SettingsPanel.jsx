@@ -1,39 +1,37 @@
-import Field from "./Field";
+import Slider from './reusables/Slider';
 
 export default function SettingsPanel({ params, setParams }) {
+  const set = (patch) => setParams((p) => ({ ...p, ...patch }));
+
   return (
     <aside className="sidebar">
       <h3>Settings</h3>
-      <Field label="Model">
-        <select
-          value={params.model}
-          onChange={(e) => setParams((p) => ({ ...p, model: e.target.value }))}
-        >
-          <option value="video-gen-v1">video-gen-v1</option>
-          <option value="video-gen-v1.5">video-gen-v1.5</option>
-        </select>
-      </Field>
 
-      <Field label="Aspect Ratio">
-        <select
-          value={params.aspect}
-          onChange={(e) => setParams((p) => ({ ...p, aspect: e.target.value }))}
-        >
-          <option>16:9</option>
-          <option>9:16</option>
-          <option>1:1</option>
-        </select>
-      </Field>
+      <Slider
+        id="duration"
+        label="Duration (sec)"
+        min={1} max={20} step={1}
+        value={params.duration}
+        onChange={(v) => setParams(p => ({ ...p, duration: v }))}
+        marks={[{value:1},{value:5},{value:10},{value:15},{value:20}]}
+        showMarks
+        showMarkLabels
+        snapToMarks        
+        defaultValue={5}
+        valueText={(v)=>`${v} seconds`}
+      />
 
-      <Field label="Duration">
-        <input
-          type="number"
-          value={params.duration}
-          onChange={(e) =>
-            setParams((p) => ({ ...p, duration: Number(e.target.value) }))
-          }
-        />
-      </Field>
+      <Slider
+        id="guidance"
+        label="Guidance"
+        min={1} max={15} step={0.5}
+        value={params.guidance}
+        onChange={(v) => setParams(p => ({ ...p, guidance: v }))}
+        marks={[{value:1},{value:5},{value:10},{value:15}]}
+        showMarks
+        // no labels, no tooltip
+        valueText={(v)=>v.toFixed(1)}
+      />
     </aside>
   );
 }

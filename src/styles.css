@@ -51,7 +51,7 @@ body,
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: 16px;
   margin: 12px;
-  padding: 14px;
+  padding: 20px;
   overflow-y: auto;
 }
 
@@ -236,4 +236,135 @@ body,
   width: 100%;
   margin-bottom: 8px;
   resize: vertical;
+}
+
+/* ---- Slider core ---- */
+.sl-wrap { margin:12px 0 16px; }
+.sl-head { 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  margin-bottom:6px; 
+}
+.sl-value { 
+  font-size:12px; 
+  color:var(--muted); 
+}
+
+/* sizing from data attributes */
+.sl { position:relative; }
+.sl--h { height: 32px; }
+.sl--v { 
+  height: 160px; 
+  width: 40px; 
+}
+
+.sl-track{
+  position:absolute; 
+  inset:0;
+  margin:12px 0;
+}
+.sl--v .sl-track{ margin:0 12px; }
+
+/* track line */
+.sl-track::before{
+  content:"";
+  position:absolute; 
+  top:50%; 
+  left:0; 
+  right:0; 
+  transform:translateY(-50%);
+  height: var(--sl-thickness, 8px);
+  border-radius: var(--sl-radius, 999px);
+  background: rgba(255,255,255,.08);
+  border:1px solid var(--glass-border);
+}
+.sl--v .sl-track::before{
+  left:50%; 
+  top:0; 
+  bottom:0; 
+  right:auto; 
+  transform:translateX(-50%);
+  width: var(--sl-thickness, 8px);
+  height:auto;
+}
+
+/* let JS set CSS vars from data- attributes */
+.sl[data-thickness] .sl-track::before,
+.sl[data-thickness] .sl-fill,
+.sl[data-thickness] .sl-range {
+  --sl-thickness: attr(data-thickness px);
+}
+.sl[data-radius] .sl-track::before,
+.sl[data-radius] .sl-fill,
+.sl[data-radius] .sl-range {
+  --sl-radius: attr(data-radius px);
+}
+
+/* fill */
+.sl-fill{
+  position:absolute; top:50%; left:0;
+  height: var(--sl-thickness, 8px);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: var(--sl-radius, 999px);
+  transform:translateY(-50%);
+}
+.sl--v .sl-fill{
+  left:50%; bottom:0; width: var(--sl-thickness, 8px); transform:translateX(-50%);
+}
+
+/* thumb */
+.sl-thumb{
+  position:absolute; top:50%;
+  width:20px; height:20px; border-radius:50%;
+  background: rgba(255,255,255,.28);
+  border:1px solid var(--glass-border);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.sl-thumb.is-active{
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 8px 22px rgba(0,0,0,.45);
+  background: rgba(255,255,255,.35);
+}
+.sl--v .sl-thumb.is-active{
+  transform: translate(-50%, 50%) scale(1.05);
+}
+
+/* focus ring via :focus-visible on track */
+.sl-track:focus-visible{
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(124,124,255,.35);
+  border-radius: 10px;
+}
+
+/* marks */
+.sl-mark-wrap{ 
+  position:absolute; 
+  top:50%; 
+  transform:translate(-50%, -50%); 
+}
+.sl--v .sl-mark-wrap{ 
+  left:50%; 
+  transform:translate(-50%, 50%); 
+}
+.sl-mark{
+  width:2px; 
+  height:12px; 
+  background:rgba(255,255,255,.35);
+}
+.sl--v .sl-mark{ 
+  width:12px; 
+  height:2px; 
+}
+.sl-mark-label{
+  position:absolute; 
+  top:18px; 
+  left:50%; 
+  transform:translateX(-50%);
+  font-size:11px; 
+  color:var(--muted);
+  white-space:nowrap; 
+  user-select:none; 
+  pointer-events:none;
 }
