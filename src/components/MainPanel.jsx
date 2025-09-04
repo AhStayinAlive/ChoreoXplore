@@ -1,3 +1,5 @@
+import TextField from './reusables/TextField';
+
 export default function MainPanel({
   prompt,
   setPrompt,
@@ -8,22 +10,37 @@ export default function MainPanel({
 }) {
   return (
     <div className="main">
-      <h2>Prompt Builder</h2>
-      <textarea
-        rows={4}
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe your scene..."
-      />
-      <textarea
-        rows={2}
-        value={negPrompt}
-        onChange={(e) => setNegPrompt(e.target.value)}
-        placeholder="Negative prompt (optional)"
-      />
-      <button onClick={onGenerate} disabled={!canGenerate} className="primary">
-        Generate
-      </button>
+      {/* Keep this panel compact; no big title */}
+      <div style={{ display: "grid", gap: 10 }}>
+        <TextField
+          id="prompt"
+          value={prompt}
+          onChange={setPrompt}
+          placeholder="Describe your scene…"
+          multiline
+          rows={3}
+          size="lg"
+          maxLength={300}
+          inputProps={{
+            onKeyDown: (e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                if (prompt.trim()) onGenerate();
+              }
+            },
+          }}
+        />
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button className="ghost" type="button" onClick={() => {
+            setPrompt("");
+            setNegPrompt("");
+          }}>Clear</button>
+          <button className="primary" type="button" disabled={!canGenerate} onClick={onGenerate}>
+            Generate
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
