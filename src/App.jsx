@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import SettingsPanel from "./components/SettingsPanel";
 import MainPanel from "./components/MainPanel";
 import PreviewPanel from "./components/PreviewPanel";
+import ChatBox from "./components/ChatBox";
 import useJobs from "./hooks/useJobs";
 
 export default function App() {
@@ -41,7 +42,11 @@ export default function App() {
 
       <div className="layout">
         <SettingsPanel params={params} setParams={setParams} /> 
-        <div className="preview-area"></div>
+        <div className="preview-area">
+          <div style={{ position: "absolute", bottom: 16, left: 16, right: 16 }}>
+            <ChatBox />
+          </div>
+        </div>
         <PreviewPanel jobs={jobs} />
       </div>
 
