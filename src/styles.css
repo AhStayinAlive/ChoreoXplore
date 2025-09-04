@@ -368,3 +368,76 @@ body,
   user-select:none; 
   pointer-events:none;
 }
+
+/* ========= Liquid‑glass TextField polish ========= */
+
+/* container */
+.tf {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.tf:hover { background: rgba(255, 255, 255, 0.08); }
+.tf:focus-within {
+  border-color: rgba(124, 124, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(124, 124, 255, 0.18);
+}
+
+/* size variants */
+.tf--sm { padding: 6px 8px; border-radius: 10px; }
+.tf--md { padding: 10px 12px; }
+.tf--lg { padding: 14px 14px; border-radius: 14px; }
+
+/* input / textarea base */
+.tf input,
+.tf textarea {
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  width: 100%;
+  font: inherit;
+}
+
+/* textarea tweaks */
+.tf textarea { resize: vertical; min-height: 2.8rem; }
+.tf--lg textarea { min-height: 3.4rem; }
+
+/* placeholder */
+.tf input::placeholder,
+.tf textarea::placeholder { color: var(--muted); opacity: 0.85; }
+
+/* disabled / error */
+.tf--disabled { opacity: .6; pointer-events: none; }
+.tf--error { border-color: #fca5a5; box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.15); }
+
+/* prefix / suffix / clear */
+.tf__affix { color: var(--muted); display: inline-flex; align-items: center; height: 1.5rem; }
+.tf__prefix { padding-right: 6px; }
+.tf__suffix { padding-left: 6px; }
+
+.tf__clear {
+  margin-left: 6px;
+  width: 22px; height: 22px;
+  border-radius: 8px;
+  background: transparent;
+  border: 0; color: var(--text); opacity: .8;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background .12s ease, opacity .12s ease;
+}
+.tf__clear:hover { background: rgba(255,255,255,.08); opacity: 1; }
+
+/* label + hints */
+.ui-label { font-weight: 600; color: var(--text); margin: 0 0 6px; display: block; }
+.ui-hint { color: var(--muted); font-size: 12px; margin-top: 6px; display: block; }
+.ui-error { color: #fca5a5; font-size: 12px; margin-top: 6px; display: block; }
+
+/* optional character counter alignment */
+#prompt-cnt, #negPrompt-cnt { float: right; }
