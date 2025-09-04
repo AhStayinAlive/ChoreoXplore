@@ -1,4 +1,4 @@
-import Field from "./Field";
+import Field from "./reusables/Field";
 
 export default function SettingsPanel({ params, setParams }) {
   return (
