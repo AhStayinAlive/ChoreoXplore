@@ -2,7 +2,7 @@ import JobCard from "./JobCard";
 
 export default function PreviewPanel({ jobs }) {
   return (
-    <aside className="preview">
+    <aside className="jobs">
       <h3>Jobs</h3>
       {jobs.length === 0 && <p className="muted">No jobs yet.</p>}
       <div className="cards">
