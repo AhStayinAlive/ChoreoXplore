@@ -1,5 +1,5 @@
 import Slider from './reusables/Slider';
-import KeywordToggle from './reusables/ToggleButton';
+import ToggleButton from './reusables/ToggleButton';
 
 export default function SettingsPanel({ params, setParams }) {
   const set = (patch) => setParams((p) => ({ ...p, ...patch }));
@@ -34,9 +34,9 @@ export default function SettingsPanel({ params, setParams }) {
         valueText={(v)=>v.toFixed(1)}
       />
 
-      <KeywordToggle label="Sci-Fi" />
-      <KeywordToggle label="Fantasy" />
-      <KeywordToggle label="Drama" />
+      <ToggleButton label="Sci-Fi" />
+      <ToggleButton label="Fantasy" />
+      <ToggleButton label="Drama" />
     </aside>
   );
 }

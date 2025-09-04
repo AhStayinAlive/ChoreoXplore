@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 /**
- * KeywordToggle — pill-like toggle button
+ * ToggleButton — pill-like toggle button
  * Props:
  *  label: string | node
  *  selected?: boolean      // controlled
@@ -9,7 +9,7 @@ import { useState } from "react";
  *  onChange?(bool)
  *  icon?: ReactNode        // optional leading icon
  */
-export default function KeywordToggle({
+export default function ToggleButton({
   label,
   selected,
   defaultSelected = false,
