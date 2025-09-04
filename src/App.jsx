@@ -40,9 +40,11 @@ export default function App() {
       </div>
 
       <div className="layout">
-        <SettingsPanel params={params} setParams={setParams} />
+        <SettingsPanel params={params} setParams={setParams} /> 
+        <div className="preview-area"></div>
         <PreviewPanel jobs={jobs} />
       </div>
+
 
       {/* Bottom floating MainPanel */}
       <div className="bottom-panel">

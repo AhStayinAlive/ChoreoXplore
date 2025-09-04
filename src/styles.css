@@ -44,7 +44,8 @@ body,
 
 /* glass panels */
 .sidebar,
-.preview {
+.preview,
+.jobs {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -55,7 +56,8 @@ body,
 }
 
 .sidebar h3,
-.preview h3 {
+.preview h3,
+.jobs h3 {
   margin: 0 0 8px 0;
 }
 
@@ -207,14 +209,6 @@ body,
   height: 100%;
   object-fit: cover;
   filter: brightness(0.7);
-}
-
-/* layout: only left + right now */
-.layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  height: 100%;
-  gap: 0;
 }
 
 /* bottom frosted panel */
