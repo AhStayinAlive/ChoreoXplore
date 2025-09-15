@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { onPreview } from "./lib/bus";
 import SettingsPanel from "./components/SettingsPanel";
 import MainPanel from "./components/MainPanel";
 import PreviewPanel from "./components/PreviewPanel";
@@ -21,12 +22,17 @@ export default function App() {
   const canGenerate = prompt.trim().length > 0;
 
   const latestDone = jobs.find((j) => j.status === "done");
+  const [previewBg, setPreviewBg] = useState("");
+
+  useEffect(() => onPreview(setPreviewBg), []);
 
   return (
     <div className="app-shell">
       {/* Background preview */}
       <div className="bg-preview">
-        {latestDone ? (
+        {previewBg ? (
+          <img src={previewBg} alt="Preview" />
+        ) : latestDone ? (
           <img src={latestDone.url} alt="Preview" />
         ) : (
           <div

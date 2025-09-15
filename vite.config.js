@@ -22,7 +22,7 @@ export default defineConfig({
       '/img/prompt': {
         target: 'http://127.0.0.1:8188',
         changeOrigin: true,
-        rewrite: (p) => '/prompt',
+        rewrite: () => '/prompt',
       },
       '/img/history': {
         target: 'http://127.0.0.1:8188',
@@ -32,7 +32,7 @@ export default defineConfig({
       '/img/view': {
         target: 'http://127.0.0.1:8188',
         changeOrigin: true,
-        rewrite: (p) => '/view',
+        rewrite: () => '/view',
       },
     },
   },
