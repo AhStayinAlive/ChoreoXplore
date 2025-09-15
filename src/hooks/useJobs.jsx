@@ -1,50 +1,65 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { generateImageViaComfy } from "../lib/comfy";
+import { emitPreview } from "../lib/bus";
 
 export default function useJobs({ prompt, negPrompt, params, idRef }) {
   const [jobs, setJobs] = useState([]);
 
+  function updateJob(jobId, patch) {
+    setJobs((curr) => curr.map((j) => (j.id === jobId ? { ...j, ...patch } : j)));
+  }
+
   function enqueueJob() {
-    if (!prompt.trim()) return;
+    const p = prompt?.trim();
+    if (!p) return;
+
+    // derive approximate size from aspect; fallback to 1024x1024
+    const aspect = params?.aspect || "1:1";
+    const [aw, ah] = aspect.split(":").map(Number);
+    const base = 1024;
+    const width = aw && ah ? Math.round(base * (aw / ah)) : 1024;
+    const height = aw && ah ? base : 1024;
+
     const id = idRef.current++;
-    const newJob = {
+    const job = {
       id,
-      prompt: prompt.trim(),
-      negPrompt: negPrompt.trim(),
+      prompt: p,
+      negPrompt: negPrompt?.trim() ?? "",
       params,
       status: "queued",
       progress: 0,
       url: null,
       createdAt: Date.now(),
     };
-    setJobs((j) => [newJob, ...j]);
+    setJobs((j) => [job, ...j]);
+
+    (async () => {
+      updateJob(id, { status: "processing", progress: 5 });
+      try {
+        const { url } = await generateImageViaComfy(p, {
+          width,
+          height,
+          steps: 12,
+          onStatus: (s) => {
+            if (s.startsWith("submit:start")) updateJob(id, { progress: 5 });
+            if (s.startsWith("submit:ok")) updateJob(id, { progress: 10 });
+            if (s.startsWith("poll:")) {
+              const n = Number(s.split(":")[1] || 0);
+              updateJob(id, { progress: 10 + Math.min(80, n) });
+            }
+            if (s.startsWith("download:start")) updateJob(id, { progress: 95 });
+            if (s.startsWith("download:ok")) updateJob(id, { progress: 100 });
+          },
+        });
+
+        updateJob(id, { status: "done", url, progress: 100 });
+        emitPreview(url);
+      } catch (e) {
+        console.error(e);
+        updateJob(id, { status: "failed" });
+      }
+    })();
   }
-
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setJobs((prev) => {
-        const next = [...prev];
-        const active = next.find(
-          (j) => j.status === "queued" || j.status === "processing"
-        );
-        if (!active) return next;
-
-        if (active.status === "queued") {
-          active.status = "processing";
-          active.progress = 1;
-        } else if (active.status === "processing") {
-          const step = 15 + Math.round(Math.random() * 20);
-          active.progress = Math.min(100, active.progress + step);
-          if (active.progress >= 100) {
-            active.status = "done";
-            active.url = "https://placehold.co/640x360?text=Preview";
-          }
-        }
-        return next;
-      });
-    }, 600);
-
-    return () => clearInterval(tick);
-  }, []);
 
   return { jobs, enqueueJob };
 }
