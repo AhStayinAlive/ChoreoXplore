@@ -1,4 +1,6 @@
 const CKPT = import.meta.env.VITE_SDXL_CKPT || 'v1-5-pruned-emaonly.ckpt';
+const DEFAULT_POLL_INTERVAL_MS = Number(import.meta.env.VITE_COMFY_POLL_MS || 1000);
+const DEFAULT_MAX_WAIT_MS = Number(import.meta.env.VITE_COMFY_MAX_WAIT_MS || (10 * 60 * 1000));
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function noop() {}
@@ -23,7 +25,15 @@ function buildWorkflow(text, { width=512, height=512, steps=12, seed }) {
 }
 
 export async function generateImageViaComfy(text, opts = {}) {
-  const { width=512, height=512, steps=12, seed, onStatus=noop } = opts;
+  const {
+    width=512,
+    height=512,
+    steps=12,
+    seed,
+    onStatus=noop,
+    pollIntervalMs=DEFAULT_POLL_INTERVAL_MS,
+    maxWaitMs=DEFAULT_MAX_WAIT_MS,
+  } = opts;
 
   onStatus(`submit:start`);
   const body = { prompt: buildWorkflow(text, { width, height, steps, seed }), client_id: `cx-${Date.now()}` };
@@ -38,9 +48,10 @@ export async function generateImageViaComfy(text, opts = {}) {
   onStatus(`submit:ok:${prompt_id}`);
 
   // poll history until an image appears
+  const maxAttempts = Math.ceil(maxWaitMs / pollIntervalMs);
   let attempt = 0;
-  while (attempt++ < 120) { // ~2 min
-    await sleep(1000);
+  while (attempt++ < maxAttempts) {
+    await sleep(pollIntervalMs);
     const histRes = await fetch(`/img/history/${prompt_id}`);
     if (!histRes.ok) continue;
     const hist = await histRes.json();
