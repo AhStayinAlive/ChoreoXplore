@@ -1,36 +1,59 @@
 import { useState } from 'react';
 
-// NOTE: Set this to the exact filename found in ComfyUI/models/checkpoints
-const SDXL_CKPT = import.meta.env.VITE_SDXL_CKPT || 'sd_xl_base_1.0.safetensors';
+// pick the exact file name you installed (can include subfolder like "SD1.5/...")
+const MODEL_CKPT =
+  import.meta.env.VITE_SDXL_CKPT || 'v1-5-pruned-emaonly.ckpt';
 
-function buildWorkflow(prompt, width = 1024, height = 1024) {
+function buildWorkflow(prompt, width = 512, height = 512) {
   return {
-    '3': {
+    '3': { // Load checkpoint (model, clip, vae)
       class_type: 'CheckpointLoaderSimple',
-      inputs: { ckpt_name: SDXL_CKPT },
+      inputs: { ckpt_name: MODEL_CKPT },
     },
-    '4': { class_type: 'CLIPTextEncode', inputs: { text: prompt, clip: ['3', 1] } },
-    '5': { class_type: 'CLIPTextEncode', inputs: { text: '', clip: ['3', 1] } },
-    '6': { class_type: 'EmptyLatentImage', inputs: { width, height, batch_size: 1 } },
-    '7': {
+
+    '4': { // positive prompt -> CLIP
+      class_type: 'CLIPTextEncode',
+      inputs: { text: prompt, clip: ['3', 1] },
+    },
+
+    '5': { // negative prompt (optional)
+      class_type: 'CLIPTextEncode',
+      inputs: { text: '', clip: ['3', 1] },
+    },
+
+    '6': { // latent canvas size
+      class_type: 'EmptyLatentImage',
+      inputs: { width, height, batch_size: 1 },
+    },
+
+    '7': { // sampler (no ckpt_name here)
       class_type: 'KSampler',
       inputs: {
         seed: Math.floor(Math.random() * 1e9),
-        steps: 25,
-        cfg: 6.5,
-        sampler_name: 'euler',
+        steps: 12,              // start lower on CPU
+        cfg: 7,
+        sampler_name: 'euler',  // or 'euler_ancestral'
         scheduler: 'normal',
         denoise: 1.0,
-        model: ['3', 0],
+        model: ['3', 0],        // from CheckpointLoaderSimple
         positive: ['4', 0],
         negative: ['5', 0],
         latent_image: ['6', 0],
       },
     },
-    '8': { class_type: 'VAEDecode', inputs: { samples: ['7', 0], vae: ['3', 2] } },
-    '9': { class_type: 'SaveImage', inputs: { images: ['8', 0], filename_prefix: 'cx_out' } },
+
+    '8': { // decode to image
+      class_type: 'VAEDecode',
+      inputs: { samples: ['7', 0], vae: ['3', 2] },
+    },
+
+    '9': { // save so we can fetch via /view
+      class_type: 'SaveImage',
+      inputs: { images: ['8', 0], filename_prefix: 'cx_out' },
+    },
   };
 }
+
 
 export default function ImageGen() {
   const [prompt, setPrompt] = useState(
