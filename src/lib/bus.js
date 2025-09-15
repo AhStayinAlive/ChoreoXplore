@@ -1,10 +1,11 @@
+const subs = new Set();
+
 export function emitPreview(url) {
-  window.dispatchEvent(new CustomEvent('cx:preview', { detail: { url } }));
+  for (const fn of subs) fn(url);
 }
 
-export function onPreview(handler) {
-  const fn = (e) => handler(e.detail.url);
-  window.addEventListener('cx:preview', fn);
-  return () => window.removeEventListener('cx:preview', fn);
+export function onPreview(fn) {
+  subs.add(fn);
+  return () => subs.delete(fn);
 }
 

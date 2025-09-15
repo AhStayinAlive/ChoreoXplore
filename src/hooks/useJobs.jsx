@@ -13,12 +13,12 @@ export default function useJobs({ prompt, negPrompt, params, idRef }) {
     const p = prompt?.trim();
     if (!p) return;
 
-    // derive approximate size from aspect; fallback to 1024x1024
+    // derive approximate size from aspect; fallback to 512x512
     const aspect = params?.aspect || "1:1";
     const [aw, ah] = aspect.split(":").map(Number);
-    const base = 1024;
-    const width = aw && ah ? Math.round(base * (aw / ah)) : 1024;
-    const height = aw && ah ? base : 1024;
+    const base = 512;
+    const width = aw && ah ? Math.round(base * (aw / ah)) : base;
+    const height = aw && ah ? base : base;
 
     const id = idRef.current++;
     const job = {

@@ -34,6 +34,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/view',
       },
+      // Catch-all: /img/* -> ComfyUI
+      '/img': {
+        target: 'http://127.0.0.1:8188',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/img/, ''),
+      },
     },
   },
 })
