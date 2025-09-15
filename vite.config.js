@@ -18,6 +18,22 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/v1/models',
       },
+      // Add alongside existing 'server.proxy' entries
+      '/img/prompt': {
+        target: 'http://127.0.0.1:8188',
+        changeOrigin: true,
+        rewrite: (p) => '/prompt',
+      },
+      '/img/history': {
+        target: 'http://127.0.0.1:8188',
+        changeOrigin: true,
+        // Note: we'll call `/img/history/<id>` without rewrite
+      },
+      '/img/view': {
+        target: 'http://127.0.0.1:8188',
+        changeOrigin: true,
+        rewrite: (p) => '/view',
+      },
     },
   },
 })
