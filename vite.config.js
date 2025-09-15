@@ -6,7 +6,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      // LM Studio
       '/api/chat': {
         target: 'http://127.0.0.1:1234',
         changeOrigin: true,
@@ -17,11 +16,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/v1/models',
       },
-      // ComfyUI via helper proxy (do NOT add other /img rules elsewhere)
-      '/img': {
-        target: 'http://127.0.0.1:5175',
-        changeOrigin: true,
-      },
+      // ONLY THIS /img RULE — no other /img, /img/prompt, /img/view, etc.
+    '/img': {
+      target: 'http://127.0.0.1:8188',
+      changeOrigin: true,
+      rewrite: p => p.replace(/^\/img/, ''), // /img/x -> /x
+    },
+
     },
   },
 })
