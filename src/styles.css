@@ -90,6 +90,9 @@ body,
   border-radius: 10px;
   cursor: pointer;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px; 
 }
 
 /* ============ Job Cards ============ */
@@ -575,4 +578,9 @@ body,
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: transparent;
   color: #fff;
+}
+
+.ghost svg {
+  font-size: 1em; 
+  vertical-align: middle; 
 }
