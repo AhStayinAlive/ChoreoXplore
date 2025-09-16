@@ -8,6 +8,7 @@ import { useState } from "react";
  *  defaultSelected?: bool  // uncontrolled
  *  onChange?(bool)
  *  icon?: ReactNode        // optional leading icon
+ *  className?: string      // optional additional classes
  */
 export default function ToggleButton({
   label,
@@ -15,6 +16,7 @@ export default function ToggleButton({
   defaultSelected = false,
   onChange,
   icon,
+  className, // Add className to props
 }) {
   const [internal, setInternal] = useState(defaultSelected);
   const isOn = selected !== undefined ? selected : internal;
@@ -28,7 +30,7 @@ export default function ToggleButton({
   return (
     <button
       type="button"
-      className={`kw-toggle${isOn ? " is-on" : ""}`}
+      className={`kw-toggle ${className || ''}${isOn ? ' is-on' : ''}`.trim()}
       onClick={toggle}
     >
       {icon && <span className="kw-icon">{icon}</span>}
