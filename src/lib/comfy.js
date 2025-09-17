@@ -57,21 +57,34 @@ export async function generateImageViaComfy(text, opts = {}) {
     const hist = await histRes.json();
     onStatus(`poll:${attempt}`);
 
-    // ComfyUI may return either {outputs} or {history: { [id]: { outputs } }} depending on version
-    const outputs = hist?.outputs || hist?.history?.[prompt_id]?.outputs || {};
-    const nodeIds = Object.keys(outputs);
-    if (nodeIds.length) {
-      const node = outputs[nodeIds[0]];
-      const imgs = node?.images || [];
-      if (imgs.length) {
-        const { filename, subfolder, type } = imgs[0];
-        const url = `/img/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}&type=${encodeURIComponent(type || 'output')}`;
-        onStatus(`download:start`);
-        const ok = await fetch(url, { method: 'HEAD' });
-        if (!ok.ok) throw new Error(`download: http ${ok.status}`);
-        onStatus(`download:ok`);
-        return { url, prompt_id };
-      }
+    // Support history response shapes:
+    // A) { history: { <id>: { outputs } } }
+    // B) { outputs }
+    // C) { <id>: { outputs } }
+    let run = null;
+    if (hist?.history?.[prompt_id]) run = hist.history[prompt_id];
+    else if (hist?.outputs) run = hist;
+    else if (hist?.[prompt_id]) run = hist[prompt_id];
+
+    const outs = run?.outputs || {};
+    let file = null;
+    for (const node of Object.values(outs)) {
+      if (node?.images?.length) { file = node.images[0]; break; }
+    }
+    if (file) {
+      onStatus(`download:start`);
+      const q = new URLSearchParams({
+        filename: file.filename,
+        subfolder: file.subfolder || '',
+        type: file.type || 'output',
+      }).toString();
+
+      const imgRes = await fetch(`/img/view?${q}`);
+      if (!imgRes.ok) throw new Error(`view http ${imgRes.status}`);
+      const blob = await imgRes.blob();
+      const url = URL.createObjectURL(blob);
+      onStatus(`download:ok`);
+      return { url, prompt_id };
     }
   }
   throw new Error('timeout:no_image');
