@@ -8,6 +8,7 @@ export default function MainPanel({
   setNegPrompt,
   canGenerate,
   onGenerate,
+  onInsertMusic, 
 }) {
   const [aiOut, setAiOut] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,8 +64,14 @@ export default function MainPanel({
             },
           }}
         />
-
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <button
+            className="ghost"
+            type="button"
+            onClick={onInsertMusic} 
+          >
+            🎵 Insert Music
+          </button>
           <button className="ghost" type="button" onClick={() => {
             setPrompt("");
             setNegPrompt("");
