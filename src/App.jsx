@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { onPreview } from "./lib/bus";
 import SettingsPanel from "./components/SettingsPanel";
 import MainPanel from "./components/MainPanel";
 import PreviewPanel from "./components/PreviewPanel";
@@ -22,6 +23,9 @@ export default function App() {
   const canGenerate = prompt.trim().length > 0;
 
   const latestDone = jobs.find((j) => j.status === "done");
+  const [previewBg, setPreviewBg] = useState("");
+
+  useEffect(() => onPreview(setPreviewBg), []);
 
   // ====== NEW: hook up auto-theming ======
   const bgRef = useRef(null);
@@ -52,15 +56,10 @@ export default function App() {
     <div className="app-shell">
       {/* Background preview */}
       <div className="bg-preview">
-        {latestDone ? (
-          <img
-            ref={bgRef}
-            src={latestDone.url}
-            alt="Preview"
-            crossOrigin="anonymous"   // <-- important for canvas sampling
-          />
-          // If you later use video:
-          // <video ref={bgRef} src={latestDone.videoUrl} autoPlay muted loop playsInline crossOrigin="anonymous" />
+        {previewBg ? (
+          <img src={previewBg} alt="Preview" />
+        ) : latestDone ? (
+          <img src={latestDone.url} alt="Preview" />
         ) : (
           <div
             style={{
