@@ -7,6 +7,7 @@ export default function MainPanel({
   setNegPrompt,
   canGenerate,
   onGenerate,
+  onInsertMusic, 
 }) {
   return (
     <div className="main">
@@ -31,14 +32,23 @@ export default function MainPanel({
           }}
         />
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="ghost" type="button" onClick={() => {
-            setPrompt("");
-            setNegPrompt("");
-          }}>Clear</button>
-          <button className="primary" type="button" disabled={!canGenerate} onClick={onGenerate}>
-            Generate
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button
+            className="ghost"
+            type="button"
+            onClick={onInsertMusic} 
+          >
+            🎵 Insert Music
           </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="ghost" type="button" onClick={() => {
+              setPrompt("");
+              setNegPrompt("");
+            }}>Clear</button>
+            <button className="primary" type="button" disabled={!canGenerate} onClick={onGenerate}>
+              Generate
+            </button>
+          </div>
         </div>
       </div>
     </div>
