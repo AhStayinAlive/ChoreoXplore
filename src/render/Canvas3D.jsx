@@ -6,44 +6,39 @@ import { startAudio, audio$ } from "../core/audio";
 import { startPose, pose$ } from "../core/pose";
 import { applyRoutes } from "../core/routing";
 import { buildScene } from "../composition/scene.js";
+import { createMixer } from "../core/mixer";
+import { loadAnglesPack } from "../core/assets";
 
 function SceneRoot() {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
+  const apiRef = useRef({ root: null });
+  const mixerRef = useRef(null);
+  const lastTRef = useRef(performance.now());
 
   useEffect(() => {
-    const api = {
-      addLine: ({ length, angle, color, stroke, pos }) => {
-        const g = new THREE.Group();
-        const baseH = Math.max(1, stroke);
-        const geo = new THREE.PlaneGeometry(length, baseH);
-        const mat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
-        const rect = new THREE.Mesh(geo, mat);
-        rect.userData.baseHeight = baseH;
-        rect.position.set(0, 0, 0);
-        g.add(rect);
-        g.position.set(pos[0], pos[1], pos[2]);
-        g.rotation.z = angle * Math.PI / 180;
-        group.current.add(g);
-        return g;
-      },
-    };
-
-    const nodes = buildScene(api);
-    setSceneNodes(nodes);
+    // Clear static nodes; mixer will spawn visuals
+    setSceneNodes([]);
   }, [setSceneNodes]);
 
   useEffect(() => { startAudio(); startPose(); }, []);
 
   useEffect(() => {
+    apiRef.current.root = group.current;
+    mixerRef.current = createMixer(apiRef.current);
+    loadAnglesPack("/packs/sample.anglespack/manifest.json").catch(() => {});
+
     const subA = audio$.subscribe((a) => {
       const p = pose$.value || {};
       applyRoutes({ audio: a, pose: p });
+      SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
+      if (a.onset) mixerRef.current?.trySpawn(SceneRoot._signal);
     });
     const subP = pose$.subscribe((p) => {
       const a = audio$.value || {};
       applyRoutes({ audio: a, pose: p });
+      SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
     });
     return () => { subA.unsubscribe(); subP.unsubscribe(); };
   }, []);
@@ -53,6 +48,9 @@ function SceneRoot() {
     const prev = useFrame.prev || now;
     const fps = 1000 / (now - prev || 16);
     useFrame.prev = now;
+    const dt = Math.min(0.05, (now - lastTRef.current) / 1000);
+    lastTRef.current = now;
+    if (mixerRef.current && SceneRoot._signal) mixerRef.current.update(dt, SceneRoot._signal);
     setFPS(Math.round(fps));
   });
 

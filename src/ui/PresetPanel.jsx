@@ -7,6 +7,12 @@ export default function PresetPanel() {
   const setPreset = useStore(s => s.setPreset);
   const reactivity = useStore(s => s.reactivity);
   const setReactivity = useStore(s => s.setReactivity);
+  async function loadPack() {
+    try {
+      const res = await fetch("/packs/sample.anglespack/manifest.json");
+      if (res.ok) console.log("Pack ready");
+    } catch (_) {}
+  }
 
   return (
     <div>
@@ -15,6 +21,7 @@ export default function PresetPanel() {
         <button className="ghost" onClick={() => setPreset(calm)}>Calm Lines</button>
         <button className="ghost" onClick={() => setPreset(burst)}>Angular Burst</button>
         <button className="ghost" onClick={() => setPreset(grid)}>Orbital Grids</button>
+        <button className="ghost" onClick={loadPack}>Load Pack</button>
       </div>
       <div style={{ marginTop: 12 }}>
         <label className="mini">Audio Gain</label>
