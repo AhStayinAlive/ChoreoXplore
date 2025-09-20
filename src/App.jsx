@@ -1,92 +1,35 @@
-import { useState, useRef, useEffect } from "react";
-import { onPreview } from "./lib/bus";
-import SettingsPanel from "./components/SettingsPanel";
-import MainPanel from "./components/MainPanel";
-import PreviewPanel from "./components/PreviewPanel";
-import useJobs from "./hooks/useJobs";
-import { startAutoTheme } from "./helpers/themeFromBackground";
+import Canvas3D from "./render/Canvas3D";
+import Hud2D from "./render/Hud2D";
+import PresetPanel from "./ui/PresetPanel";
+import RoutingFlow from "./ui/RoutingFlow";
+import Timeline from "./ui/Timeline";
+import useStore from "./core/store";
 
 export default function App() {
-  const [prompt, setPrompt] = useState("");
-  const [negPrompt, setNegPrompt] = useState("");
-  const [params, setParams] = useState({
-    model: "video-gen-v1",
-    aspect: "16:9",
-    duration: 5,
-    guidance: 7.0,
-    seed: "",
-    safety: true,
-  });
-  const idRef = useRef(1);
-
-  const { jobs, enqueueJob } = useJobs({ prompt, negPrompt, params, idRef });
-  const canGenerate = prompt.trim().length > 0;
-
-  const latestDone = jobs.find((j) => j.status === "done");
-  const [previewBg, setPreviewBg] = useState("");
-
-  useEffect(() => onPreview(setPreviewBg), []);
-
-  // ====== NEW: hook up auto-theming ======
-  const bgRef = useRef(null);
-
-  useEffect(() => {
-    const el = bgRef.current;
-    if (!el) return;
-
-    // For images: run once when loaded
-    if (el.tagName === "IMG") {
-      if (el.complete) {
-        startAutoTheme(el)(); // call, then immediately cleanup timer (none for IMG)
-      } else {
-        const onload = () => { startAutoTheme(el)(); el.removeEventListener("load", onload); };
-        el.addEventListener("load", onload);
-        return () => el.removeEventListener("load", onload);
-      }
-    }
-
-    // For videos (if you switch to <video>): keep sampling on interval
-    // const stop = startAutoTheme(el, { sample: 48, interval: 2000 });
-    // return stop;
-
-  }, [latestDone?.url]); // re-run when background image changes
-  // ======================================
+  const mode = useStore((s) => s.mode);
+  const setMode = useStore((s) => s.setMode);
 
   return (
-    <div className="app-shell">
-      {/* Background preview */}
-      <div className="bg-preview">
-        {previewBg ? (
-          <img src={previewBg} alt="Preview" />
-        ) : latestDone ? (
-          <img src={latestDone.url} alt="Preview" />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
-            }}
-          />
+    <div style={{ width: "100vw", height: "100vh", background: "#0A0A0C", color: "#fff", position: "relative" }}>
+      <div style={{ position: "absolute", inset: 0 }}>
+        <Canvas3D />
+        <Hud2D />
+        {mode === "author" && (
+          <>
+            <div style={{ position: "absolute", left: 12, top: 12, width: 340, background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12 }}>
+              <PresetPanel />
+            </div>
+            <div style={{ position: "absolute", right: 12, top: 12, width: 420, height: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+              <RoutingFlow />
+            </div>
+            <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: 12, width: "70%", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 8, borderRadius: 12 }}>
+              <Timeline />
+            </div>
+          </>
         )}
-      </div>
-
-      <div className="layout">
-        <SettingsPanel params={params} setParams={setParams} /> 
-        <div className="preview-area"></div>
-        <PreviewPanel jobs={jobs} />
-      </div>
-
-      {/* Bottom floating MainPanel */}
-      <div className="bottom-panel">
-        <MainPanel
-          prompt={prompt}
-          setPrompt={setPrompt}
-          negPrompt={negPrompt}
-          setNegPrompt={setNegPrompt}
-          canGenerate={canGenerate}
-          onGenerate={enqueueJob}
-        />
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 12 }}>
+          <button className="ghost" onClick={() => setMode(mode === "author" ? "performance" : "author")}>{mode === "author" ? "Performance Mode" : "Author Mode"}</button>
+        </div>
       </div>
     </div>
   );
