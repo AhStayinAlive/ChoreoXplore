@@ -27,6 +27,7 @@ function SceneRoot() {
   useEffect(() => {
     apiRef.current.root = group.current;
     mixerRef.current = createMixer(apiRef.current);
+    // Ensure pack loads (folder + manifest in /public)
     loadAnglesPack("/packs/sample.anglespack/manifest.json").catch(() => {});
 
     const subA = audio$.subscribe((a) => {

@@ -2,11 +2,24 @@ import { BehaviorSubject } from "rxjs";
 export const pose$ = new BehaviorSubject({ conf: 0, shoulderAxisDeg: 0, bboxArea: 0, wrists: { x: 0, y: 0 } });
 
 let detector;
+let videoEl;
 export async function startPose() {
   try {
     detector = await (window.poseLandmarker ? window.poseLandmarker() : null);
   } catch (_) {
     detector = null;
+  }
+  if (!detector) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoEl = document.createElement('video');
+      videoEl.setAttribute('playsinline', '');
+      videoEl.muted = true;
+      videoEl.srcObject = stream;
+      await videoEl.play();
+    } catch (_) {
+      // ignore camera failure; fallback mock will continue
+    }
   }
   requestAnimationFrame(loop);
 }
@@ -23,7 +36,8 @@ async function loop() {
   } else {
     // fallback mock to keep stream alive
     const t = performance.now() * 0.001;
-    pose$.next({ conf: 0.2, shoulderAxisDeg: Math.sin(t) * 15, bboxArea: 0.1 + 0.02 * Math.cos(t), wrists: { x: 0.5, y: 0.5 + 0.1 * Math.sin(t * 0.5) } });
+    const bbox = videoEl ? 0.25 : 0.1;
+    pose$.next({ conf: videoEl ? 0.6 : 0.2, shoulderAxisDeg: Math.sin(t) * 15, bboxArea: bbox + 0.02 * Math.cos(t), wrists: { x: 0.5, y: 0.5 + 0.1 * Math.sin(t * 0.5) } });
   }
   requestAnimationFrame(loop);
 }

@@ -36,7 +36,8 @@ function tick() {
 
   const flux = lastSpec ? arr.reduce((acc, v, i) => acc + Math.max(0, v - lastSpec[i]), 0) / arr.length : 0;
   const now = performance.now();
-  const onset = flux > 1.5 && now - lastOnsetAt > 90;
+  // more sensitive onset for MVP
+  const onset = flux > 0.12 && now - lastOnsetAt > 120;
   if (onset) lastOnsetAt = now;
   lastSpec = arr;
 

@@ -50,13 +50,11 @@ export function createMixer(api) {
 
     if (bp.type === "line") {
       const len = modLen(bp.params?.length_px ?? 360, signal);
-      const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-len / 2, 0, 0),
-        new THREE.Vector3(len / 2, 0, 0),
-      ]);
       const stroke = 2 + (signal.bands[0] * 6);
-      const mat = new THREE.LineBasicMaterial({ color: pickColor(), linewidth: stroke });
-      g.add(new THREE.Line(geo, mat));
+      const geo = new THREE.PlaneGeometry(len, Math.max(1, stroke));
+      const mat = new THREE.MeshBasicMaterial({ color: pickColor(), side: THREE.DoubleSide });
+      const rect = new THREE.Mesh(geo, mat);
+      g.add(rect);
       g.rotation.z = (bp.params?.angle_deg ?? 45) * Math.PI / 180;
       g.userData.type = "line";
     } else if (bp.type === "square" || bp.type === "triangle" || bp.type === "circle") {
@@ -98,11 +96,15 @@ export function createMixer(api) {
   }
 
   return {
+    _lastSpawnAt: 0,
     trySpawn(signal) {
-      if (!signal.onset) return;
+      const now = performance.now();
+      const energyGate = signal.rms > 0.045 && (now - this._lastSpawnAt > 280);
+      if (!(signal.onset || energyGate)) return;
       const id = pickByBand(signal.bands);
       if (!id) return;
       makeVisualFromBlueprint(id, signal);
+      this._lastSpawnAt = now;
     },
     update(dt, signal) {
       const hi = signal?.bands?.[2] ?? 0;
