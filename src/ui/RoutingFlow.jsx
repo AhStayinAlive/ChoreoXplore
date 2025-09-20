@@ -2,11 +2,11 @@ import { useEffect } from "react";
 import useStore from "../core/store";
 
 export default function RoutingFlow() {
-  const routes = useStore((s) => s.routes);
-  const setRoutes = useStore((s) => s.setRoutes);
+  const routes = useStore(s => s.routes);
+  const setRoutes = useStore(s => s.setRoutes);
 
   useEffect(() => {
-    if (!routes?.length && setRoutes) {
+    if (!routes?.length) {
       setRoutes([
         { id: "r1", source: { kind: "audio", key: "rms" }, target: { nodeId: "lnA", path: "transforms.rotate.z" }, mapping: { scale: 25, clamp: [-25, 25] } },
         { id: "r2", source: { kind: "audio", key: "band_low" }, target: { nodeId: "lnB", path: "style.stroke.px" }, mapping: { scale: 8, clamp: [1, 8] } },

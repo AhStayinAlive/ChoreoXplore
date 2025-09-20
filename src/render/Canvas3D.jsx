@@ -9,7 +9,7 @@ import { buildScene } from "../composition/scene.js";
 
 function SceneRoot() {
   const group = useRef();
-  const setFPS = useStore((s) => s.setFPS);
+  const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
 
   useEffect(() => {

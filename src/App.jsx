@@ -6,7 +6,7 @@ import Timeline from "./ui/Timeline";
 import useStore from "./core/store";
 
 export default function App() {
-  const mode = useStore((s) => s.mode);
+  const mode = useStore(s => s.mode);
   const setMode = useStore((s) => s.setMode);
 
   return (

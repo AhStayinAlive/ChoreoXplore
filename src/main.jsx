@@ -1,13 +1,14 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './styles.css'
-import '@xyflow/react/dist/style.css'
-import App from './App.jsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
+import "@xyflow/react/dist/style.css";
+import App from "./App.jsx";
 
-const root = createRoot(document.getElementById('root'));
+const rootEl = document.getElementById("root");
+if (!rootEl) console.error("No #root div found in index.html");
 
-root.render(
+createRoot(rootEl).render(
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+  </StrictMode>
+);

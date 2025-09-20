@@ -4,8 +4,9 @@ import burst from "../presets/preset.angular-burst.json";
 import grid from "../presets/preset.orbital-grids.json";
 
 export default function PresetPanel() {
-  const setPreset = useStore((s) => s.setPreset);
-  const { reactivity, setReactivity } = useStore((s) => ({ reactivity: s.reactivity, setReactivity: s.setReactivity }));
+  const setPreset = useStore(s => s.setPreset);
+  const reactivity = useStore(s => s.reactivity);
+  const setReactivity = useStore(s => s.setReactivity);
 
   return (
     <div>
@@ -17,15 +18,15 @@ export default function PresetPanel() {
       </div>
       <div style={{ marginTop: 12 }}>
         <label className="mini">Audio Gain</label>
-        <input type="range" min="0" max="2" step="0.05" defaultValue={reactivity.audioGain} onChange={(e) => setReactivity(() => ({ audioGain: parseFloat(e.target.value) }))} />
+        <input type="range" min="0" max="2" step="0.05" value={reactivity.audioGain} onChange={(e) => setReactivity(() => ({ audioGain: parseFloat(e.target.value) }))} />
       </div>
       <div style={{ marginTop: 8 }}>
         <label className="mini">Pose Gain</label>
-        <input type="range" min="0" max="2" step="0.05" defaultValue={reactivity.poseGain} onChange={(e) => setReactivity(() => ({ poseGain: parseFloat(e.target.value) }))} />
+        <input type="range" min="0" max="2" step="0.05" value={reactivity.poseGain} onChange={(e) => setReactivity(() => ({ poseGain: parseFloat(e.target.value) }))} />
       </div>
       <div style={{ marginTop: 8 }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <input type="checkbox" defaultChecked onChange={(e) => setReactivity(() => ({ enabled: e.target.checked }))} />
+          <input type="checkbox" checked={reactivity.enabled} onChange={(e) => setReactivity(() => ({ enabled: e.target.checked }))} />
           Reactivity Enabled
         </label>
       </div>
