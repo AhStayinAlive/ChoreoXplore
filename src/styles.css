@@ -9,6 +9,11 @@
   --accent-2: #7c7cff;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 html,
 body,
 #root {

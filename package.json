@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node server/index.js",
+    "server": "node lyrics-proxy-server-simple.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup-groq": "node setup-groq.js",
+    "test-groq": "node test-groq.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
@@ -20,6 +23,7 @@
     "gsap": "^3.13.0",
     "immer": "^10.1.3",
     "jszip": "^3.10.1",
+    "node-fetch": "^2.6.7",
     "openai": "^4.59.1",
     "postprocessing": "^6.37.8",
     "react": "^19.1.1",

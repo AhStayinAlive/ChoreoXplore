@@ -1,0 +1,21 @@
+{
+  "name": "lyrics-proxy-server",
+  "version": "1.0.0",
+  "description": "Proxy server for lyrics APIs to avoid CORS issues",
+  "main": "lyrics-proxy-server.js",
+  "scripts": {
+    "start": "node lyrics-proxy-server.js",
+    "dev": "nodemon lyrics-proxy-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["lyrics", "proxy", "cors", "api"],
+  "author": "ChoreoXplore",
+  "license": "MIT"
+}

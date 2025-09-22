@@ -1,13 +1,18 @@
+import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
 import Hud2D from "./render/Hud2D";
 import PresetPanel from "./ui/PresetPanel";
 import RoutingFlow from "./ui/RoutingFlow";
 import Timeline from "./ui/Timeline";
+import AssetPanel from "./ui/AssetPanel";
+import AIThinkingPanel from "./ui/AIThinkingPanel";
 import useStore from "./core/store";
 
 export default function App() {
   const mode = useStore(s => s.mode);
   const setMode = useStore((s) => s.setMode);
+  const [showAIThinking, setShowAIThinking] = useState(false);
+  const [aiThinkingData, setAiThinkingData] = useState(null);
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#0A0A0C", color: "#fff", position: "relative" }}>
@@ -18,6 +23,14 @@ export default function App() {
           <>
             <div style={{ position: "absolute", left: 12, top: 12, width: 340, background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12 }}>
               <PresetPanel />
+            </div>
+            <div style={{ position: "absolute", left: 12, top: 280, width: 340, height: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+              <AssetPanel 
+                onThink={(data) => {
+                  setAiThinkingData(data);
+                  setShowAIThinking(true);
+                }}
+              />
             </div>
             <div style={{ position: "absolute", right: 12, top: 12, width: 420, height: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
               <RoutingFlow />
@@ -31,6 +44,17 @@ export default function App() {
           <button className="ghost" onClick={() => setMode(mode === "author" ? "performance" : "author")}>{mode === "author" ? "Performance Mode" : "Author Mode"}</button>
         </div>
       </div>
+      
+      {/* AI Thinking Panel - Full Screen Overlay */}
+      {showAIThinking && aiThinkingData && (
+        <AIThinkingPanel 
+          onClose={() => setShowAIThinking(false)}
+          lyrics={aiThinkingData.lyrics}
+          assetRepository={aiThinkingData.assetRepository}
+          currentSelection={aiThinkingData.currentSelection}
+          context={aiThinkingData.context}
+        />
+      )}
     </div>
   );
 }
