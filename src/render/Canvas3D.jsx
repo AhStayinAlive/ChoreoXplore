@@ -8,6 +8,9 @@ import { applyRoutes } from "../core/routing";
 import { buildScene } from "../composition/scene.js";
 import { createMixer } from "../core/mixer";
 import { loadAnglesPack } from "../core/assets";
+import Motion3DController from "../components/Motion3DController";
+import { subscribeToMotionData } from "../core/motionMapping";
+import SampleImage from "../components/SampleImage";
 
 function SceneRoot() {
   const group = useRef();
@@ -16,13 +19,24 @@ function SceneRoot() {
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
+  const motionDataRef = useRef(null);
 
   useEffect(() => {
     // Clear static nodes; mixer will spawn visuals
     setSceneNodes([]);
   }, [setSceneNodes]);
 
-  useEffect(() => { startAudio(); startPose(); }, []);
+  useEffect(() => { 
+    startAudio(); 
+    startPose(); 
+    
+    // Subscribe to motion data for camera control
+    const motionSubscription = subscribeToMotionData((motionData) => {
+      motionDataRef.current = motionData;
+    });
+    
+    return () => motionSubscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     apiRef.current.root = group.current;
@@ -55,7 +69,12 @@ function SceneRoot() {
     setFPS(Math.round(fps));
   });
 
-  return <group ref={group} />;
+  return (
+    <Motion3DController>
+      <group ref={group} />
+      <SampleImage />
+    </Motion3DController>
+  );
 }
 
 export default function Canvas3D() {

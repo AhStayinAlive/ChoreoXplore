@@ -6,6 +6,8 @@ import RoutingFlow from "./ui/RoutingFlow";
 import Timeline from "./ui/Timeline";
 import AssetPanel from "./ui/AssetPanel";
 import AIThinkingPanel from "./ui/AIThinkingPanel";
+import MotionInputPanel from "./components/MotionInputPanel";
+import MotionControlPanel from "./components/MotionControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
@@ -19,6 +21,16 @@ export default function App() {
       <div style={{ position: "absolute", inset: 0 }}>
         <Canvas3D />
         <Hud2D />
+        {/* Motion Input Panel - Always visible, compact size */}
+        <div style={{ position: "absolute", right: 12, top: 12, width: 420, height: "auto", maxHeight: "70vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
+          <MotionInputPanel />
+        </div>
+
+        {/* Motion Control Panel - Below motion input */}
+        <div style={{ position: "absolute", right: 12, top: "calc(70vh + 24px)", width: 420, height: "auto", maxHeight: "25vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
+          <MotionControlPanel />
+        </div>
+
         {mode === "author" && (
           <>
             <div style={{ position: "absolute", left: 12, top: 12, width: 340, background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12 }}>
@@ -32,15 +44,12 @@ export default function App() {
                 }}
               />
             </div>
-            <div style={{ position: "absolute", right: 12, top: 12, width: 420, height: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
-              <RoutingFlow />
-            </div>
             <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: 12, width: "70%", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 8, borderRadius: 12 }}>
               <Timeline />
             </div>
           </>
         )}
-        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 12 }}>
+        <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12 }}>
           <button className="ghost" onClick={() => setMode(mode === "author" ? "performance" : "author")}>{mode === "author" ? "Performance Mode" : "Author Mode"}</button>
         </div>
       </div>
