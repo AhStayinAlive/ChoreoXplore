@@ -8,6 +8,7 @@ import AssetPanel from "./ui/AssetPanel";
 import AIThinkingPanel from "./ui/AIThinkingPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
 import MotionControlPanel from "./components/MotionControlPanel";
+import AvatarControlPanel from "./components/AvatarControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
@@ -29,6 +30,11 @@ export default function App() {
         {/* Motion Control Panel - Below motion input */}
         <div style={{ position: "absolute", right: 12, top: "calc(70vh + 24px)", width: 420, height: "auto", maxHeight: "25vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
           <MotionControlPanel />
+        </div>
+
+        {/* Avatar Control Panel - Below motion control */}
+        <div style={{ position: "absolute", right: 12, top: "calc(70vh + 25vh + 36px)", width: 420, height: "auto", maxHeight: "20vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
+          <AvatarControlPanel />
         </div>
 
         {mode === "author" && (

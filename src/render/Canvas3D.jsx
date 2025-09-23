@@ -11,6 +11,10 @@ import { loadAnglesPack } from "../core/assets";
 import Motion3DController from "../components/Motion3DController";
 import { subscribeToMotionData } from "../core/motionMapping";
 import SampleImage from "../components/SampleImage";
+import HumanoidAvatar from "../components/HumanoidAvatar";
+import DancerSegmentation from "../components/DancerSegmentation";
+import SilhouetteEffect from "../components/SilhouetteEffect";
+import SimpleSkeleton from "../components/SimpleSkeleton";
 
 function SceneRoot() {
   const group = useRef();
@@ -39,23 +43,23 @@ function SceneRoot() {
   }, []);
 
   useEffect(() => {
-    apiRef.current.root = group.current;
-    mixerRef.current = createMixer(apiRef.current);
-    // Ensure pack loads (folder + manifest in /public)
-    loadAnglesPack("/packs/sample.anglespack/manifest.json").catch(() => {});
+    // Disable mixer system to prevent random shapes from appearing
+    // apiRef.current.root = group.current;
+    // mixerRef.current = createMixer(apiRef.current);
+    // loadAnglesPack("/packs/sample.anglespack/manifest.json").catch(() => {});
 
-    const subA = audio$.subscribe((a) => {
-      const p = pose$.value || {};
-      applyRoutes({ audio: a, pose: p });
-      SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
-      if (a.onset) mixerRef.current?.trySpawn(SceneRoot._signal);
-    });
-    const subP = pose$.subscribe((p) => {
-      const a = audio$.value || {};
-      applyRoutes({ audio: a, pose: p });
-      SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
-    });
-    return () => { subA.unsubscribe(); subP.unsubscribe(); };
+    // const subA = audio$.subscribe((a) => {
+    //   const p = pose$.value || {};
+    //   applyRoutes({ audio: a, pose: p });
+    //   SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
+    //   if (a.onset) mixerRef.current?.trySpawn(SceneRoot._signal);
+    // });
+    // const subP = pose$.subscribe((p) => {
+    //   const a = audio$.value || {};
+    //   applyRoutes({ audio: a, pose: p });
+    //   SceneRoot._signal = { rms: a.rms, bands: a.bands, centroid: a.centroid, onset: a.onset, pose: p };
+    // });
+    // return () => { subA.unsubscribe(); subP.unsubscribe(); };
   }, []);
 
   useFrame(() => {
@@ -65,15 +69,18 @@ function SceneRoot() {
     useFrame.prev = now;
     const dt = Math.min(0.05, (now - lastTRef.current) / 1000);
     lastTRef.current = now;
-    if (mixerRef.current && SceneRoot._signal) mixerRef.current.update(dt, SceneRoot._signal);
+    // Disable mixer updates to prevent random shapes
+    // if (mixerRef.current && SceneRoot._signal) mixerRef.current.update(dt, SceneRoot._signal);
     setFPS(Math.round(fps));
   });
 
   return (
-    <Motion3DController>
-      <group ref={group} />
-      <SampleImage />
-    </Motion3DController>
+    <>
+      <Motion3DController>
+        <group ref={group} />
+      </Motion3DController>
+      <SimpleSkeleton />
+    </>
   );
 }
 
