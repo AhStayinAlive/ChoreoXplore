@@ -1,124 +1,250 @@
-ChoreoXplore – Handover & Runbook
+# 🎭 ChoreoXplore
 
-This repo is a Vite + React app that:
+A real-time motion tracking and visual effects application that combines pose detection, AI-powered sentiment analysis, and 3D visualizations. Create stunning visual experiences by mapping your movements to dynamic effects and analyzing music lyrics with AI.
 
-Chats with LM Studio via /api/chat.
+## ✨ Features
 
-Generates images through ComfyUI (Stable Diffusion 1.5) via /img/*.
+- **Real-time Pose Tracking**: MediaPipe-powered skeleton detection with responsive avatar
+- **AI-Powered Analysis**: Sentiment analysis and visual recommendations for song lyrics
+- **3D Visualizations**: Three.js-powered 3D canvas with motion-reactive effects
+- **Multiple Input Sources**: YouTube links, file uploads, and manual lyrics input
+- **Dynamic Scaling**: Avatar automatically scales based on distance from camera
+- **Clean Interface**: Intuitive controls for motion sensitivity and visual effects
 
-Pushes the generated image into the Preview pane and logs all steps in the Jobs panel.
+## 🚀 Quick Start
 
-The notes below are everything your teammates need to get it running reliably on Windows (CPU). If you have an NVIDIA GPU and a CUDA build of PyTorch, it will be faster, but CPU works.
+### Prerequisites
 
-0) Requirements
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **Webcam** (for motion tracking)
+- **Modern browser** (Chrome, Firefox, Safari, Edge)
 
-Windows 10/11
+### Installation
 
-Python 3.11.x (installed on PATH)
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ChoreoXplore
+   ```
 
-Node.js ≥ 18 + npm
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-LM Studio (optional but recommended; for text chat)
+3. **Set up environment variables** (Optional - for AI features)
+   ```bash
+   # Create .env.local file
+   touch .env.local
+   ```
+   
+   Add to `.env.local`:
+   ```env
+   VITE_GROQ_API_KEY=your_groq_api_key_here
+   ```
 
-ComfyUI (source) checked out to
-C:\Users\<you>\Documents\ComfyUI-src
+4. **Start the application**
+   ```bash
+   # Terminal 1: Start the main app
+   npm run dev
+   
+   # Terminal 2: Start lyrics proxy server
+   npm run server
+   ```
 
-Tip: if you used ComfyUI’s “electron” build already, you can still run the source build in a separate folder for API access.
+5. **Open your browser**
+   Navigate to `http://localhost:5173`
 
-1) Install & Start ComfyUI (CPU)
+## 🎯 Usage Guide
 
-Open PowerShell and create/activate a venv:
+### Basic Motion Tracking
 
-cd $env:USERPROFILE\Documents\ComfyUI-src
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+1. **Allow camera access** when prompted
+2. **Position yourself** in front of the camera (full body visible for best results)
+3. **Watch your avatar** - a green skeleton will appear and follow your movements
+4. **Adjust sensitivity** using the Motion Controls panel on the right
 
+### AI-Powered Lyrics Analysis
 
-Install Python deps:
+1. **Get lyrics** using one of these methods:
+   - **YouTube**: Paste a YouTube URL in the Music Input panel
+   - **File Upload**: Upload an audio file
+   - **Manual**: Type lyrics directly
 
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+2. **Click "Think AI"** to analyze the lyrics
+3. **View recommendations** for visual parameters based on sentiment analysis
 
+### Visual Effects
 
-Download an SD-1.5 model in .safetensors format (do not use .ckpt):
+1. **Add assets** in the Asset Panel (lines, surfaces, 3D geometries)
+2. **Adjust parameters** using the sliders
+3. **Enable reactivity** to make effects respond to your movements
+4. **Experiment** with different presets and settings
 
-Example filename: v1-5-pruned-emaonly.safetensors
+## 🔧 Advanced Setup
 
-Place it at:
+### AI Integration (Optional)
 
-C:\Users\<you>\Documents\ComfyUI-src\models\checkpoints\v1-5-pruned-emaonly.safetensors
+For AI-powered lyrics analysis, you need an API key:
 
+#### Groq API (Recommended - Free)
+1. Go to [https://console.groq.com/](https://console.groq.com/)
+2. Sign up for a free account
+3. Create an API key
+4. Add to `.env.local`:
+   ```env
+   VITE_GROQ_API_KEY=your_groq_api_key_here
+   ```
 
-Start ComfyUI (CPU + CORS enabled):
+#### Local AI (Alternative)
+1. Install LM Studio or Ollama
+2. Run a local model on port 1234
+3. Add to `.env.local`:
+   ```env
+   VITE_AI_PROVIDER=local
+   VITE_AI_BASE_URL=http://localhost:1234/v1
+   VITE_AI_API_KEY=lm-studio
+   ```
 
-.\.venv\Scripts\python.exe main.py --listen 127.0.0.1 --port 8188 --cpu --enable-cors-header
+### Image Generation (Optional)
 
+For AI image generation features:
 
-Leave this window open. You should see:
+1. **Install ComfyUI** and run on port 8188
+2. **Start image proxy**:
+   ```bash
+   node img-proxy.cjs
+   ```
 
-To see the GUI go to: http://127.0.0.1:8188
+## 📁 Project Structure
 
+```
+ChoreoXplore/
+├── src/
+│   ├── components/          # React components
+│   │   ├── SimpleSkeleton.jsx    # Main avatar component
+│   │   ├── MotionInputPanel.jsx  # Camera and pose detection
+│   │   └── ...
+│   ├── core/               # Core functionality
+│   │   ├── motionMapping.js      # Motion-to-visual mapping
+│   │   ├── pose.js              # Pose detection logic
+│   │   └── ...
+│   ├── services/           # External services
+│   │   └── sentimentAnalysis.js  # AI sentiment analysis
+│   └── lib/                # Utilities
+├── server/                 # Backend services
+│   └── index.js           # AI proxy server
+├── public/                 # Static assets
+└── packs/                  # Visual effect presets
+```
 
-Why .safetensors? New PyTorch blocks unsafe pickle .ckpt models by default, which causes “weights_only load failed” and no images. .safetensors avoids that.
+## 🛠️ Development
 
-2) LM Studio (for “Ask AI”)
+### Available Scripts
 
-Open LM Studio → Server tab → start the local server at http://127.0.0.1:1234
-.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run server` - Start lyrics proxy server
+- `npm run dev:server` - Start AI proxy server
+- `npm run lint` - Run ESLint
 
-Load a model (e.g., meta-llama-3.1-8b-instruct) and make it available to the server.
+### Key Components
 
-3) App Setup
+- **SimpleSkeleton**: Real-time pose tracking avatar
+- **MotionInputPanel**: Camera feed and MediaPipe integration
+- **AIThinkingPanel**: AI-powered lyrics analysis
+- **AssetPanel**: Visual asset management
+- **MotionControlPanel**: Motion sensitivity controls
 
-In the project root, create .env.local with:
+## 🔍 Troubleshooting
 
-# LM Studio (chat)
-AI_PROVIDER=local
-AI_BASE_URL=http://127.0.0.1:1234/v1
-AI_API_KEY=lm-studio
-AI_MODEL=meta-llama-3.1-8b-instruct
+### Common Issues
 
-# SD1.5 checkpoint filename (exactly as in models/checkpoints)
-VITE_SDXL_CKPT=v1-5-pruned-emaonly.safetensors
+**Camera not working:**
+- Ensure camera permissions are granted
+- Try refreshing the page
+- Check if another application is using the camera
 
+**Avatar not appearing:**
+- Make sure you're visible in the camera frame
+- Check browser console for errors
+- Try adjusting the camera angle
 
-vite.config.js already proxies both LM Studio and ComfyUI:
+**AI features not working:**
+- Verify API key is set in `.env.local`
+- Check if proxy server is running (`npm run server`)
+- Ensure internet connection for API calls
 
-// /api/* -> LM Studio 127.0.0.1:1234
-// /img/* -> ComfyUI 127.0.0.1:8188 (rewrite /img -> /)
-server: {
-  proxy: {
-    '/api/chat': { target: 'http://127.0.0.1:1234', changeOrigin: true, rewrite: () => '/v1/chat/completions' },
-    '/api/models': { target: 'http://127.0.0.1:1234', changeOrigin: true, rewrite: () => '/v1/models' },
-    '/img':       { target: 'http://127.0.0.1:8188', changeOrigin: true, rewrite: p => p.replace(/^\/img/, '') },
-  }
-}
+**Legs not rendering:**
+- Position camera to capture your full body
+- The system uses lower visibility thresholds for legs
+- Try stepping back from the camera
 
+### Performance Tips
 
-We rely on the CORS-enabled ComfyUI you started above, so we can proxy directly to 8188 and avoid 403s.
+- **Close other applications** using the camera
+- **Use Chrome** for best MediaPipe performance
+- **Adjust FPS settings** if experiencing lag
+- **Position camera** at eye level for optimal tracking
 
-Install and start the app:
+## 🎨 Customization
 
-npm install
-npm run dev
+### Adding New Visual Effects
 
+1. Create new components in `src/components/`
+2. Add them to the Asset Panel
+3. Integrate with motion mapping system
 
-Visit http://localhost:5173
+### Modifying Avatar Appearance
 
-If you need a standalone helper proxy, img-proxy.cjs exists; but when ComfyUI is started with --enable-cors-header, the Vite proxy alone is enough.
+Edit `src/components/SimpleSkeleton.jsx`:
+- Change colors by modifying material colors
+- Adjust line thickness with `linewidth` property
+- Modify joint sizes by changing circle geometry
 
-4) How to Use
+### Creating New Presets
 
-In the app, the right sidebar Jobs has an Image Generator section.
+1. Add preset files to `src/presets/`
+2. Update the PresetPanel component
+3. Define visual parameters and effects
 
-Type a prompt (e.g., “dreamy sunny warm”), keep 512×512 at first.
+## 📚 API Reference
 
-Click Generate.
+### Motion Detection
+- Uses MediaPipe Pose Landmarker
+- 33 body landmarks detected
+- Real-time pose estimation
 
-Watch the job log:
+### AI Analysis
+- Sentiment analysis (positive/negative/neutral)
+- Emotion detection (joy, sadness, anger, etc.)
+- Visual parameter recommendations
 
-submit:start → submit:ok → poll:n → download:start → download:ok
+### Visual Effects
+- Three.js-based 3D rendering
+- Motion-reactive transformations
+- Real-time parameter adjustment
 
-When done, the image becomes the Preview background.
+## 🤝 Contributing
 
-CPU note: The first generation is slow (model load + warm-up). We allow long polling by default. For quick tests, try 256×256 / 4–6 steps.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- **MediaPipe** for pose detection
+- **Three.js** for 3D graphics
+- **React** for UI framework
+- **Groq** for AI API services
+
+---
+
+**Ready to explore?** Start the application and begin creating amazing motion-reactive visual experiences! 🎭✨
