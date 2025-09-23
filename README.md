@@ -84,7 +84,7 @@ A real-time motion tracking and visual effects application that combines pose de
 
 ## 🔧 Advanced Setup
 
-### AI Integration (Optional)
+### AI Integration
 
 For AI-powered lyrics analysis, you need an API key:
 
@@ -97,25 +97,8 @@ For AI-powered lyrics analysis, you need an API key:
    VITE_GROQ_API_KEY=your_groq_api_key_here
    ```
 
-#### Local AI (Alternative)
-1. Install LM Studio or Ollama
-2. Run a local model on port 1234
-3. Add to `.env.local`:
-   ```env
-   VITE_AI_PROVIDER=local
-   VITE_AI_BASE_URL=http://localhost:1234/v1
-   VITE_AI_API_KEY=lm-studio
-   ```
 
-### Image Generation (Optional)
 
-For AI image generation features:
-
-1. **Install ComfyUI** and run on port 8188
-2. **Start image proxy**:
-   ```bash
-   node img-proxy.cjs
-   ```
 
 ## 📁 Project Structure
 
@@ -190,24 +173,8 @@ ChoreoXplore/
 
 ## 🎨 Customization
 
-### Adding New Visual Effects
 
-1. Create new components in `src/components/`
-2. Add them to the Asset Panel
-3. Integrate with motion mapping system
 
-### Modifying Avatar Appearance
-
-Edit `src/components/SimpleSkeleton.jsx`:
-- Change colors by modifying material colors
-- Adjust line thickness with `linewidth` property
-- Modify joint sizes by changing circle geometry
-
-### Creating New Presets
-
-1. Add preset files to `src/presets/`
-2. Update the PresetPanel component
-3. Define visual parameters and effects
 
 ## 📚 API Reference
 
