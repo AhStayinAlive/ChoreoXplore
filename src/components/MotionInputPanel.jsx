@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { mapPoseToMotion } from '../core/motionMapping';
+import useStore from '../core/store';
 
 const MotionInputPanel = () => {
   const [isActive, setIsActive] = useState(false);
@@ -9,6 +10,8 @@ const MotionInputPanel = () => {
   const [error, setError] = useState(null);
   const [fps, setFps] = useState(0);
   const { updatePoseData } = usePoseDetection();
+  const setPoseData = useStore(s => s.setPoseData);
+  const [showDistortionControls, setShowDistortionControls] = useState(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -112,7 +115,7 @@ const MotionInputPanel = () => {
       ];
 
       ctx.strokeStyle = '#00ff00';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 4; // Thicker lines for better visibility
       
       connections.forEach(([start, end]) => {
         if (landmark[start] && landmark[end]) {
@@ -131,7 +134,7 @@ const MotionInputPanel = () => {
       landmark.forEach((point, index) => {
         if (point.visibility > 0.5) {
           ctx.beginPath();
-          ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
+          ctx.arc(point.x * canvas.width, point.y * canvas.height, 6, 0, 2 * Math.PI); // Larger dots
           ctx.fill();
         }
       });
@@ -163,12 +166,14 @@ const MotionInputPanel = () => {
           };
           
           updatePoseData(poseData);
+          setPoseData(poseData); // Update store for motion distortion
           drawPoseLandmarks(results.landmarks, results.worldLandmarks);
           
           // Map pose data to motion for background movement
           mapPoseToMotion(poseData);
         } else {
           updatePoseData(null);
+          setPoseData(null); // Clear store when no pose detected
           // Clear canvas when no pose detected
           const canvas = canvasRef.current;
           if (canvas) {
@@ -273,6 +278,40 @@ const MotionInputPanel = () => {
         {isActive && (
           <div className="mt-2 text-xs text-gray-400">
             <div>Motion mapping active - check the blue square in the center!</div>
+          </div>
+        )}
+      </div>
+      
+      {/* Distortion Controls */}
+      <div style={{ marginTop: 12, padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 6 }}>
+        <button
+          onClick={() => setShowDistortionControls(!showDistortionControls)}
+          style={{
+            width: "100%",
+            padding: "6px 12px",
+            backgroundColor: "rgba(0,150,255,0.2)",
+            border: "1px solid rgba(0,150,255,0.4)",
+            borderRadius: "4px",
+            color: "white",
+            fontSize: "11px",
+            cursor: "pointer"
+          }}
+        >
+          {showDistortionControls ? "Hide" : "Show"} Distortion Controls
+        </button>
+        
+        {showDistortionControls && (
+          <div style={{ marginTop: 8, fontSize: "10px", color: "rgba(255,255,255,0.8)" }}>
+            <div>✨ GPU-accelerated shader distortion is now active!</div>
+            <div style={{ marginTop: 4, opacity: 0.7 }}>
+              Move your body to see fluid distortion effects on the background!
+            </div>
+            <div style={{ marginTop: 4, opacity: 0.7, color: "#00ff00" }}>
+              Using use-shader-fx fluid simulation with motion capture input
+            </div>
+            <div style={{ marginTop: 4, opacity: 0.7, color: "#ffaa00" }}>
+              Check browser console for shader debug info
+            </div>
           </div>
         )}
       </div>

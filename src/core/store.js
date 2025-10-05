@@ -44,6 +44,10 @@ const useStore = create((set, get) => ({
   // cue stack
   cues: [],
   addCue: (cue) => set((state) => ({ cues: [...state.cues, cue] })),
+
+  // pose data for motion distortion
+  poseData: null,
+  setPoseData: (poseData) => set({ poseData }),
 }));
 
 export default useStore;

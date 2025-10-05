@@ -1,14 +1,10 @@
 import { useState } from "react";
-import Slider from "../components/reusables/Slider";
+import AIAssetGenerator from "../components/AIAssetGenerator";
 
 // Genius API Configuration
 const GENIUS_API_KEY = 'S2Ws82lMaMFMb7Erz9w2jjU089TlwxPqRDCVsPly3xzdZNR-FDP0nAASO4DLg6Jt'; // Get your free API key from https://genius.com/api-clients
 
-export default function AssetPanel({ onThink }) {
-  const [activeTab, setActiveTab] = useState("lines");
-  const [selectedLine, setSelectedLine] = useState("diagonal");
-  const [selectedSurface, setSelectedSurface] = useState("circles");
-  const [selectedGeometry, setSelectedGeometry] = useState("cube");
+export default function AssetPanel({ onBackgroundImageGenerated }) {
   const [musicFile, setMusicFile] = useState(null);
   const [lyrics, setLyrics] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -21,44 +17,16 @@ export default function AssetPanel({ onThink }) {
   const [manualLyrics, setManualLyrics] = useState("");
   const [parsedTitle, setParsedTitle] = useState(null);
 
-  // Asset Repository - stores multiple selected assets
-  const [assetRepository, setAssetRepository] = useState([]);
+  // AI Generated Assets
+  const [aiAssets, setAiAssets] = useState([]);
+  const [sentimentAnalysis, setSentimentAnalysis] = useState(null);
 
-  // Parameter states for current selection
-  const [lineParams, setLineParams] = useState({ length: 50, width: 2 });
-  const [surfaceParams, setSurfaceParams] = useState({ length: 30, width: 30, area: 900 });
-  const [geometryParams, setGeometryParams] = useState({ length: 20, width: 20, height: 20, volume: 8000 });
-
-  const lineTypes = [
-    { value: "diagonal", label: "Diagonal" },
-    { value: "curvilinear", label: "Curvilinear" },
-    { value: "rectilinear", label: "Rectilinear" },
-    { value: "obtuse", label: "Obtuse" },
-    { value: "right-angle", label: "Right Angle Lines" }
-  ];
-
-  const surfaceTypes = [
-    { value: "circles", label: "Circles" },
-    { value: "squares", label: "Squares" },
-    { value: "triangles", label: "Triangles" }
-  ];
-
-  const geometryTypes = [
-    { value: "cube", label: "Cube" },
-    { value: "sphere", label: "Sphere" },
-    { value: "pyramid", label: "Pyramid" }
-  ];
-
-  const updateLineParams = (key, value) => {
-    setLineParams(prev => ({ ...prev, [key]: value }));
-  };
-
-  const updateSurfaceParams = (key, value) => {
-    setSurfaceParams(prev => ({ ...prev, [key]: value }));
-  };
-
-  const updateGeometryParams = (key, value) => {
-    setGeometryParams(prev => ({ ...prev, [key]: value }));
+  // Handle AI asset generation
+  const handleAIAssetsGenerated = (data) => {
+    setAiAssets(data.assets);
+    setSentimentAnalysis(data.analysis);
+    console.log('🎨 AI Assets generated:', data.assets);
+    console.log('📊 Sentiment analysis:', data.analysis);
   };
 
   const handleMusicFile = (event) => {
@@ -449,366 +417,24 @@ The AI analysis will work perfectly with any lyrics you provide!`;
     }
   };
 
-  const addAssetToRepository = () => {
-    let newAsset;
-    
-    if (activeTab === "lines") {
-      newAsset = {
-        id: Date.now(),
-        type: "line",
-        subtype: selectedLine,
-        params: { ...lineParams },
-        label: `${selectedLine} line`
-      };
-    } else if (activeTab === "surfaces") {
-      newAsset = {
-        id: Date.now(),
-        type: "surface",
-        subtype: selectedSurface,
-        params: { ...surfaceParams },
-        label: `${selectedSurface} surface`
-      };
-    } else if (activeTab === "geometries") {
-      newAsset = {
-        id: Date.now(),
-        type: "geometry",
-        subtype: selectedGeometry,
-        params: { ...geometryParams },
-        label: `${selectedGeometry} geometry`
-      };
-    }
 
-    if (newAsset) {
-      setAssetRepository(prev => [...prev, newAsset]);
-    }
-  };
-
-  const removeAssetFromRepository = (assetId) => {
-    setAssetRepository(prev => prev.filter(asset => asset.id !== assetId));
-  };
-
-  const handleThink = () => {
-    if (onThink) {
-      console.log('🎵 Parsed title for context:', parsedTitle);
-      onThink({
-        lyrics,
-        assetRepository,
-        currentSelection: {
-          lines: { type: selectedLine, params: lineParams },
-          surfaces: { type: selectedSurface, params: surfaceParams },
-          geometries: { type: selectedGeometry, params: geometryParams }
-        },
-        // Add context information
-        context: {
-          artist: parsedTitle?.artist || 'Unknown Artist',
-          songTitle: parsedTitle?.song || 'Unknown Song',
-          youtubeTitle: parsedTitle?.original || null,
-          genre: null, // Could be enhanced with genre detection
-          year: null   // Could be enhanced with year detection
-        }
-      });
-    }
-  };
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>Asset Panel</h3>
+          <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>ChoreoXplore</h3>
       
       <div style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px" }}>
-      
-      {/* Tab Navigation */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        <button 
-          className={`ghost ${activeTab === "lines" ? "active" : ""}`}
-          onClick={() => setActiveTab("lines")}
-          style={{ 
-            padding: "6px 12px", 
-            fontSize: "12px",
-            backgroundColor: activeTab === "lines" ? "rgba(255,255,255,0.1)" : "transparent"
+        {/* AI Asset Generator */}
+        <AIAssetGenerator 
+          lyrics={lyrics}
+          context={{
+            artist: parsedTitle?.artist || 'Unknown Artist',
+            songTitle: parsedTitle?.song || 'Unknown Song',
+            youtubeTitle: parsedTitle?.original || null
           }}
-        >
-          2D Lines
-        </button>
-        <button 
-          className={`ghost ${activeTab === "surfaces" ? "active" : ""}`}
-          onClick={() => setActiveTab("surfaces")}
-          style={{ 
-            padding: "6px 12px", 
-            fontSize: "12px",
-            backgroundColor: activeTab === "surfaces" ? "rgba(255,255,255,0.1)" : "transparent"
-          }}
-        >
-          2D Surfaces
-        </button>
-        <button 
-          className={`ghost ${activeTab === "geometries" ? "active" : ""}`}
-          onClick={() => setActiveTab("geometries")}
-          style={{ 
-            padding: "6px 12px", 
-            fontSize: "12px",
-            backgroundColor: activeTab === "geometries" ? "rgba(255,255,255,0.1)" : "transparent"
-          }}
-        >
-          3D Geometries
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "lines" && (
-        <div>
-          <div style={{ marginBottom: 12 }}>
-            <label className="mini" style={{ display: "block", marginBottom: 4 }}>Line Type</label>
-            <select 
-              value={selectedLine} 
-              onChange={(e) => setSelectedLine(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "6px 8px",
-                backgroundColor: "rgba(0,0,0,0.6)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: "4px",
-                color: "white",
-                fontSize: "12px"
-              }}
-            >
-              {lineTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Length"
-              value={lineParams.length}
-              onChange={(value) => updateLineParams("length", value)}
-              min={10}
-              max={200}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div>
-            <Slider
-              label="Width"
-              value={lineParams.width}
-              onChange={(value) => updateLineParams("width", value)}
-              min={1}
-              max={20}
-              step={0.5}
-              format={(v) => `${v}px`}
-            />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "surfaces" && (
-        <div>
-          <div style={{ marginBottom: 12 }}>
-            <label className="mini" style={{ display: "block", marginBottom: 4 }}>Surface Type</label>
-            <select 
-              value={selectedSurface} 
-              onChange={(e) => setSelectedSurface(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "6px 8px",
-                backgroundColor: "rgba(0,0,0,0.6)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: "4px",
-                color: "white",
-                fontSize: "12px"
-              }}
-            >
-              {surfaceTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Length"
-              value={surfaceParams.length}
-              onChange={(value) => updateSurfaceParams("length", value)}
-              min={10}
-              max={100}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Width"
-              value={surfaceParams.width}
-              onChange={(value) => updateSurfaceParams("width", value)}
-              min={10}
-              max={100}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div>
-            <Slider
-              label="Area"
-              value={surfaceParams.area}
-              onChange={(value) => updateSurfaceParams("area", value)}
-              min={100}
-              max={10000}
-              step={10}
-              format={(v) => `${v}px²`}
-            />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "geometries" && (
-        <div>
-          <div style={{ marginBottom: 12 }}>
-            <label className="mini" style={{ display: "block", marginBottom: 4 }}>Geometry Type</label>
-            <select 
-              value={selectedGeometry} 
-              onChange={(e) => setSelectedGeometry(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "6px 8px",
-                backgroundColor: "rgba(0,0,0,0.6)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: "4px",
-                color: "white",
-                fontSize: "12px"
-              }}
-            >
-              {geometryTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Length"
-              value={geometryParams.length}
-              onChange={(value) => updateGeometryParams("length", value)}
-              min={5}
-              max={50}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Width"
-              value={geometryParams.width}
-              onChange={(value) => updateGeometryParams("width", value)}
-              min={5}
-              max={50}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div style={{ marginBottom: 8 }}>
-            <Slider
-              label="Height"
-              value={geometryParams.height}
-              onChange={(value) => updateGeometryParams("height", value)}
-              min={5}
-              max={50}
-              step={1}
-              format={(v) => `${v}px`}
-            />
-          </div>
-          
-          <div>
-            <Slider
-              label="Volume"
-              value={geometryParams.volume}
-              onChange={(value) => updateGeometryParams("volume", value)}
-              min={125}
-              max={125000}
-              step={125}
-              format={(v) => `${v}px³`}
-            />
-          </div>
-        </div>
-      )}
-      </div>
-
-      {/* Asset Repository Section */}
-      <div style={{ marginTop: 16, flexShrink: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <h4 style={{ color: "white", fontSize: "12px", margin: 0 }}>Asset Repository</h4>
-          <button
-            onClick={addAssetToRepository}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "rgba(0,150,255,0.2)",
-              border: "1px solid rgba(0,150,255,0.4)",
-              borderRadius: "6px",
-              color: "white",
-              fontSize: "11px",
-              cursor: "pointer",
-              fontWeight: "600"
-            }}
-          >
-            Add Current
-          </button>
-        </div>
-        
-        {assetRepository.length > 0 ? (
-          <div style={{ 
-            maxHeight: "120px", 
-            overflow: "auto", 
-            backgroundColor: "rgba(0,0,0,0.3)",
-            borderRadius: "6px",
-            padding: "8px"
-          }}>
-            {assetRepository.map((asset) => (
-              <div key={asset.id} style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "4px 8px",
-                marginBottom: "4px",
-                backgroundColor: "rgba(255,255,255,0.05)",
-                borderRadius: "4px",
-                fontSize: "10px"
-              }}>
-                <span style={{ color: "white" }}>
-                  {asset.label} ({Object.values(asset.params).join(", ")})
-                </span>
-                <button
-                  onClick={() => removeAssetFromRepository(asset.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ff6b6b",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    padding: "2px 4px"
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ 
-            color: "rgba(255,255,255,0.5)", 
-            fontSize: "10px", 
-            textAlign: "center",
-            padding: "8px",
-            backgroundColor: "rgba(0,0,0,0.3)",
-            borderRadius: "6px"
-          }}>
-            No assets in repository. Select and add assets above.
-          </div>
-        )}
+          onAssetsGenerated={handleAIAssetsGenerated}
+          onBackgroundImageGenerated={onBackgroundImageGenerated}
+        />
       </div>
 
       {/* Music Input Section - Fixed at bottom */}
@@ -817,21 +443,6 @@ The AI analysis will work perfectly with any lyrics you provide!`;
         
         {/* Source Selection */}
         <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-          <button
-            onClick={() => setMusicSource("file")}
-            style={{
-              flex: 1,
-              padding: "6px 12px",
-              fontSize: "11px",
-              backgroundColor: musicSource === "file" ? "rgba(0,150,255,0.3)" : "rgba(255,255,255,0.1)",
-              border: `1px solid ${musicSource === "file" ? "rgba(0,150,255,0.5)" : "rgba(255,255,255,0.2)"}`,
-              borderRadius: "6px",
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            File Upload
-          </button>
           <button
             onClick={() => setMusicSource("youtube")}
             style={{
@@ -849,41 +460,9 @@ The AI analysis will work perfectly with any lyrics you provide!`;
           </button>
         </div>
 
-        {/* File Upload */}
-        {musicSource === "file" && (
-          <div>
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={handleMusicFile}
-              style={{ display: "none" }}
-              id="music-upload"
-            />
-            <label
-              htmlFor="music-upload"
-              style={{
-                display: "block",
-                padding: "8px 12px",
-                backgroundColor: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "6px",
-                color: "white",
-                fontSize: "12px",
-                textAlign: "center",
-                cursor: "pointer",
-                transition: "background-color 0.2s"
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = "rgba(255,255,255,0.2)"}
-              onMouseLeave={(e) => e.target.style.backgroundColor = "rgba(255,255,255,0.1)"}
-            >
-              {musicFile ? "Music Loaded ✓" : "Choose Audio File"}
-            </label>
-          </div>
-        )}
 
         {/* YouTube URL Input */}
-        {musicSource === "youtube" && (
-          <div>
+        <div>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <input
                 type="url"
@@ -1058,26 +637,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
                 </div>
               )}
 
-        {/* Think Button */}
-        <button
-          className="ghost"
-          onClick={handleThink}
-          disabled={!lyrics}
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            fontSize: "11px",
-            backgroundColor: lyrics ? "rgba(0,150,255,0.2)" : "rgba(255,255,255,0.05)",
-            border: `1px solid ${lyrics ? "rgba(0,150,255,0.4)" : "rgba(255,255,255,0.1)"}`,
-            borderRadius: "6px",
-            color: lyrics ? "white" : "rgba(255,255,255,0.4)",
-            cursor: lyrics ? "pointer" : "not-allowed"
-          }}
-        >
-          {lyrics ? "Think" : "Upload music to enable AI thinking"}
-        </button>
+        </div>
       </div>
-
-    </div>
   );
 }

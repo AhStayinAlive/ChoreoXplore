@@ -1,57 +1,108 @@
 import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
 import Hud2D from "./render/Hud2D";
-import PresetPanel from "./ui/PresetPanel";
 import RoutingFlow from "./ui/RoutingFlow";
-import Timeline from "./ui/Timeline";
 import AssetPanel from "./ui/AssetPanel";
-import AIThinkingPanel from "./ui/AIThinkingPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
-import MotionControlPanel from "./components/MotionControlPanel";
-import AvatarControlPanel from "./components/AvatarControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
   const mode = useStore(s => s.mode);
   const setMode = useStore((s) => s.setMode);
-  const [showAIThinking, setShowAIThinking] = useState(false);
-  const [aiThinkingData, setAiThinkingData] = useState(null);
+  const [backgroundImage, setBackgroundImage] = useState(null);
+
+  const handleBackgroundImageGenerated = (imageUrl) => {
+    console.log('🎨 App received background image:', imageUrl);
+    console.log('🎨 Image URL type:', typeof imageUrl);
+    console.log('🎨 Image URL length:', imageUrl?.length);
+    setBackgroundImage(imageUrl);
+  };
+
+  console.log('🎨 App render - backgroundImage:', backgroundImage);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#0A0A0C", color: "#fff", position: "relative" }}>
-      <div style={{ position: "absolute", inset: 0 }}>
-        <Canvas3D />
+    <>
+      {/* Set body and html background to transparent when image is present */}
+      {backgroundImage && (
+        <style>
+          {`
+            html, body, #root { 
+              background: transparent !important; 
+            }
+            #background-image-layer {
+              z-index: -999 !important;
+            }
+          `}
+        </style>
+      )}
+      {/* Background Image Layer - RE-ENABLED WITH SHADER DISTORTION */}
+      {backgroundImage && (
+        <div 
+          id="background-image-layer"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundImage: `url("${backgroundImage}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            zIndex: -999,
+            pointerEvents: "none"
+          }} 
+        />
+      )}
+      
+    <div style={{ 
+      width: "100vw", 
+      height: "100vh", 
+      backgroundColor: "transparent",
+      color: "#fff", 
+      position: "relative",
+      zIndex: 1
+    }}>
+      {/* Light overlay to ensure text readability while showing background */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        background: backgroundImage ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.1)",
+        zIndex: 1
+      }} />
+      <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
+        <Canvas3D backgroundImage={backgroundImage} />
         <Hud2D />
-        {/* Motion Input Panel - Always visible, compact size */}
-        <div style={{ position: "absolute", right: 12, top: 12, width: 420, height: "auto", maxHeight: "70vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
-          <MotionInputPanel />
-        </div>
+            {/* Motion Input Panel - Always rendered but UI hidden in performance mode */}
+            <div style={{ 
+              position: "absolute", 
+              right: 12, 
+              top: 12, 
+              width: 420, 
+              height: "auto", 
+              maxHeight: "70vh", 
+              background: "rgba(0,0,0,.4)", 
+              backdropFilter: "blur(10px)", 
+              padding: 12, 
+              borderRadius: 12, 
+              overflow: "hidden", 
+              zIndex: 10,
+              display: mode === "author" ? "block" : "none"
+            }}>
+              <MotionInputPanel />
+            </div>
+            {/* Hidden MotionInputPanel for performance mode - keeps motion capture running */}
+            {mode === "performance" && (
+              <div style={{ position: "absolute", left: "-9999px", top: "-9999px", visibility: "hidden" }}>
+                <MotionInputPanel />
+              </div>
+            )}
 
-        {/* Motion Control Panel - Below motion input */}
-        <div style={{ position: "absolute", right: 12, top: "calc(70vh + 24px)", width: 420, height: "auto", maxHeight: "25vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
-          <MotionControlPanel />
-        </div>
-
-        {/* Avatar Control Panel - Below motion control */}
-        <div style={{ position: "absolute", right: 12, top: "calc(70vh + 25vh + 36px)", width: 420, height: "auto", maxHeight: "20vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden", zIndex: 10 }}>
-          <AvatarControlPanel />
-        </div>
 
         {mode === "author" && (
           <>
-            <div style={{ position: "absolute", left: 12, top: 12, width: 340, background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12 }}>
-              <PresetPanel />
-            </div>
-            <div style={{ position: "absolute", left: 12, top: 280, width: 340, height: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
-              <AssetPanel 
-                onThink={(data) => {
-                  setAiThinkingData(data);
-                  setShowAIThinking(true);
-                }}
-              />
-            </div>
-            <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: 12, width: "70%", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 8, borderRadius: 12 }}>
-              <Timeline />
+            <div style={{ position: "absolute", left: 12, top: 12, width: 340, height: "75vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+              <AssetPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
             </div>
           </>
         )}
@@ -59,17 +110,7 @@ export default function App() {
           <button className="ghost" onClick={() => setMode(mode === "author" ? "performance" : "author")}>{mode === "author" ? "Performance Mode" : "Author Mode"}</button>
         </div>
       </div>
-      
-      {/* AI Thinking Panel - Full Screen Overlay */}
-      {showAIThinking && aiThinkingData && (
-        <AIThinkingPanel 
-          onClose={() => setShowAIThinking(false)}
-          lyrics={aiThinkingData.lyrics}
-          assetRepository={aiThinkingData.assetRepository}
-          currentSelection={aiThinkingData.currentSelection}
-          context={aiThinkingData.context}
-        />
-      )}
     </div>
+    </>
   );
 }

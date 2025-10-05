@@ -15,8 +15,9 @@ import HumanoidAvatar from "../components/HumanoidAvatar";
 import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
+import ShaderDistortion from "../components/ShaderDistortion";
 
-function SceneRoot() {
+function SceneRoot({ backgroundImage }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
@@ -74,21 +75,38 @@ function SceneRoot() {
     setFPS(Math.round(fps));
   });
 
-  return (
-    <>
-      <Motion3DController>
-        <group ref={group} />
-      </Motion3DController>
-      <SimpleSkeleton />
-    </>
-  );
+      return (
+        <>
+          <Motion3DController>
+            <group ref={group} />
+          </Motion3DController>
+          <SimpleSkeleton />
+          {console.log('🎭 Canvas3D: Checking backgroundImage:', !!backgroundImage, backgroundImage)}
+          {backgroundImage && (
+            <>
+              {console.log('🎭 Canvas3D: Rendering ShaderDistortion with backgroundImage:', !!backgroundImage)}
+              <ShaderDistortion 
+                backgroundImage={backgroundImage} 
+                isActive={true} 
+              />
+            </>
+          )}
+        </>
+      );
 }
 
-export default function Canvas3D() {
+export default function Canvas3D({ backgroundImage }) {
+  console.log('🎭 Canvas3D: Component rendered with backgroundImage:', !!backgroundImage, backgroundImage);
+  
   return (
-    <Canvas orthographic camera={{ zoom: 1.2, position: [0, 0, 100] }} dpr={[1, 2]}>
-      <color attach="background" args={["#0A0A0C"]} />
-      <SceneRoot />
+    <Canvas 
+      orthographic 
+      camera={{ zoom: 0.1, position: [0, 0, 10] }} 
+      dpr={[1, 2]}
+      style={{ background: backgroundImage ? "transparent" : "#0A0A0C" }}
+    >
+      {!backgroundImage && <color attach="background" args={["#0A0A0C"]} />}
+      <SceneRoot backgroundImage={backgroundImage} />
     </Canvas>
   );
 }

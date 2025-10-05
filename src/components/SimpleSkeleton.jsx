@@ -40,7 +40,7 @@ const SimpleSkeleton = () => {
     // Calculate scale based on distance from camera (using hip width as reference - more stable)
     const leftHip = landmarks[23];
     const rightHip = landmarks[24];
-    let scale = 1;
+    let scale = 22; // 2x smaller default scale
     
     if (leftHip && rightHip && 
         leftHip.visibility > 0.1 && rightHip.visibility > 0.1) {
@@ -53,8 +53,8 @@ const SimpleSkeleton = () => {
       // Normalize scale: closer = wider hips = bigger avatar
       // Typical hip width ranges from 0.1 to 0.3 in normalized coordinates
       const normalizedWidth = Math.max(0.05, Math.min(0.4, hipWidth));
-      scale = 0.2 / normalizedWidth; // Invert so closer = bigger
-      scale = Math.max(0.5, Math.min(3.0, scale)); // Clamp between 0.5x and 3x
+      scale = 4.4 / normalizedWidth; // Invert so closer = bigger, 2x smaller base scale
+      scale = Math.max(11.2, Math.min(44.4, scale)); // Clamp between 11.2x and 44.4x for 2x smaller skeleton
     }
 
     // Clear existing children
@@ -87,10 +87,11 @@ const SimpleSkeleton = () => {
         // Create green line material with bulkier appearance
         const material = new THREE.LineBasicMaterial({ 
           color: 0x00FF00, // Green
-          linewidth: 8  // Much thicker lines
+          linewidth: 12  // Even thicker lines
         });
 
         const line = new THREE.Line(geometry, material);
+        line.position.z = 2; // Render skeleton in front
         groupRef.current.add(line);
       }
     });
@@ -110,7 +111,7 @@ const SimpleSkeleton = () => {
         const x = (landmark.x - 0.5) * 200 * scale; // Center and scale
         const y = (0.5 - landmark.y) * 200 * scale; // Flip Y and center
 
-        const geometry = new THREE.CircleGeometry(6 * scale, 16); // Scale circle size with distance
+        const geometry = new THREE.CircleGeometry(10 * scale, 16); // Much larger circles
         const material = new THREE.MeshBasicMaterial({ 
           color: 0x00FF00, // Green to match the lines
           transparent: true,
@@ -118,7 +119,7 @@ const SimpleSkeleton = () => {
         });
 
         const circle = new THREE.Mesh(geometry, material);
-        circle.position.set(x, y, 0);
+        circle.position.set(x, y, 2); // Render skeleton in front
         groupRef.current.add(circle);
       }
     });
@@ -129,7 +130,7 @@ const SimpleSkeleton = () => {
       const x = (nose.x - 0.5) * 200 * scale;
       const y = (0.5 - nose.y) * 200 * scale;
 
-      const headGeometry = new THREE.CircleGeometry(12 * scale, 16); // Bigger head circle
+      const headGeometry = new THREE.CircleGeometry(20 * scale, 16); // Much bigger head circle
       const headMaterial = new THREE.MeshBasicMaterial({ 
         color: 0x00FF00,
         transparent: true,
@@ -137,7 +138,7 @@ const SimpleSkeleton = () => {
       });
 
       const headCircle = new THREE.Mesh(headGeometry, headMaterial);
-      headCircle.position.set(x, y, 0);
+      headCircle.position.set(x, y, 2); // Render skeleton in front
       groupRef.current.add(headCircle);
     }
 
