@@ -81,10 +81,8 @@ function SceneRoot({ backgroundImage }) {
             <group ref={group} />
           </Motion3DController>
           <SimpleSkeleton />
-          {console.log('🎭 Canvas3D: Checking backgroundImage:', !!backgroundImage, backgroundImage)}
           {backgroundImage && (
             <>
-              {console.log('🎭 Canvas3D: Rendering ShaderDistortion with backgroundImage:', !!backgroundImage)}
               <ShaderDistortion 
                 backgroundImage={backgroundImage} 
                 isActive={true} 
@@ -96,7 +94,6 @@ function SceneRoot({ backgroundImage }) {
 }
 
 export default function Canvas3D({ backgroundImage }) {
-  console.log('🎭 Canvas3D: Component rendered with backgroundImage:', !!backgroundImage, backgroundImage);
   
   return (
     <Canvas 

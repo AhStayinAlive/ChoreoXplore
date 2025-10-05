@@ -1,9 +1,10 @@
 import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
-import Hud2D from "./render/Hud2D";
 import RoutingFlow from "./ui/RoutingFlow";
 import AssetPanel from "./ui/AssetPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
+import AuthorPanel from "./components/AuthorPanel";
+import AuthorPromptBox from "./components/AuthorPromptBox";
 import useStore from "./core/store";
 
 export default function App() {
@@ -72,42 +73,57 @@ export default function App() {
       }} />
       <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
         <Canvas3D backgroundImage={backgroundImage} />
-        <Hud2D />
-            {/* Motion Input Panel - Always rendered but UI hidden in performance mode */}
-            <div style={{ 
-              position: "absolute", 
-              right: 12, 
-              top: 12, 
-              width: 420, 
-              height: "auto", 
-              maxHeight: "70vh", 
-              background: "rgba(0,0,0,.4)", 
-              backdropFilter: "blur(10px)", 
-              padding: 12, 
-              borderRadius: 12, 
-              overflow: "hidden", 
-              zIndex: 10,
-              display: mode === "author" ? "block" : "none"
-            }}>
-              <MotionInputPanel />
-            </div>
-            {/* Hidden MotionInputPanel for performance mode - keeps motion capture running */}
-            {mode === "performance" && (
-              <div style={{ position: "absolute", left: "-9999px", top: "-9999px", visibility: "hidden" }}>
-                <MotionInputPanel />
-              </div>
-            )}
+        
+        {/* Single persistent MotionInputPanel - always running, UI visibility changes by mode */}
+        <div style={{ 
+          position: "absolute", 
+          right: 12, 
+          top: 12, 
+          width: 420, 
+          height: "auto", 
+          maxHeight: "70vh", 
+          background: "rgba(0,0,0,.4)", 
+          backdropFilter: "blur(10px)", 
+          padding: 12, 
+          borderRadius: 12, 
+          overflow: "hidden", 
+          zIndex: 10,
+          display: mode === "performance" ? "none" : "block" // Show in generative and author modes, hide in performance
+        }}>
+          <MotionInputPanel />
+        </div>
 
 
-        {mode === "author" && (
+        {mode === "generative" && (
           <>
-            <div style={{ position: "absolute", left: 12, top: 12, width: 340, height: "75vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
               <AssetPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
             </div>
           </>
         )}
+
+        {mode === "author" && (
+          <>
+            <div style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "65vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+              <AuthorPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
+            </div>
+            <AuthorPromptBox onBackgroundImageGenerated={handleBackgroundImageGenerated} />
+          </>
+        )}
         <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12 }}>
-          <button className="ghost" onClick={() => setMode(mode === "author" ? "performance" : "author")}>{mode === "author" ? "Performance Mode" : "Author Mode"}</button>
+          <button 
+            className="ghost" 
+            onClick={() => {
+              const modes = ["performance", "generative", "author"];
+              const currentIndex = modes.indexOf(mode);
+              const nextIndex = (currentIndex + 1) % modes.length;
+              setMode(modes[nextIndex]);
+            }}
+          >
+            {mode === "performance" ? "Switch to Generative" : 
+             mode === "generative" ? "Switch to Author" : 
+             "Switch to Performance"}
+          </button>
         </div>
       </div>
     </div>

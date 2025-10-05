@@ -4,7 +4,7 @@ import AIAssetGenerator from "../components/AIAssetGenerator";
 // Genius API Configuration
 const GENIUS_API_KEY = 'S2Ws82lMaMFMb7Erz9w2jjU089TlwxPqRDCVsPly3xzdZNR-FDP0nAASO4DLg6Jt'; // Get your free API key from https://genius.com/api-clients
 
-export default function AssetPanel({ onBackgroundImageGenerated }) {
+export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerated, authorMode = false }) {
   const [musicFile, setMusicFile] = useState(null);
   const [lyrics, setLyrics] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -27,6 +27,11 @@ export default function AssetPanel({ onBackgroundImageGenerated }) {
     setSentimentAnalysis(data.analysis);
     console.log('🎨 AI Assets generated:', data.assets);
     console.log('📊 Sentiment analysis:', data.analysis);
+    
+    // Pass to parent component if provided
+    if (onAssetsGenerated) {
+      onAssetsGenerated(data);
+    }
   };
 
   const handleMusicFile = (event) => {
@@ -423,7 +428,13 @@ The AI analysis will work perfectly with any lyrics you provide!`;
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
           <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>ChoreoXplore</h3>
       
-      <div style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px" }}>
+      {authorMode ? (
+        <h3 style={{ margin: "0 0 12px 0", fontSize: 18, fontWeight: 600, flexShrink: 0 }}>Author Mode</h3>
+      ) : (
+        <h3 style={{ margin: "0 0 12px 0", fontSize: 18, fontWeight: 600, flexShrink: 0 }}>Generative Mode</h3>
+      )}
+      
+      <div style={{ flex: "0 0 auto", overflow: "auto", paddingRight: "4px", marginBottom: "8px" }}>
         {/* AI Asset Generator */}
         <AIAssetGenerator 
           lyrics={lyrics}
@@ -434,6 +445,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
           }}
           onAssetsGenerated={handleAIAssetsGenerated}
           onBackgroundImageGenerated={onBackgroundImageGenerated}
+          authorMode={authorMode}
         />
       </div>
 
@@ -566,7 +578,6 @@ The AI analysis will work perfectly with any lyrics you provide!`;
               </div>
             )}
           </div>
-        )}
 
               {/* Lyrics Display */}
               {lyrics && (

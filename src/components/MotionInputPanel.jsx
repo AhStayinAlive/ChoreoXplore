@@ -5,13 +5,13 @@ import { mapPoseToMotion } from '../core/motionMapping';
 import useStore from '../core/store';
 
 const MotionInputPanel = () => {
-  const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fps, setFps] = useState(0);
   const { updatePoseData } = usePoseDetection();
   const setPoseData = useStore(s => s.setPoseData);
-  const [showDistortionControls, setShowDistortionControls] = useState(false);
+  const isActive = useStore(s => s.motionCaptureActive);
+  const setIsActive = useStore(s => s.setMotionCaptureActive);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -221,19 +221,24 @@ const MotionInputPanel = () => {
   }, [stopCamera]);
 
   return (
-    <div className="motion-input-panel bg-gray-900 text-white p-3 rounded-lg" style={{ border: '2px solid #00ff00' }}>
+    <div className="motion-input-panel bg-gray-900 text-white p-3 rounded-lg">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold" style={{ color: '#00ff00' }}>🎭 Motion Input</h3>
+        <h3 className="text-lg font-semibold" style={{ color: 'white' }}>Motion Input</h3>
         <div className="flex items-center gap-2">
-          <div className="text-sm text-gray-400">FPS: {fps}</div>
           <button
             onClick={toggleMotionDetection}
             disabled={isLoading}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isActive ? "rgba(220,38,38,0.8)" : "rgba(34,197,94,0.8)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "4px",
+              color: "white",
+              fontSize: "12px",
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.5 : 1,
+              transition: "all 0.2s ease"
+            }}
           >
             {isLoading ? 'Loading...' : isActive ? 'Stop' : 'Start'}
           </button>
@@ -262,59 +267,12 @@ const MotionInputPanel = () => {
         {!isActive && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
             <div className="text-center">
-              <div className="text-3xl mb-2">🎭</div>
               <div className="text-sm">Click Start to begin motion detection</div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-3 p-2 bg-gray-800 rounded">
-        <div className="text-xs text-gray-300 flex justify-between">
-          <span>Pose: {isActive ? 'Active' : 'Inactive'}</span>
-          <span>Camera: {isActive ? 'On' : 'Off'}</span>
-          <span className="text-green-400">✅ Ready</span>
-        </div>
-        {isActive && (
-          <div className="mt-2 text-xs text-gray-400">
-            <div>Motion mapping active - check the blue square in the center!</div>
-          </div>
-        )}
-      </div>
-      
-      {/* Distortion Controls */}
-      <div style={{ marginTop: 12, padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 6 }}>
-        <button
-          onClick={() => setShowDistortionControls(!showDistortionControls)}
-          style={{
-            width: "100%",
-            padding: "6px 12px",
-            backgroundColor: "rgba(0,150,255,0.2)",
-            border: "1px solid rgba(0,150,255,0.4)",
-            borderRadius: "4px",
-            color: "white",
-            fontSize: "11px",
-            cursor: "pointer"
-          }}
-        >
-          {showDistortionControls ? "Hide" : "Show"} Distortion Controls
-        </button>
-        
-        {showDistortionControls && (
-          <div style={{ marginTop: 8, fontSize: "10px", color: "rgba(255,255,255,0.8)" }}>
-            <div>✨ GPU-accelerated shader distortion is now active!</div>
-            <div style={{ marginTop: 4, opacity: 0.7 }}>
-              Move your body to see fluid distortion effects on the background!
-            </div>
-            <div style={{ marginTop: 4, opacity: 0.7, color: "#00ff00" }}>
-              Using use-shader-fx fluid simulation with motion capture input
-            </div>
-            <div style={{ marginTop: 4, opacity: 0.7, color: "#ffaa00" }}>
-              Check browser console for shader debug info
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

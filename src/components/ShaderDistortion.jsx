@@ -10,20 +10,10 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
   const { size, gl } = useThree();
   const poseData = useStore(s => s.poseData);
   
-  console.log('🎭 ShaderDistortion: Component rendered', { 
-    backgroundImage: !!backgroundImage, 
-    isActive,
-    size: { width: size.width, height: size.height }
-  });
   
   // Load background texture
   const texture = useTexture(backgroundImage);
   
-  console.log('🎭 ShaderDistortion: Texture loaded:', {
-    texture: !!texture,
-    backgroundImage: backgroundImage,
-    textureLoaded: texture?.image?.complete
-  });
   
   // Store previous joint positions for velocity calculation
   const prevJointPositions = useRef(new Map());
@@ -38,11 +28,6 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
     dpr: 1,
   });
   
-  console.log('🎭 ShaderDistortion: useFluid hook initialized successfully', {
-    updateFluid: !!updateFluid,
-    fluidTexture: !!fluidTexture,
-    velocity: !!velocity
-  });
 
   // Process motion capture data and convert to fluid forces
   const processMotionData = useCallback(() => {
@@ -89,18 +74,6 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
     // Get motion forces from pose data
     const motionForces = processMotionData();
     
-    // Debug logging every 60 frames
-    if (debugCounter.current % 60 === 0) {
-      console.log('🎭 ShaderDistortion: Frame update', {
-        poseData: !!poseData,
-        landmarks: poseData?.landmarks?.length || 0,
-        motionForces: motionForces.length,
-        isActive,
-        updateFluid: !!updateFluid,
-        fluidTexture: !!fluidTexture
-      });
-    }
-    debugCounter.current++;
     
     // Update fluid simulation (simple call without external forces)
     updateFluid(state);
@@ -267,17 +240,9 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
   });
 
   if (!backgroundImage || !isActive) {
-    console.log('🎭 ShaderDistortion: Not rendering - backgroundImage:', !!backgroundImage, 'isActive:', isActive);
     return null;
   }
 
-  console.log('🎭 ShaderDistortion: Rendering mesh with shader material', {
-    backgroundImage: !!backgroundImage,
-    isActive,
-    texture: !!texture,
-    fluidTexture: !!fluidTexture,
-    poseData: !!poseData
-  });
 
   return (
     <mesh ref={meshRef} position={[0, 0, 1]}>

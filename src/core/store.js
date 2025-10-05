@@ -3,7 +3,7 @@ import { create } from "zustand";
 const allowedAngles = [0, 15, 22.5, 30, 45, 60, 75, 90, 105, 120, 135];
 
 const useStore = create((set, get) => ({
-  mode: "author", // "performance" | "author"
+  mode: "generative", // "performance" | "generative" | "author"
   fps: 0,
   palette: ["#0A0A0C", "#EDEEF2", "#5FA8FF"],
 
@@ -48,6 +48,27 @@ const useStore = create((set, get) => ({
   // pose data for motion distortion
   poseData: null,
   setPoseData: (poseData) => set({ poseData }),
+  
+  // Motion capture state
+  motionCaptureActive: false,
+  setMotionCaptureActive: (active) => set({ motionCaptureActive: active }),
+
+  // author mode state
+  authorMode: {
+    lyrics: "",
+    sentimentAnalysis: null,
+    promptTemplate: {
+      userConcept: "",
+      artStyle: "hand-painted scenic art",
+      lightingMood: "soft warm lighting",
+      colorTone: "warm tones (reds, oranges, golds)",
+      compositionLayout: "open center space"
+    },
+    finalPrompt: ""
+  },
+  setAuthorMode: (fn) => set((state) => ({
+    authorMode: { ...state.authorMode, ...fn(state.authorMode) }
+  })),
 }));
 
 export default useStore;
