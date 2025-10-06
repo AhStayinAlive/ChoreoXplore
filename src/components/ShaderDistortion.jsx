@@ -45,11 +45,11 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
         // Calculate velocity for force strength
         const currentPos = new THREE.Vector2(x, y);
         const prevPos = prevJointPositions.current.get(index);
-        let force = 0.1; // Base force
+        let force = 0.2; // Increased base force
         
         if (prevPos) {
           const distance = currentPos.distanceTo(prevPos);
-          force = Math.min(distance * 10, 0.5); // Scale force based on movement
+          force = Math.min(distance * 15, 0.8); // Scale force based on movement (increased)
         }
         prevJointPositions.current.set(index, currentPos);
         
@@ -58,7 +58,7 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
           x: x,
           y: y,
           force: force,
-          radius: 0.05,
+          radius: 0.08, // Increased radius for stronger effect
           color: [0.0, 0.5, 1.0] // Blue color for ripples
         });
       }
@@ -86,7 +86,7 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
       u_fluid: { value: fluidTexture },
       u_time: { value: 0 },
       u_resolution: { value: new THREE.Vector2(size.width, size.height) },
-      u_distortion_strength: { value: 2.0 },
+      u_distortion_strength: { value: 4.0 },
       u_pose_data: { value: new Float32Array(33 * 2) } // 33 landmarks * 2 (x,y)
     },
     vertexShader: `
@@ -129,9 +129,9 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
               float influence = 1.0 - (distance / 0.02);
               influence = influence * influence; // Smooth falloff
               
-              // Create slightly stronger ripple effect along the line
+              // Create stronger ripple effect along the line
               vec2 direction = normalize(uv - closestPoint);
-              return direction * influence * 0.03 * sin(time * 2.0 + distance * 8.0);
+              return direction * influence * 0.06 * sin(time * 2.0 + distance * 8.0);
             }
             
             return vec2(0.0);
@@ -198,8 +198,8 @@ const ShaderDistortion = ({ backgroundImage, isActive = true }) => {
               distortion = distortion / totalInfluence;
             }
             
-            // Apply slightly stronger distortion to UV coordinates
-            vec2 distortedUv = vUv + distortion * 0.4; // Slightly stronger distortion
+            // Apply stronger distortion to UV coordinates
+            vec2 distortedUv = vUv + distortion * 0.8; // Stronger distortion
             
             // Sample the background texture with distortion
             vec4 background = texture2D(u_texture, distortedUv);

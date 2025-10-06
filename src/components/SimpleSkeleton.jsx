@@ -1,12 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import usePoseDetection from '../hooks/usePoseDetection';
+import useStore from '../core/store';
 import * as THREE from 'three';
 
 const SimpleSkeleton = () => {
   const groupRef = useRef();
   const poseDataRef = useRef(null);
   const { poseData } = usePoseDetection();
+  const skeletonVisible = useStore(s => s.skeletonVisible);
 
   // Update pose data reference
   useEffect(() => {
@@ -30,7 +32,15 @@ const SimpleSkeleton = () => {
   ];
 
   useFrame(() => {
-    if (!groupRef.current || !poseDataRef.current) return;
+    if (!groupRef.current || !poseDataRef.current || !skeletonVisible) {
+      // Clear existing children if skeleton is not visible
+      if (groupRef.current && !skeletonVisible) {
+        while (groupRef.current.children.length > 0) {
+          groupRef.current.remove(groupRef.current.children[0]);
+        }
+      }
+      return;
+    }
 
     const currentPose = poseDataRef.current;
     const landmarks = currentPose.landmarks;

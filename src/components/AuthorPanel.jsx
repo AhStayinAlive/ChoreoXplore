@@ -59,12 +59,17 @@ export default function AuthorPanel({ onBackgroundImageGenerated }) {
       height: "100%", 
       display: "flex", 
       flexDirection: "column", 
-      gap: 16,
+      gap: 12,
       overflow: "hidden"
     }}>
       {/* Music Input Section - Use AssetPanel from generative mode */}
-      <div style={{ flex: "0 0 auto", height: "40%" }}>
-        <div style={{ height: "100%", overflow: "hidden" }}>
+      <div style={{ 
+        flex: "0 0 auto", 
+        maxHeight: "45%", 
+        minHeight: "200px",
+        overflow: "hidden" 
+      }}>
+        <div style={{ height: "100%", overflow: "auto" }}>
           <AssetPanel 
             onBackgroundImageGenerated={onBackgroundImageGenerated} 
             onAssetsGenerated={handleAIAssetsGenerated}
@@ -75,7 +80,12 @@ export default function AuthorPanel({ onBackgroundImageGenerated }) {
       
 
       {/* Prompt Template Section */}
-      <div style={{ flex: 1, overflow: "auto", marginTop: 16 }}>
+      <div style={{ 
+        flex: 1, 
+        overflow: "auto", 
+        minHeight: "200px",
+        maxHeight: "55%"
+      }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 14, fontWeight: 500 }}>Backdrop Prompt Generator</h4>
 
         {/* Art Style */}

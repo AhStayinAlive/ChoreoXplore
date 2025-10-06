@@ -104,7 +104,19 @@ export default function App() {
 
         {mode === "author" && (
           <>
-            <div style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "65vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ 
+              position: "absolute", 
+              left: 12, 
+              top: 12, 
+              width: 360, 
+              height: "70vh", 
+              maxHeight: "70vh", 
+              background: "rgba(0,0,0,.4)", 
+              backdropFilter: "blur(10px)", 
+              padding: 12, 
+              borderRadius: 12, 
+              overflow: "hidden" 
+            }}>
               <AuthorPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
             </div>
             <AuthorPromptBox onBackgroundImageGenerated={handleBackgroundImageGenerated} />

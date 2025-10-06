@@ -52,6 +52,10 @@ const useStore = create((set, get) => ({
   // Motion capture state
   motionCaptureActive: false,
   setMotionCaptureActive: (active) => set({ motionCaptureActive: active }),
+  
+  // Skeleton visibility state
+  skeletonVisible: true,
+  setSkeletonVisible: (visible) => set({ skeletonVisible: visible }),
 
   // author mode state
   authorMode: {

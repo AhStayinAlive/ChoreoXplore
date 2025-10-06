@@ -21,6 +21,7 @@ function SceneRoot({ backgroundImage }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
+  const skeletonVisible = useStore(s => s.skeletonVisible);
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
@@ -80,7 +81,7 @@ function SceneRoot({ backgroundImage }) {
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
-          <SimpleSkeleton />
+          {skeletonVisible && <SimpleSkeleton />}
           {backgroundImage && (
             <>
               <ShaderDistortion 

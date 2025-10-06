@@ -12,6 +12,8 @@ const MotionInputPanel = () => {
   const setPoseData = useStore(s => s.setPoseData);
   const isActive = useStore(s => s.motionCaptureActive);
   const setIsActive = useStore(s => s.setMotionCaptureActive);
+  const skeletonVisible = useStore(s => s.skeletonVisible);
+  const setSkeletonVisible = useStore(s => s.setSkeletonVisible);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -224,7 +226,7 @@ const MotionInputPanel = () => {
     <div className="motion-input-panel bg-gray-900 text-white p-3 rounded-lg">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold" style={{ color: 'white' }}>Motion Input</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleMotionDetection}
             disabled={isLoading}
@@ -241,6 +243,21 @@ const MotionInputPanel = () => {
             }}
           >
             {isLoading ? 'Loading...' : isActive ? 'Stop' : 'Start'}
+          </button>
+          <button
+            onClick={() => setSkeletonVisible(!skeletonVisible)}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: skeletonVisible ? "rgba(34,197,94,0.8)" : "rgba(107,114,128,0.8)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "4px",
+              color: "white",
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.2s ease"
+            }}
+          >
+            {skeletonVisible ? 'Hide Avatar' : 'Show Avatar'}
           </button>
         </div>
       </div>

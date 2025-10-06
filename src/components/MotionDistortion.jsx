@@ -9,8 +9,8 @@ const MotionDistortion = ({ backgroundImage, isActive = true }) => {
   
   // Distortion parameters
   const [distortionConfig, setDistortionConfig] = useState({
-    radius: 60,        // Base radius of distortion (reduced for performance)
-    intensity: 0.4,    // Distortion strength (0-1) (reduced for performance)
+    radius: 80,        // Base radius of distortion (increased for stronger effect)
+    intensity: 0.7,    // Distortion strength (0-1) (increased for stronger effect)
     falloff: 0.8,      // How quickly distortion fades from center
     fadeSpeed: 0.08,   // How fast distortion fades out (faster for performance)
     maxPoints: 5       // Maximum number of active distortion points (reduced for performance)
@@ -214,12 +214,12 @@ const MotionDistortion = ({ backgroundImage, isActive = true }) => {
           const normalizedDist = distance / maxDist;
           const falloff = Math.pow(1 - normalizedDist, distortionConfig.falloff);
           const wave = Math.sin(distance * 0.1 - Date.now() * 0.01) * 0.5 + 0.5;
-          const distortionStrength = intensity * falloff * wave * 0.2;
+          const distortionStrength = intensity * falloff * wave * 0.4;
           
           // Calculate distortion offset
           const angle = Math.atan2(dy, dx);
-          const offsetX = Math.cos(angle) * distortionStrength * 10;
-          const offsetY = Math.sin(angle) * distortionStrength * 10;
+          const offsetX = Math.cos(angle) * distortionStrength * 20;
+          const offsetY = Math.sin(angle) * distortionStrength * 20;
           
           const sourceX = Math.floor(x + offsetX);
           const sourceY = Math.floor(y + offsetY);

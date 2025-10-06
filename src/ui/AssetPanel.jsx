@@ -425,7 +425,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
 
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>ChoreoXplore</h3>
       
       {authorMode ? (
@@ -434,7 +434,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
         <h3 style={{ margin: "0 0 12px 0", fontSize: 18, fontWeight: 600, flexShrink: 0 }}>Generative Mode</h3>
       )}
       
-      <div style={{ flex: "0 0 auto", overflow: "auto", paddingRight: "4px", marginBottom: "8px" }}>
+      <div style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         {/* AI Asset Generator */}
         <AIAssetGenerator 
           lyrics={lyrics}
@@ -450,7 +450,15 @@ The AI analysis will work perfectly with any lyrics you provide!`;
       </div>
 
       {/* Music Input Section - Fixed at bottom */}
-      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+      <div style={{ 
+        marginTop: 8, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 6, 
+        flexShrink: 0,
+        maxHeight: "40%",
+        overflow: "auto"
+      }}>
         <h4 style={{ color: "white", fontSize: "11px", margin: 0 }}>Music Input</h4>
         
         {/* Source Selection */}
