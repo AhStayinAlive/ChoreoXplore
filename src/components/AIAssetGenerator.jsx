@@ -160,7 +160,7 @@ const AIAssetGenerator = ({ lyrics, context, onAssetsGenerated, onBackgroundImag
     const { sentiment, emotions, mood, themes, colors, intensity } = analysis;
     
     // Use Groq AI to analyze most prominent visual elements from lyrics
-    const visualElements = await analyzeVisualElementsWithGroq(lyrics, analysis);
+    const visualElements = await analyzeVisualElementsWithGroq(lyrics, analysis, context);
     
     // Build templated prompt with AI-analyzed visual elements
     let prompt = buildTemplatedPromptWithElements(visualElements, analysis);
@@ -168,8 +168,11 @@ const AIAssetGenerator = ({ lyrics, context, onAssetsGenerated, onBackgroundImag
     return [prompt];
   };
 
-  const analyzeVisualElementsWithGroq = async (lyrics, analysis) => {
+  const analyzeVisualElementsWithGroq = async (lyrics, analysis, context) => {
     try {
+      // Debug: Log the context being passed to Groq
+      console.log('🎵 Song context for Groq AI:', context);
+      
       // Check if we have Groq API key
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
       if (!apiKey) {
@@ -177,7 +180,12 @@ const AIAssetGenerator = ({ lyrics, context, onAssetsGenerated, onBackgroundImag
         return getFallbackVisualElements(analysis);
       }
 
-      const prompt = `You are an expert visual designer analyzing song lyrics for backdrop creation. 
+      const prompt = `You are an expert visual designer creating artistic backdrops based on song analysis. Focus on the EMOTIONAL and THEMATIC essence, not literal lyrics.
+
+SONG CONTEXT:
+- Title: ${context?.songTitle || 'Unknown Song'}
+- Artist: ${context?.artist || 'Unknown Artist'}
+- YouTube Title: ${context?.youtubeTitle || 'N/A'}
 
 LYRICS:
 ${lyrics}
@@ -188,19 +196,32 @@ SENTIMENT ANALYSIS:
 - Themes: ${analysis.themes ? analysis.themes.join(', ') : 'unknown'}
 - Sentiment: ${analysis.sentiment ? analysis.sentiment.overall : 'unknown'}
 
-Analyze the lyrics and identify the most prominent visual elements that should be included in a backdrop. Focus on:
-1. Specific objects, places, or scenes mentioned in the lyrics
-2. Visual metaphors or imagery from the lyrics
-3. Environmental settings described in the lyrics
-4. Key visual themes from the lyrics
+Create a visual concept that captures the SONG'S EMOTIONAL CORE and ATMOSPHERE. Consider the song's title and artist context when creating the visual concept. Include prominent visual elements from the lyrics that are relevant to the song's theme. Think about:
+1. The overall mood and feeling the song conveys
+2. Key visual elements mentioned in the lyrics (like stars, sky, light, colors, nature elements)
+3. Visual metaphors that represent the song's themes
+4. Color palettes that match the emotional tone
+5. Abstract or symbolic representations of the song's essence
+6. Environmental settings that evoke the song's atmosphere
+
+INCLUDE: Prominent visual elements from lyrics that are relevant to the song's theme (stars, sky, light, nature, colors, etc.)
+AVOID: Body parts, random words, brushstrokes, watercolor effects, or painterly textures
+FOCUS ON: Clean, professional backdrop styles suitable for stage performance - think digital art, matte painting, scenic design, or atmospheric environments
+
+EXAMPLE: If the lyrics mention "stars" prominently, include stars in the visual elements. If they mention "sky" or "light", include those elements. Focus on the most visually prominent and thematically relevant elements from the lyrics.
+
+VISUAL STYLE GUIDELINES:
+- Use professional backdrop styles: digital art, matte painting, scenic design, atmospheric environments
+- Avoid: watercolor, brushstrokes, painterly textures, canvas effects, or traditional art mediums
+- Focus on: clean, crisp, professional scenic backdrops suitable for stage performance
 
 IMPORTANT: Respond ONLY with a valid JSON object in this exact format:
 {
-  "primaryScene": "main visual scene/place from lyrics",
-  "keyObjects": ["object1 from lyrics", "object2 from lyrics", "object3 from lyrics"],
-  "environment": "environmental setting from lyrics",
-  "visualStyle": "artistic style description",
-  "atmosphere": "atmospheric description from lyrics"
+  "primaryScene": "main atmospheric scene that captures the song's emotional essence and includes key visual elements from the lyrics",
+  "keyObjects": ["prominent visual elements from the lyrics (stars, sky, light, etc.)", "symbolic visual elements that represent the song's themes", "abstract shapes or forms", "metaphorical elements"],
+  "environment": "environmental setting that evokes the song's mood and atmosphere",
+  "visualStyle": "professional backdrop style (digital art, matte painting, scenic design, or atmospheric environment)",
+  "atmosphere": "atmospheric description that captures the song's overall feeling and mood"
 }
 
 Do not include any text before or after the JSON. Only return the JSON object.`;
@@ -246,6 +267,16 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
           jsonContent = jsonContent.substring(jsonStart, jsonEnd);
         }
         
+        // Clean up invalid JSON syntax
+        // Remove parenthetical translations from array elements
+        jsonContent = jsonContent.replace(/"([^"]*)\s*\([^)]*\)"/g, '"$1"');
+        // Remove any remaining parentheses that might break JSON
+        jsonContent = jsonContent.replace(/\s*\([^)]*\)/g, '');
+        // Clean up any double quotes that might have been left hanging
+        jsonContent = jsonContent.replace(/,\s*,/g, ',');
+        jsonContent = jsonContent.replace(/,\s*]/g, ']');
+        jsonContent = jsonContent.replace(/,\s*}/g, '}');
+        
         const visualElements = JSON.parse(jsonContent);
         console.log('🎨 Groq AI visual elements analysis:', visualElements);
         
@@ -272,34 +303,57 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
     // Fallback when Groq AI is not available - use sentiment analysis to create better fallback
     const { mood, themes, emotions, sentiment } = analysis;
     
-    let primaryScene = "abstract visual scene";
-    let keyObjects = [];
-    let environment = "open space";
-    let visualStyle = "modern artistic";
+    let primaryScene = "abstract atmospheric scene";
+    let keyObjects = ["flowing forms", "dynamic shapes", "atmospheric elements"];
+    let environment = "ethereal space";
+    let visualStyle = "modern digital art";
     let atmosphere = "neutral";
     
     // Use themes to determine scene
     if (themes && themes.includes('nature')) {
-      primaryScene = "natural landscape";
+      primaryScene = "natural landscape with flowing elements";
+      keyObjects = ["organic shapes", "natural forms", "flowing lines"];
       environment = "outdoor natural setting";
     } else if (themes && themes.includes('urban')) {
-      primaryScene = "urban cityscape";
+      primaryScene = "urban cityscape with dynamic elements";
+      keyObjects = ["geometric forms", "architectural shapes", "urban textures"];
       environment = "city environment";
     } else if (themes && themes.includes('celebration')) {
       primaryScene = "festive celebration scene";
+      keyObjects = ["vibrant forms", "energetic shapes", "celebration elements"];
       environment = "party atmosphere";
+    } else if (themes && themes.includes('love')) {
+      primaryScene = "romantic atmospheric scene";
+      keyObjects = ["soft forms", "gentle shapes", "romantic elements"];
+      environment = "intimate setting";
+    } else if (themes && themes.includes('melancholy')) {
+      primaryScene = "melancholic atmospheric scene";
+      keyObjects = ["subtle forms", "moody shapes", "emotional elements"];
+      environment = "contemplative space";
     }
     
-    // Use mood for atmosphere
+    // Use mood for atmosphere and visual style
     if (mood && mood.length > 0) {
-      atmosphere = mood.join(' ');
+      const moodStr = mood.join(' ');
+      atmosphere = moodStr;
+      
+      if (moodStr.includes('energetic') || moodStr.includes('bright') || moodStr.includes('uplifting')) {
+        visualStyle = "vibrant and energetic digital art";
+        keyObjects = ["dynamic forms", "energetic shapes", "vibrant elements"];
+      } else if (moodStr.includes('calm') || moodStr.includes('peaceful') || moodStr.includes('serene')) {
+        visualStyle = "calm and serene digital art";
+        keyObjects = ["gentle forms", "peaceful shapes", "serene elements"];
+      } else if (moodStr.includes('melancholic') || moodStr.includes('sad') || moodStr.includes('emotional')) {
+        visualStyle = "melancholic and emotional digital art";
+        keyObjects = ["subtle forms", "emotional shapes", "atmospheric elements"];
+      }
     }
     
-    // Use sentiment for visual style
+    // Use sentiment for additional visual style adjustments
     if (sentiment && sentiment.overall === 'positive') {
-      visualStyle = "bright and uplifting artistic";
+      visualStyle = visualStyle.includes('digital art') ? visualStyle : "bright and uplifting digital art";
     } else if (sentiment && sentiment.overall === 'negative') {
-      visualStyle = "dramatic and moody artistic";
+      visualStyle = visualStyle.includes('digital art') ? visualStyle : "dramatic and moody digital art";
     }
     
     return {
@@ -314,36 +368,27 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
   const buildTemplatedPromptWithElements = (visualElements, analysis) => {
     const { sentiment, emotions, mood, themes, colors, intensity } = analysis;
     
-    // Start with the primary scene from AI analysis
-    let prompt = `A ${visualElements.visualStyle} backdrop depicting ${visualElements.primaryScene}`;
+    // Create a clean, focused prompt using the Groq AI analysis
+    let prompt = `${visualElements.visualStyle} backdrop depicting ${visualElements.primaryScene}`;
     
-    // Add environment if available
-    if (visualElements.environment && visualElements.environment !== "open space") {
+    // Add environment context if it adds value
+    if (visualElements.environment && 
+        visualElements.environment !== "open space" && 
+        visualElements.environment !== visualElements.primaryScene) {
       prompt += ` in a ${visualElements.environment}`;
     }
     
-    // Add key objects from AI analysis
+    // Add key visual elements (but keep it concise)
     if (visualElements.keyObjects && visualElements.keyObjects.length > 0) {
-      const objectsText = visualElements.keyObjects.join(', ');
+      // Only add the first 2-3 most important objects to avoid clutter
+      const importantObjects = visualElements.keyObjects.slice(0, 3);
+      const objectsText = importantObjects.join(', ');
       prompt += `, featuring ${objectsText}`;
     }
     
-    // Add atmosphere from AI analysis
+    // Add atmosphere (this is important for mood)
     if (visualElements.atmosphere) {
       prompt += `, with a ${visualElements.atmosphere} atmosphere`;
-    }
-    
-    // Add mood and emotions from sentiment analysis
-    if (mood && mood.length > 0) {
-      const moodText = Array.isArray(mood) ? mood.join(' and ') : mood;
-      prompt += `, evoking a ${moodText} mood`;
-    }
-    
-    // Add intensity
-    if (intensity === 'high') {
-      prompt += `, with dynamic and energetic visual elements`;
-    } else if (intensity === 'low') {
-      prompt += `, with calm and peaceful visual elements`;
     }
     
     // Add colors from sentiment analysis if available
@@ -351,11 +396,11 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
       prompt += `, using ${colors.primary} and ${colors.secondary} color palette`;
     }
     
-    // Add quality specifications
-    prompt += `. High quality digital art, clean composition with strong visual impact, professional scenic backdrop design.`;
+    // Add quality and style specifications
+    prompt += `. High quality digital art, clean composition with strong visual impact, professional scenic backdrop design`;
     
     // Add negative prompts to ensure clean backdrop generation
-    prompt += ` no people, no dancers, no curtains, no text, no furniture, no props, no animals, no 3D render, no photorealism, no camera blur`;
+    prompt += `. no people, no dancers, no curtains, no text, no furniture, no props, no animals, no 3D render, no photorealism, no camera blur`;
     
     return prompt;
   };

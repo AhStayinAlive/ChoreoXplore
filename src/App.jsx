@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
-import RoutingFlow from "./ui/RoutingFlow";
-import AssetPanel from "./ui/AssetPanel";
+import SettingPanel from "./ui/SettingPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AuthorPanel from "./components/AuthorPanel";
 import AuthorPromptBox from "./components/AuthorPromptBox";
@@ -75,7 +74,7 @@ export default function App() {
         <Canvas3D backgroundImage={backgroundImage} />
         
         {/* Single persistent MotionInputPanel - always running, UI visibility changes by mode */}
-        <div style={{ 
+        <div className="glass-scrollbar" style={{ 
           position: "absolute", 
           right: 12, 
           top: 12, 
@@ -96,21 +95,21 @@ export default function App() {
 
         {mode === "generative" && (
           <>
-            <div style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
-              <AssetPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
+            <div className="glass-scrollbar" style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+              <SettingPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
             </div>
           </>
         )}
 
         {mode === "author" && (
           <>
-            <div style={{ 
+            <div className="glass-scrollbar" style={{ 
               position: "absolute", 
               left: 12, 
               top: 12, 
               width: 360, 
-              height: "70vh", 
-              maxHeight: "70vh", 
+              height: "55vh", 
+              maxHeight: "55vh", 
               background: "rgba(0,0,0,.4)", 
               backdropFilter: "blur(10px)", 
               padding: 12, 

@@ -54,24 +54,106 @@ const MotionInputPanel = () => {
     }
   }, []);
 
+  // Check video element availability on mount
+  useEffect(() => {
+    console.log('MotionInputPanel mounted, videoRef.current:', videoRef.current);
+    if (videoRef.current) {
+      console.log('✅ Video element is available on mount');
+    } else {
+      console.log('❌ Video element not available on mount');
+    }
+    
+    // Cleanup function for when component unmounts
+    return () => {
+      console.log('MotionInputPanel unmounting, cleaning up camera...');
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject;
+        stream.getTracks().forEach(track => {
+          console.log('Cleaning up track:', track.kind, track.label);
+          track.stop();
+        });
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, []);
+
   // Start camera
   const startCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        }
+      console.log('Starting camera access...');
+      
+      // First, clean up any existing streams
+      if (videoRef.current && videoRef.current.srcObject) {
+        console.log('Cleaning up existing stream...');
+        const existingStream = videoRef.current.srcObject;
+        existingStream.getTracks().forEach(track => {
+          console.log('Stopping track:', track.kind, track.label);
+          track.stop();
+        });
+        videoRef.current.srcObject = null;
+      }
+      
+      // Check if MediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaDevices API not supported');
+      }
+      
+      console.log('MediaDevices API is available');
+      
+      // Try the most basic approach - just get any camera
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true 
       });
+      
+      console.log('✅ Camera access successful');
+      console.log('Stream tracks:', stream.getTracks());
+      
+      // Check what devices are available after getting permission
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        console.log('Available cameras after permission:', videoDevices);
+      } catch (enumError) {
+        console.log('Device enumeration failed:', enumError);
+      }
 
-      if (videoRef.current) {
+      if (videoRef.current && stream) {
+        console.log('Attaching stream to video element...');
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        
+        // Add event listeners for debugging
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✅ Video metadata loaded');
+          console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+        };
+        
+        videoRef.current.oncanplay = () => {
+          console.log('✅ Video can play');
+        };
+        
+        videoRef.current.onerror = (e) => {
+          console.error('❌ Video element error:', e);
+        };
+        
+        // Try to play the video
+        try {
+          await videoRef.current.play();
+          console.log('✅ Video play() successful');
+          setError(null); // Clear any previous errors
+        } catch (playError) {
+          console.error('❌ Video play() failed:', playError);
+          throw new Error(`Video play failed: ${playError.message}`);
+        }
+      } else {
+        console.error('❌ Missing video element or stream');
+        console.log('videoRef.current:', videoRef.current);
+        console.log('stream:', stream);
+        throw new Error('No video element or stream available');
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
-      setError('Camera access denied. Please allow camera permissions.');
+      setError(`Failed to access camera: ${err.message}. Please check permissions and make sure a camera is connected.`);
     }
   }, []);
 
@@ -158,7 +240,15 @@ const MotionInputPanel = () => {
       lastVideoTimeRef.current = currentTime;
 
       try {
-        const results = poseLandmarker.detectForVideo(video, currentTime * 1000);
+        // Create an ImageData object with proper dimensions for MediaPipe
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        const results = poseLandmarker.detectForVideo(imageData, currentTime * 1000);
         
         if (results.landmarks && results.landmarks.length > 0) {
           const poseData = {
@@ -223,10 +313,11 @@ const MotionInputPanel = () => {
   }, [stopCamera]);
 
   return (
-    <div className="motion-input-panel bg-gray-900 text-white p-3 rounded-lg">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold" style={{ color: 'white' }}>Motion Input</h3>
-        <div className="flex items-center gap-3">
+    <div className="motion-input-panel bg-gray-900 text-white rounded-lg">
+      {/* Header with Title and Buttons */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold" style={{ color: 'white', margin: 0 }}>Motion Input</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
           <button
             onClick={toggleMotionDetection}
             disabled={isLoading}
@@ -234,12 +325,15 @@ const MotionInputPanel = () => {
               padding: "6px 12px",
               backgroundColor: isActive ? "rgba(220,38,38,0.8)" : "rgba(34,197,94,0.8)",
               border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "4px",
+              borderRadius: "6px",
               color: "white",
               fontSize: "12px",
               cursor: isLoading ? "not-allowed" : "pointer",
               opacity: isLoading ? 0.5 : 1,
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+              minWidth: "auto",
+              flexShrink: 0
             }}
           >
             {isLoading ? 'Loading...' : isActive ? 'Stop' : 'Start'}
@@ -250,11 +344,14 @@ const MotionInputPanel = () => {
               padding: "6px 12px",
               backgroundColor: skeletonVisible ? "rgba(34,197,94,0.8)" : "rgba(107,114,128,0.8)",
               border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "4px",
+              borderRadius: "6px",
               color: "white",
               fontSize: "12px",
               cursor: "pointer",
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+              minWidth: "auto",
+              flexShrink: 0
             }}
           >
             {skeletonVisible ? 'Hide Avatar' : 'Show Avatar'}

@@ -10,7 +10,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
   // AI Image Generation API configuration
   const AI_PROXY_URL = 'http://localhost:3002/api/generate-image';
 
-  const generateImage = async (prompt) => {
+  const generateImage = async (prompt, negativePrompt) => {
     try {
       console.log(`🎨 Generating backdrop image with prompt: "${prompt}"`);
       
@@ -21,7 +21,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
         },
         body: JSON.stringify({
           prompt: prompt,
-          negative_prompt: "person, people, human, man, woman, silhouette, figure, body, humanoid, mannequin, character, actor, creature, pedestrian, portrait, figure in distance, shadow shaped like person, narrative scene, lonely figure, human subject",
+          negative_prompt: negativePrompt || "person, people, human, man, woman, silhouette, figure, body, humanoid, mannequin, character, actor, creature, pedestrian, portrait, figure in distance, shadow shaped like person, narrative scene, lonely figure, human subject",
           style: 'stage lighting, atmospheric, professional',
           width: 1024,
           height: 768,
@@ -45,29 +45,20 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
 
   const handlePromptSubmit = async () => {
     // Generate the final prompt using all parameters
-    const { userConcept, artStyle, lightingMood, colorTone, compositionLayout } = authorMode.promptTemplate;
-    const sentimentAnalysis = authorMode.sentimentAnalysis;
+    const { userConcept, artStyle, lightingMood, colorTone, compositionLayout, emotionalTheme } = authorMode.promptTemplate;
+    const negativePrompt = authorMode.negativePrompt;
     
     if (userConcept.trim()) {
-      // Base template prompt - focused purely on visual backdrop
-      let finalPrompt = `A ${artStyle} depicting ${userConcept}, rendered with ${lightingMood} and featuring ${colorTone}. The composition employs a ${compositionLayout} design with rich atmospheric depth, dramatic lighting, and compelling visual storytelling.`;
-      
-      // Add general sentiment analysis mood if available
-      if (sentimentAnalysis && sentimentAnalysis.mood) {
-        const mood = Array.isArray(sentimentAnalysis.mood) ? sentimentAnalysis.mood.join(', ') : sentimentAnalysis.mood;
-        finalPrompt += ` The scene should evoke a ${mood} mood and atmosphere.`;
-      }
-      
-      // Add final instructions - focused on high quality visual design
-      finalPrompt += `High quality digital art with clean composition, vibrant colors, and dynamic visual elements. Professional scenic design with strong contrast and clear visual hierarchy. Immersive depth and atmospheric effects.`;
+      // Use the new prompt template format
+      const finalPrompt = `A ${artStyle} backdrop depicting ${userConcept}, lit with ${lightingMood} and using ${colorTone}. The composition features ${compositionLayout}, filling the frame completely as a scenic background. The scene evokes a sense of ${emotionalTheme}, expressed through atmosphere, light, and color. It should appear cohesive, immersive, and designed as a full backdrop artwork — without any stage, curtains, performers, props, text, or artificial lighting rigs. No people, animals, vehicles, or objects unrelated to the setting — only the backdrop environment itself.`;
       
       console.log('🎭 Submitting comprehensive prompt:', finalPrompt);
-      console.log('🎭 Sentiment analysis used:', sentimentAnalysis);
+      console.log('🎭 Using negative prompt:', negativePrompt);
       
       // Generate the AI image
       setIsGenerating(true);
       try {
-        const imageBlob = await generateImage(finalPrompt);
+        const imageBlob = await generateImage(finalPrompt, negativePrompt);
         if (imageBlob && imageBlob.size > 0) {
           const imageUrl = URL.createObjectURL(imageBlob);
           console.log('🎭 Backdrop image generated successfully:', imageUrl);
@@ -124,7 +115,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
         cursor: "pointer"
       }} onClick={() => setIsExpanded(!isExpanded)}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 500 }}>AI Prompt Interface</span>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>User Prompt</span>
         </div>
         <span style={{ 
           fontSize: 12, 
@@ -137,7 +128,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
       </div>
 
       {/* Content */}
-      <div style={{
+      <div className="glass-scrollbar" style={{
         padding: isExpanded ? "16px" : "0",
         height: isExpanded ? "auto" : 0,
         overflow: "hidden",
@@ -151,12 +142,12 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
             fontWeight: 500,
             color: "rgba(255,255,255,0.8)"
           }}>
-            User Concept - Your Scene Idea
+            Montage Idea
           </label>
           <textarea
             value={authorMode.finalPrompt}
             onChange={(e) => handlePromptChange(e.target.value)}
-            placeholder="Enter your scene concept here (e.g., enchanted forest, city skyline at sunset, underwater coral reef, abstract light waves, royal palace hall, snowy mountain landscape)... This will be used to generate the backdrop prompt."
+            placeholder="Enter your Idea"
             style={{
               width: "calc(100% - 24px)",
               height: 100,

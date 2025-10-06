@@ -1,33 +1,44 @@
 import React from 'react';
 import useStore from '../core/store';
-import AssetPanel from '../ui/AssetPanel';
-
-const ART_STYLES = [
-  "hand-painted scenic art",
-  "matte painting", 
-  "watercolor mural",
-  "illustrative landscape"
-];
+import SettingPanel from '../ui/SettingPanel';
 
 const LIGHTING_MOODS = [
   "soft warm lighting",
   "cool moonlight",
-  "neutral daylight", 
-  "dreamy glow"
+  "neutral daylight",
+  "dreamy glow",
+  "dynamic spotlight mix"
 ];
 
 const COLOR_TONES = [
   "warm tones (reds, oranges, golds)",
   "cool tones (blues, greens, purples)",
   "neutral pastels",
-  "vivid mixed colors"
+  "vivid mixed colors",
+  "monochrome palette"
 ];
 
-const COMPOSITION_LAYOUTS = [
-  "open center space",
-  "symmetrical framing",
-  "layered depth",
-  "flat abstract pattern"
+const EMOTIONAL_THEMES = [
+  "joy / celebration",
+  "calm / serenity",
+  "mystery / wonder",
+  "hope / renewal",
+  "tension / motion",
+  "passion / romance",
+  "freedom / exploration",
+  "nostalgia / memory",
+  "melancholy / solitude",
+  "courage / determination",
+  "peace / balance",
+  "awe / transcendence",
+  "energy / excitement",
+  "sadness / reflection",
+  "inspiration / creativity",
+  "chaos / transformation",
+  "unity / connection",
+  "fear / uncertainty",
+  "rebirth / dawn",
+  "dream / imagination"
 ];
 
 export default function AuthorPanel({ onBackgroundImageGenerated }) {
@@ -59,18 +70,18 @@ export default function AuthorPanel({ onBackgroundImageGenerated }) {
       height: "100%", 
       display: "flex", 
       flexDirection: "column", 
-      gap: 12,
+      gap: 8,
       overflow: "hidden"
     }}>
-      {/* Music Input Section - Use AssetPanel from generative mode */}
+      {/* Music Input Section - Use SettingPanel from generative mode */}
       <div style={{ 
         flex: "0 0 auto", 
-        maxHeight: "45%", 
-        minHeight: "200px",
+        maxHeight: "50%", 
+        minHeight: "180px",
         overflow: "hidden" 
       }}>
         <div style={{ height: "100%", overflow: "auto" }}>
-          <AssetPanel 
+          <SettingPanel 
             onBackgroundImageGenerated={onBackgroundImageGenerated} 
             onAssetsGenerated={handleAIAssetsGenerated}
             authorMode={true} 
@@ -80,22 +91,81 @@ export default function AuthorPanel({ onBackgroundImageGenerated }) {
       
 
       {/* Prompt Template Section */}
-      <div style={{ 
+      <div className="glass-scrollbar" style={{ 
         flex: 1, 
         overflow: "auto", 
-        minHeight: "200px",
-        maxHeight: "55%"
+        minHeight: "180px",
+        maxHeight: "50%"
       }}>
-        <h4 style={{ margin: "0 0 12px 0", fontSize: 14, fontWeight: 500 }}>Backdrop Prompt Generator</h4>
+        <h4 style={{ margin: "0 0 12px 0", fontSize: 14, fontWeight: 500 }}>Parameters</h4>
 
-        {/* Art Style */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 500 }}>
-            Art Style
+        {/* Two-column layout for better space utilization */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+
+          {/* Lighting Mood */}
+          <div>
+            <label style={{ display: "block", marginBottom: 4, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>
+              Lighting Mood
+            </label>
+            <select
+              value={authorMode.promptTemplate.lightingMood}
+              onChange={(e) => updatePromptTemplate('lightingMood', e.target.value)}
+              style={{
+                width: "100%",
+                padding: 6,
+                background: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 4,
+                color: "#fff",
+                fontSize: 11
+              }}
+            >
+              {LIGHTING_MOODS.map(mood => (
+                <option key={mood} value={mood} style={{ background: "#333", color: "#fff" }}>
+                  {mood}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+          {/* Color Tone */}
+          <div>
+            <label style={{ display: "block", marginBottom: 4, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>
+              Color Tone
+            </label>
+            <select
+              value={authorMode.promptTemplate.colorTone}
+              onChange={(e) => updatePromptTemplate('colorTone', e.target.value)}
+              style={{
+                width: "100%",
+                padding: 6,
+                background: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 4,
+                color: "#fff",
+                fontSize: 11
+              }}
+            >
+              {COLOR_TONES.map(tone => (
+                <option key={tone} value={tone} style={{ background: "#333", color: "#fff" }}>
+                  {tone}
+                </option>
+              ))}
+            </select>
+          </div>
+
+        </div>
+
+        {/* Emotional Theme - Full width */}
+        <div>
+          <label style={{ display: "block", marginBottom: 4, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>
+            Emotional Theme
           </label>
           <select
-            value={authorMode.promptTemplate.artStyle}
-            onChange={(e) => updatePromptTemplate('artStyle', e.target.value)}
+            value={authorMode.promptTemplate.emotionalTheme}
+            onChange={(e) => updatePromptTemplate('emotionalTheme', e.target.value)}
             style={{
               width: "100%",
               padding: 6,
@@ -103,94 +173,17 @@ export default function AuthorPanel({ onBackgroundImageGenerated }) {
               border: "1px solid rgba(255,255,255,0.2)",
               borderRadius: 4,
               color: "#fff",
-              fontSize: 12
+              fontSize: 11
             }}
           >
-            {ART_STYLES.map(style => (
-              <option key={style} value={style} style={{ background: "#333", color: "#fff" }}>
-                {style}
+            {EMOTIONAL_THEMES.map(theme => (
+              <option key={theme} value={theme} style={{ background: "#333", color: "#fff" }}>
+                {theme}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Lighting Mood */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 500 }}>
-            Lighting Mood
-          </label>
-          <select
-            value={authorMode.promptTemplate.lightingMood}
-            onChange={(e) => updatePromptTemplate('lightingMood', e.target.value)}
-            style={{
-              width: "100%",
-              padding: 6,
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 4,
-              color: "#fff",
-              fontSize: 12
-            }}
-          >
-            {LIGHTING_MOODS.map(mood => (
-              <option key={mood} value={mood} style={{ background: "#333", color: "#fff" }}>
-                {mood}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Color Tone */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 500 }}>
-            Color Tone
-          </label>
-          <select
-            value={authorMode.promptTemplate.colorTone}
-            onChange={(e) => updatePromptTemplate('colorTone', e.target.value)}
-            style={{
-              width: "100%",
-              padding: 6,
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 4,
-              color: "#fff",
-              fontSize: 12
-            }}
-          >
-            {COLOR_TONES.map(tone => (
-              <option key={tone} value={tone} style={{ background: "#333", color: "#fff" }}>
-                {tone}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Composition Layout */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 500 }}>
-            Composition Layout
-          </label>
-          <select
-            value={authorMode.promptTemplate.compositionLayout}
-            onChange={(e) => updatePromptTemplate('compositionLayout', e.target.value)}
-            style={{
-              width: "100%",
-              padding: 6,
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 4,
-              color: "#fff",
-              fontSize: 12
-            }}
-          >
-            {COMPOSITION_LAYOUTS.map(layout => (
-              <option key={layout} value={layout} style={{ background: "#333", color: "#fff" }}>
-                {layout}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
     </div>

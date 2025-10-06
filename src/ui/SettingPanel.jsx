@@ -4,7 +4,7 @@ import AIAssetGenerator from "../components/AIAssetGenerator";
 // Genius API Configuration
 const GENIUS_API_KEY = 'S2Ws82lMaMFMb7Erz9w2jjU089TlwxPqRDCVsPly3xzdZNR-FDP0nAASO4DLg6Jt'; // Get your free API key from https://genius.com/api-clients
 
-export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerated, authorMode = false }) {
+export default function SettingPanel({ onBackgroundImageGenerated, onAssetsGenerated, authorMode = false }) {
   const [musicFile, setMusicFile] = useState(null);
   const [lyrics, setLyrics] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -51,9 +51,9 @@ export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerat
   };
 
   const parseYouTubeTitle = (title) => {
-    // Common YouTube title patterns
+    // Common YouTube title patterns - now with better reverse naming support
     const patterns = [
-      // "Artist - Song Title" (most common)
+      // "Artist - Song Title" (most common) - this handles "Multo - Cup of Joe"
       /^([^-]+)\s*-\s*(.+)$/,
       // "Song Title by Artist"
       /^(.+?)\s+by\s+(.+)$/i,
@@ -74,8 +74,8 @@ export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerat
     for (const pattern of patterns) {
       const match = title.match(pattern);
       if (match) {
-        const artist = match[1].trim();
-        const song = match[2].trim();
+        let artist = match[1].trim();
+        let song = match[2].trim();
         
         // Clean up common suffixes
         const cleanSong = song
@@ -89,6 +89,42 @@ export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerat
           .replace(/\s*\[[^\]]*\]$/, '') // Remove [Official Video], [Lyrics], etc.
           .trim();
         
+        // Check if this looks like reverse naming (song first, artist second)
+        // Only swap if the first part contains clear song-related keywords or patterns
+        const isLikelyReverseNaming = 
+          cleanArtist.toLowerCase().includes('official') || // Contains "official"
+          cleanArtist.toLowerCase().includes('lyric') || // Contains "lyric"
+          cleanArtist.toLowerCase().includes('video') || // Contains "video"
+          cleanArtist.toLowerCase().includes('music') || // Contains "music"
+          cleanArtist.toLowerCase().includes('song') || // Contains "song"
+          cleanArtist.toLowerCase().includes('track') || // Contains "track"
+          cleanArtist.toLowerCase().includes('feat') || // Contains "feat"
+          cleanArtist.toLowerCase().includes('ft.') || // Contains "ft."
+          // If first part contains common song title patterns (more specific)
+          cleanArtist.toLowerCase().includes('just like') ||
+          cleanArtist.toLowerCase().includes('castle on') ||
+          cleanArtist.toLowerCase().includes('cup of') ||
+          cleanArtist.toLowerCase().includes('something') ||
+          cleanArtist.toLowerCase().includes('yellow') ||
+          cleanArtist.toLowerCase().includes('creep') ||
+          cleanArtist.toLowerCase().includes('bohemian') ||
+          cleanArtist.toLowerCase().includes('imagine') ||
+          cleanArtist.toLowerCase().includes('hey jude') ||
+          cleanArtist.toLowerCase().includes('let it be') ||
+          // If first part is much longer than second part AND contains common song words
+          (cleanArtist.length > cleanSong.length * 2 && 
+           (cleanArtist.toLowerCase().includes('the') || 
+            cleanArtist.toLowerCase().includes('and') || 
+            cleanArtist.toLowerCase().includes('of') ||
+            cleanArtist.toLowerCase().includes('in') ||
+            cleanArtist.toLowerCase().includes('on')));
+        
+        if (isLikelyReverseNaming) {
+          // Swap artist and song for reverse naming
+          console.log(`Detected reverse naming: "${cleanArtist}" - "${cleanSong}"`);
+          return { artist: cleanSong, song: cleanArtist, original: title };
+        }
+        
         if (cleanSong && cleanArtist && cleanSong !== cleanArtist) {
           return { artist: cleanArtist, song: cleanSong, original: title };
         }
@@ -101,8 +137,41 @@ export default function AssetPanel({ onBackgroundImageGenerated, onAssetsGenerat
       if (title.includes(sep)) {
         const parts = title.split(sep);
         if (parts.length >= 2) {
-          const artist = parts[0].trim();
-          const song = parts[1].trim();
+          let artist = parts[0].trim();
+          let song = parts[1].trim();
+          
+          // Apply same reverse naming logic
+          const isLikelyReverseNaming = 
+            artist.toLowerCase().includes('official') ||
+            artist.toLowerCase().includes('lyric') ||
+            artist.toLowerCase().includes('video') ||
+            artist.toLowerCase().includes('music') ||
+            artist.toLowerCase().includes('song') ||
+            artist.toLowerCase().includes('track') ||
+            artist.toLowerCase().includes('feat') ||
+            artist.toLowerCase().includes('ft.') ||
+            artist.toLowerCase().includes('just like') ||
+            artist.toLowerCase().includes('castle on') ||
+            artist.toLowerCase().includes('cup of') ||
+            artist.toLowerCase().includes('something') ||
+            artist.toLowerCase().includes('yellow') ||
+            artist.toLowerCase().includes('creep') ||
+            artist.toLowerCase().includes('bohemian') ||
+            artist.toLowerCase().includes('imagine') ||
+            artist.toLowerCase().includes('hey jude') ||
+            artist.toLowerCase().includes('let it be') ||
+            (artist.length > song.length * 2 && 
+             (artist.toLowerCase().includes('the') || 
+              artist.toLowerCase().includes('and') || 
+              artist.toLowerCase().includes('of') ||
+              artist.toLowerCase().includes('in') ||
+              artist.toLowerCase().includes('on')));
+          
+          if (isLikelyReverseNaming) {
+            console.log(`Detected reverse naming in separator: "${artist}" - "${song}"`);
+            return { artist: song, song: artist, original: title };
+          }
+          
           if (artist && song && artist !== song) {
             return { artist, song, original: title };
           }
@@ -193,16 +262,32 @@ Current video: ${cleanTitle}`;
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       );
 
-      // Try proxy server first
+      // Try proxy server first - try both orders
       try {
         console.log('🎵 Trying lyrics proxy server...');
-        const proxyUrl = `http://localhost:3001/api/lyrics?artist=${encodeURIComponent(finalArtist)}&title=${encodeURIComponent(finalTitle)}`;
-        const response = await Promise.race([fetch(proxyUrl), timeoutPromise]);
+        
+        // Try original order first
+        console.log(`Trying original order: "${finalArtist}" - "${finalTitle}"`);
+        let proxyUrl = `http://localhost:3001/api/lyrics?artist=${encodeURIComponent(finalArtist)}&title=${encodeURIComponent(finalTitle)}`;
+        let response = await Promise.race([fetch(proxyUrl), timeoutPromise]);
         
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.lyrics) {
-            console.log(`✅ Proxy server success! Found lyrics via ${data.source}:`, data.lyrics.length, 'characters');
+            console.log(`✅ Proxy server success with original order! Found lyrics via ${data.source}:`, data.lyrics.length, 'characters');
+            return data.lyrics;
+          }
+        }
+        
+        // If original order failed, try reverse order
+        console.log(`Original order failed, trying reverse order: "${finalTitle}" - "${finalArtist}"`);
+        proxyUrl = `http://localhost:3001/api/lyrics?artist=${encodeURIComponent(finalTitle)}&title=${encodeURIComponent(finalArtist)}`;
+        response = await Promise.race([fetch(proxyUrl), timeoutPromise]);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.lyrics) {
+            console.log(`✅ Proxy server success with reverse order! Found lyrics via ${data.source}:`, data.lyrics.length, 'characters');
             return data.lyrics;
           }
         }
@@ -434,7 +519,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
         <h3 style={{ margin: "0 0 12px 0", fontSize: 18, fontWeight: 600, flexShrink: 0 }}>Generative Mode</h3>
       )}
       
-      <div style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
+      <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         {/* AI Asset Generator */}
         <AIAssetGenerator 
           lyrics={lyrics}
@@ -450,7 +535,7 @@ The AI analysis will work perfectly with any lyrics you provide!`;
       </div>
 
       {/* Music Input Section - Fixed at bottom */}
-      <div style={{ 
+      <div className="glass-scrollbar" style={{ 
         marginTop: 8, 
         display: "flex", 
         flexDirection: "column", 
