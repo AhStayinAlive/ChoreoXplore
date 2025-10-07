@@ -163,7 +163,7 @@ const AIAssetGenerator = ({ lyrics, context, onAssetsGenerated, onBackgroundImag
     const visualElements = await analyzeVisualElementsWithGroq(lyrics, analysis, context);
     
     // Build templated prompt with AI-analyzed visual elements
-    let prompt = buildTemplatedPromptWithElements(visualElements, analysis);
+    let prompt = buildTemplatedPromptWithElements(visualElements, analysis, context);
     
     return [prompt];
   };
@@ -177,54 +177,65 @@ const AIAssetGenerator = ({ lyrics, context, onAssetsGenerated, onBackgroundImag
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
       if (!apiKey) {
         console.log('🤖 No Groq API key, using fallback analysis');
-        return getFallbackVisualElements(analysis);
+        return getFallbackVisualElements(analysis, context);
       }
 
-      const prompt = `You are an expert visual designer creating artistic backdrops based on song analysis. Focus on the EMOTIONAL and THEMATIC essence, not literal lyrics.
+      const prompt = `You are an expert visual analyst for music visualization. Your job is to analyze the ACTUAL LYRICS CONTENT and create visual themes based on what the lyrics literally describe.
 
 SONG CONTEXT:
-- Title: ${context?.songTitle || 'Unknown Song'}
-- Artist: ${context?.artist || 'Unknown Artist'}
-- YouTube Title: ${context?.youtubeTitle || 'N/A'}
+- Song: "${context?.songTitle || 'Unknown Song'}" by ${context?.artist || 'Unknown Artist'}
 
-LYRICS:
+LYRICS TO ANALYZE (THIS IS THE MOST IMPORTANT PART - READ EVERY WORD):
 ${lyrics}
 
-SENTIMENT ANALYSIS:
+CRITICAL INSTRUCTION: IGNORE the song title completely. Focus ONLY on what the lyrics actually say. Look for specific visual elements mentioned in the lyrics.
+
+LYRICS ANALYSIS EXAMPLES:
+- If lyrics say "Look at the stars, look how they shine for you" → Create a NIGHT SKY with STARS, NOT a sunny day with yellow flowers
+- If lyrics say "I'm walking on sunshine" → Create a BRIGHT SUNNY scene with sunbeams
+- If lyrics say "Under the sea" → Create an UNDERWATER scene with marine life
+- If lyrics say "Dancing in the moonlight" → Create a MOONLIT NIGHT scene
+- If lyrics say "Fire and rain" → Create a scene with BOTH fire AND rain elements
+
+ANALYSIS PROCESS:
+1. READ the lyrics word by word
+2. IDENTIFY the most frequently mentioned visual elements
+3. LOOK for specific objects, places, or phenomena described
+4. CREATE a scene that matches what the lyrics actually describe
+5. DO NOT use generic interpretations based on the song title
+
+SPECIFIC INSTRUCTION FOR THIS SONG: If the lyrics mention "stars" or "night" or "shine" in the context of looking up at the sky, create a NIGHT SCENE with STARS, not a sunny landscape.
+
+SENTIMENT CONTEXT:
 - Mood: ${analysis.mood ? analysis.mood.join(', ') : 'unknown'}
 - Emotions: ${analysis.emotions ? analysis.emotions.join(', ') : 'unknown'}
 - Themes: ${analysis.themes ? analysis.themes.join(', ') : 'unknown'}
 - Sentiment: ${analysis.sentiment ? analysis.sentiment.overall : 'unknown'}
 
-Create a visual concept that captures the SONG'S EMOTIONAL CORE and ATMOSPHERE. Consider the song's title and artist context when creating the visual concept. Include prominent visual elements from the lyrics that are relevant to the song's theme. Think about:
-1. The overall mood and feeling the song conveys
-2. Key visual elements mentioned in the lyrics (like stars, sky, light, colors, nature elements)
-3. Visual metaphors that represent the song's themes
-4. Color palettes that match the emotional tone
-5. Abstract or symbolic representations of the song's essence
-6. Environmental settings that evoke the song's atmosphere
+CRITICAL REQUIREMENTS - ABSOLUTELY NO PEOPLE OR HUMAN-LIKE SHAPES:
+- NEVER include people, human figures, silhouettes, or any human-like shapes
+- NO anthropomorphic forms, mannequins, statues, or sculptures
+- NO human shadows, outlines, or abstract human forms
+- Focus ONLY on natural environments, objects, and atmospheric elements
+- Create scenes that directly represent what the lyrics describe
+- Avoid indoor scenes, furniture, curtains, or man-made objects
+- ONLY natural landscapes, skies, water, trees, mountains, stars, etc.
 
-INCLUDE: Prominent visual elements from lyrics that are relevant to the song's theme (stars, sky, light, nature, colors, etc.)
-AVOID: Body parts, random words, brushstrokes, watercolor effects, or painterly textures
-FOCUS ON: Clean, professional backdrop styles suitable for stage performance - think digital art, matte painting, scenic design, or atmospheric environments
+VISUAL STYLE: Natural and immersive digital art (atmospheric environments, natural scenes, environmental photography style)
+AVOID: People, human figures, silhouettes, characters, dancers, actors, individuals, bodies, faces, hands, limbs, figures, shadows of people, human shapes, indoor scenes, furniture, curtains, props, stage backdrops, theatrical sets
 
-EXAMPLE: If the lyrics mention "stars" prominently, include stars in the visual elements. If they mention "sky" or "light", include those elements. Focus on the most visually prominent and thematically relevant elements from the lyrics.
-
-VISUAL STYLE GUIDELINES:
-- Use professional backdrop styles: digital art, matte painting, scenic design, atmospheric environments
-- Avoid: watercolor, brushstrokes, painterly textures, canvas effects, or traditional art mediums
-- Focus on: clean, crisp, professional scenic backdrops suitable for stage performance
-
-IMPORTANT: Respond ONLY with a valid JSON object in this exact format:
+RESPOND WITH ONLY THIS JSON FORMAT:
 {
-  "primaryScene": "main atmospheric scene that captures the song's emotional essence and includes key visual elements from the lyrics",
-  "keyObjects": ["prominent visual elements from the lyrics (stars, sky, light, etc.)", "symbolic visual elements that represent the song's themes", "abstract shapes or forms", "metaphorical elements"],
-  "environment": "environmental setting that evokes the song's mood and atmosphere",
-  "visualStyle": "professional backdrop style (digital art, matte painting, scenic design, or atmospheric environment)",
-  "atmosphere": "atmospheric description that captures the song's overall feeling and mood"
+  "primaryScene": "A detailed natural scene that directly represents what the lyrics describe (NOT the song title)",
+  "keyObjects": ["specific visual elements from the lyrics (NO human-related terms)", "supporting atmospheric elements", "natural environmental details"],
+  "environment": "Natural outdoor setting that matches the song's visual themes",
+  "visualStyle": "Natural and immersive digital art style that captures the essence of the lyrics",
+  "atmosphere": "Mood that reflects the emotional journey described in the lyrics"
 }
 
-Do not include any text before or after the JSON. Only return the JSON object.`;
+CRITICAL: In keyObjects, NEVER include human-related terms like "skin", "bones", "body", "person", "people", "human", "figure", "character". Focus only on natural objects, environmental elements, and atmospheric phenomena.
+
+Return ONLY the JSON object, no other text.`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -285,29 +296,145 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
           return visualElements;
         } else {
           console.warn('Groq response missing required fields, using fallback');
-          return getFallbackVisualElements(analysis);
+          return getFallbackVisualElements(analysis, context, lyrics);
         }
       } catch (parseError) {
         console.warn('Failed to parse Groq response as JSON:', parseError);
         console.warn('Raw content was:', content);
-        return getFallbackVisualElements(analysis);
+        return getFallbackVisualElements(analysis, context, lyrics);
       }
 
     } catch (error) {
       console.error('Error analyzing visual elements with Groq:', error);
-      return getFallbackVisualElements(analysis);
+      return getFallbackVisualElements(analysis, context, lyrics);
     }
   };
 
-  const getFallbackVisualElements = (analysis) => {
-    // Fallback when Groq AI is not available - use sentiment analysis to create better fallback
+  const getFallbackVisualElements = (analysis, context, lyrics = '') => {
+    // Fallback when Groq AI is not available - analyze lyrics content for visual themes
     const { mood, themes, emotions, sentiment } = analysis;
+    const songTitle = context?.songTitle || '';
+    const artist = context?.artist || '';
     
+    // Analyze lyrics content for visual themes
+    const lyricsLower = lyrics.toLowerCase();
+    const titleLower = songTitle.toLowerCase();
+    
+    // Default fallback
     let primaryScene = "abstract atmospheric scene";
     let keyObjects = ["flowing forms", "dynamic shapes", "atmospheric elements"];
     let environment = "ethereal space";
     let visualStyle = "modern digital art";
     let atmosphere = "neutral";
+    
+    // Check lyrics content for specific visual themes (prioritize lyrics over title)
+    // Special case for "Yellow" by Coldplay - focus on stars and night sky from lyrics
+    if (lyricsLower.includes('look at the stars') || lyricsLower.includes('shine for you') || 
+        lyricsLower.includes('star') || lyricsLower.includes('shine') || lyricsLower.includes('night sky') || lyricsLower.includes('cosmic')) {
+      primaryScene = "vast starry night sky with countless twinkling stars and golden celestial light";
+      keyObjects = ["stars", "night sky", "celestial light", "golden glow", "cosmic atmosphere"];
+      environment = "cosmic night setting under open sky";
+      visualStyle = "natural atmospheric digital art with celestial beauty";
+      atmosphere = "mystical, wonder-filled, and celestial";
+    } else if (lyricsLower.includes('ocean') || lyricsLower.includes('wave') || lyricsLower.includes('water') || lyricsLower.includes('sea')) {
+      primaryScene = "dynamic ocean scene with rolling waves and water reflections";
+      keyObjects = ["ocean waves", "water ripples", "aquatic movement", "flowing water"];
+      environment = "oceanic setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "flowing and dynamic";
+    } else if (lyricsLower.includes('fire') || lyricsLower.includes('flame') || lyricsLower.includes('burn') || lyricsLower.includes('heat')) {
+      primaryScene = "intense fire scene with flames and heat distortion";
+      keyObjects = ["flames", "fire patterns", "heat waves", "glowing embers"];
+      environment = "fiery setting";
+      visualStyle = "natural dynamic digital art";
+      atmosphere = "intense and energetic";
+    } else if (lyricsLower.includes('cloud') || lyricsLower.includes('sky') || lyricsLower.includes('heaven') || lyricsLower.includes('atmospheric')) {
+      primaryScene = "expansive sky scene with clouds and atmospheric effects";
+      keyObjects = ["clouds", "atmospheric elements", "celestial forms", "sky textures"];
+      environment = "atmospheric sky setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "expansive and ethereal";
+    } else if (lyricsLower.includes('moon') || lyricsLower.includes('moonlight') || lyricsLower.includes('lunar')) {
+      primaryScene = "moonlit scene with silver light and night atmosphere";
+      keyObjects = ["moon", "moonlight", "silver light", "night atmosphere"];
+      environment = "moonlit setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "mystical and serene";
+    } else if (lyricsLower.includes('sun') || lyricsLower.includes('sunshine') || lyricsLower.includes('daylight') || lyricsLower.includes('bright')) {
+      primaryScene = "sunlit scene with golden light and radiant energy";
+      keyObjects = ["sunbeams", "golden light", "radiant energy", "bright atmosphere"];
+      environment = "sunlit setting";
+      visualStyle = "natural luminous digital art";
+      atmosphere = "bright and uplifting";
+    } else if (lyricsLower.includes('rain') || lyricsLower.includes('storm') || lyricsLower.includes('thunder') || lyricsLower.includes('weather')) {
+      primaryScene = "dramatic weather scene with rain and atmospheric effects";
+      keyObjects = ["rain", "storm clouds", "atmospheric effects", "weather elements"];
+      environment = "stormy setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "dramatic and dynamic";
+    } else if (lyricsLower.includes('forest') || lyricsLower.includes('tree') || lyricsLower.includes('wood') || lyricsLower.includes('nature')) {
+      primaryScene = "natural forest scene with trees and organic elements";
+      keyObjects = ["trees", "forest elements", "natural textures", "organic forms"];
+      environment = "natural forest setting";
+      visualStyle = "natural environmental digital art";
+      atmosphere = "natural and peaceful";
+    } else if ((songTitle.toLowerCase().includes('castle') && songTitle.toLowerCase().includes('hill')) || 
+               (artist.toLowerCase().includes('ed sheeran') && lyricsLower.includes('castle'))) {
+      // Special case for "Castle On The Hill" by Ed Sheeran
+      primaryScene = "rolling green hills with a majestic castle on a hilltop overlooking the countryside";
+      keyObjects = ["castle", "hill", "rolling hills", "countryside", "distant mountains"];
+      environment = "rural countryside with rolling hills and castle";
+      visualStyle = "natural atmospheric digital art with nostalgic warmth";
+      atmosphere = "nostalgic, wistful, and grand";
+    } else if (lyricsLower.includes('mountain') || lyricsLower.includes('hill') || lyricsLower.includes('peak') || lyricsLower.includes('landscape')) {
+      primaryScene = "mountainous landscape with peaks and natural terrain";
+      keyObjects = ["mountains", "landscape elements", "natural terrain", "elevated forms"];
+      environment = "mountainous setting";
+      visualStyle = "natural environmental digital art";
+      atmosphere = "majestic and expansive";
+    } else if (lyricsLower.includes('city') || lyricsLower.includes('urban') || lyricsLower.includes('street') || lyricsLower.includes('building')) {
+      primaryScene = "urban cityscape with buildings and city atmosphere";
+      keyObjects = ["buildings", "city elements", "urban textures", "architectural forms"];
+      environment = "urban setting";
+      visualStyle = "modern architectural digital art";
+      atmosphere = "dynamic and urban";
+    } else if (titleLower.includes('wave') || titleLower.includes('ocean') || titleLower.includes('water')) {
+      primaryScene = "dynamic ocean scene with rolling waves and water reflections";
+      keyObjects = ["ocean waves", "water ripples", "aquatic movement", "flowing water"];
+      environment = "oceanic setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "flowing and dynamic";
+    } else if (titleLower.includes('fire') || titleLower.includes('flame') || titleLower.includes('burn')) {
+      primaryScene = "intense fire scene with flames and heat distortion";
+      keyObjects = ["flames", "fire patterns", "heat waves", "glowing embers"];
+      environment = "fiery setting";
+      visualStyle = "natural dynamic digital art";
+      atmosphere = "intense and energetic";
+    } else if (titleLower.includes('sky') || titleLower.includes('cloud') || titleLower.includes('heaven')) {
+      primaryScene = "expansive sky scene with clouds and atmospheric effects";
+      keyObjects = ["clouds", "atmospheric elements", "celestial forms", "sky textures"];
+      environment = "atmospheric sky setting";
+      visualStyle = "natural atmospheric digital art";
+      atmosphere = "expansive and ethereal";
+    } else if (titleLower.includes('earth') || titleLower.includes('ground') || titleLower.includes('land')) {
+      primaryScene = "natural landscape with earth textures and organic forms";
+      keyObjects = ["landscape elements", "natural textures", "organic shapes", "earth forms"];
+      environment = "natural terrestrial setting";
+      visualStyle = "natural environmental digital art";
+      atmosphere = "grounded and natural";
+    } else if (titleLower.includes('light') || titleLower.includes('bright') || titleLower.includes('shine')) {
+      primaryScene = "illuminated scene with light effects and glowing elements";
+      keyObjects = ["light rays", "glowing elements", "illumination effects", "bright forms"];
+      environment = "luminous setting";
+      visualStyle = "natural luminous digital art";
+      atmosphere = "bright and uplifting";
+    } else if (titleLower.includes('dark') || titleLower.includes('night') || titleLower.includes('shadow')) {
+      primaryScene = "mysterious dark scene with shadow effects and night atmosphere";
+      keyObjects = ["shadow effects", "dark forms", "mysterious elements", "night textures"];
+      environment = "dark atmospheric setting";
+      visualStyle = "natural moody digital art";
+      atmosphere = "mysterious and dark";
+    }
     
     // Use themes to determine scene
     if (themes && themes.includes('nature')) {
@@ -365,11 +492,21 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
     };
   };
 
-  const buildTemplatedPromptWithElements = (visualElements, analysis) => {
+  const buildTemplatedPromptWithElements = (visualElements, analysis, context) => {
     const { sentiment, emotions, mood, themes, colors, intensity } = analysis;
+    const songTitle = context?.songTitle || '';
     
     // Create a clean, focused prompt using the Groq AI analysis
-    let prompt = `${visualElements.visualStyle} backdrop depicting ${visualElements.primaryScene}`;
+    // Start with explicit song and artist context for better AI understanding
+    let prompt = `NATURAL LANDSCAPE ONLY - NO PEOPLE OR FIGURES: SONG: "${songTitle}" by ${context?.artist || 'Unknown Artist'} - Create a natural landscape scene: ${visualElements.visualStyle} depicting ${visualElements.primaryScene}`;
+    
+    // Emphasize the song title in the prompt if it's a key visual theme
+    if (songTitle && (songTitle.toLowerCase().includes('wave') || songTitle.toLowerCase().includes('fire') || 
+        songTitle.toLowerCase().includes('sky') || songTitle.toLowerCase().includes('earth') || 
+        songTitle.toLowerCase().includes('light') || songTitle.toLowerCase().includes('dark') ||
+        songTitle.toLowerCase().includes('yellow') || songTitle.toLowerCase().includes('castle'))) {
+      prompt = `NATURAL LANDSCAPE ONLY - NO PEOPLE OR FIGURES: SONG: "${songTitle}" by ${context?.artist || 'Unknown Artist'} - Create a natural landscape scene inspired by the song "${songTitle}": ${visualElements.visualStyle} depicting ${visualElements.primaryScene}`;
+    }
     
     // Add environment context if it adds value
     if (visualElements.environment && 
@@ -378,12 +515,20 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
       prompt += ` in a ${visualElements.environment}`;
     }
     
-    // Add key visual elements (but keep it concise)
+    // Add key visual elements (but keep it concise and filter out human-related terms)
     if (visualElements.keyObjects && visualElements.keyObjects.length > 0) {
+      // Filter out human-related terms that could confuse the AI
+      const humanTerms = ['skin', 'bones', 'body', 'person', 'people', 'human', 'figure', 'character', 'individual', 'dancer', 'actor'];
+      const filteredObjects = visualElements.keyObjects.filter(obj => 
+        !humanTerms.some(term => obj.toLowerCase().includes(term))
+      );
+      
       // Only add the first 2-3 most important objects to avoid clutter
-      const importantObjects = visualElements.keyObjects.slice(0, 3);
-      const objectsText = importantObjects.join(', ');
-      prompt += `, featuring ${objectsText}`;
+      const importantObjects = filteredObjects.slice(0, 3);
+      if (importantObjects.length > 0) {
+        const objectsText = importantObjects.join(', ');
+        prompt += `, featuring ${objectsText}`;
+      }
     }
     
     // Add atmosphere (this is important for mood)
@@ -397,10 +542,10 @@ Do not include any text before or after the JSON. Only return the JSON object.`;
     }
     
     // Add quality and style specifications
-    prompt += `. High quality digital art, clean composition with strong visual impact, professional scenic backdrop design`;
+    prompt += `. High quality digital art, clean composition with strong visual impact, natural and immersive imagery`;
     
-    // Add negative prompts to ensure clean backdrop generation
-    prompt += `. no people, no dancers, no curtains, no text, no furniture, no props, no animals, no 3D render, no photorealism, no camera blur`;
+    // Add extremely strong negative prompts at the end to ensure clean image generation
+    prompt += `. ABSOLUTELY NO PEOPLE, NO HUMAN FIGURES, NO SILHOUETTES, NO PERSONS, NO CHARACTERS, NO DANCERS, NO ACTORS, NO INDIVIDUALS, NO BODIES, NO FACES, NO HANDS, NO LIMBS, NO HUMAN SHAPES, NO FIGURES, NO SHADOWS OF PEOPLE, NO HUMAN-LIKE FORMS, NO ANTHROPOMORPHIC SHAPES, NO MANNEQUINS, NO STATUES, NO SCULPTURES, NO CURTAINS, NO TEXT, NO FURNITURE, NO PROPS, NO ANIMALS, NO 3D RENDER, NO PHOTOREALISM, NO CAMERA BLUR, NO STAGE BACKDROP, NO THEATRICAL BACKDROP, NO SET DESIGN, NO ARCHITECTURE, NO BUILDINGS, NO INDOOR SCENES, NO MAN-MADE OBJECTS`;
     
     return prompt;
   };

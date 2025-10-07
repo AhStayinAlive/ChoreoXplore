@@ -12,7 +12,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
 
   const generateImage = async (prompt, negativePrompt) => {
     try {
-      console.log(`🎨 Generating backdrop image with prompt: "${prompt}"`);
+      console.log(`🎨 Generating digital art image with prompt: "${prompt}"`);
       
       const response = await fetch(AI_PROXY_URL, {
         method: 'POST',
@@ -21,8 +21,8 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
         },
         body: JSON.stringify({
           prompt: prompt,
-          negative_prompt: negativePrompt || "person, people, human, man, woman, silhouette, figure, body, humanoid, mannequin, character, actor, creature, pedestrian, portrait, figure in distance, shadow shaped like person, narrative scene, lonely figure, human subject",
-          style: 'stage lighting, atmospheric, professional',
+          negative_prompt: negativePrompt || "person, people, human, man, woman, silhouette, figure, body, humanoid, mannequin, character, actor, creature, pedestrian, portrait, figure in distance, shadow shaped like person, narrative scene, lonely figure, human subject, stage, curtains, spotlight, theater, audience, performer, concert, microphone, podium, rigging, lights, props, theatrical, performance, backdrop, set design, stage design, concert hall, auditorium, venue, show, entertainment, music performance, dance floor, platform, riser, stage lights, theatrical lighting, performance space",
+          style: 'atmospheric, professional, digital art',
           width: 1024,
           height: 768,
           guidance_scale: 9.0
@@ -34,11 +34,11 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
       }
 
       const imageBlob = await response.blob();
-      console.log(`✅ Successfully generated backdrop image! Size: ${imageBlob.size} bytes`);
+      console.log(`✅ Successfully generated digital art image! Size: ${imageBlob.size} bytes`);
       return imageBlob;
       
     } catch (error) {
-      console.error('❌ AI backdrop generation failed:', error.message);
+      console.error('❌ AI digital art generation failed:', error.message);
       throw error;
     }
   };
@@ -49,8 +49,8 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
     const negativePrompt = authorMode.negativePrompt;
     
     if (userConcept.trim()) {
-      // Use the new prompt template format
-      const finalPrompt = `A ${artStyle} backdrop depicting ${userConcept}, lit with ${lightingMood} and using ${colorTone}. The composition features ${compositionLayout}, filling the frame completely as a scenic background. The scene evokes a sense of ${emotionalTheme}, expressed through atmosphere, light, and color. It should appear cohesive, immersive, and designed as a full backdrop artwork — without any stage, curtains, performers, props, text, or artificial lighting rigs. No people, animals, vehicles, or objects unrelated to the setting — only the backdrop environment itself.`;
+      // Use the new prompt template format with song context
+      const finalPrompt = `An art inspired by the song "${userConcept}" by BTS, depicting ${userConcept} using ${colorTone}. The composition features ${compositionLayout}, creating ${lightingMood} that evokes a sense of ${emotionalTheme}. The focus is on interpreting the song "${userConcept}" visually through atmospheric elements, textures, and forms.`;
       
       console.log('🎭 Submitting comprehensive prompt:', finalPrompt);
       console.log('🎭 Using negative prompt:', negativePrompt);
@@ -61,7 +61,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
         const imageBlob = await generateImage(finalPrompt, negativePrompt);
         if (imageBlob && imageBlob.size > 0) {
           const imageUrl = URL.createObjectURL(imageBlob);
-          console.log('🎭 Backdrop image generated successfully:', imageUrl);
+          console.log('🎭 Digital art image generated successfully:', imageUrl);
           
           // Set the generated image as background
           if (onBackgroundImageGenerated) {
@@ -69,14 +69,14 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
           }
         }
       } catch (error) {
-        console.error('🎭 Failed to generate backdrop:', error);
-        alert('Failed to generate backdrop. Please try again.');
+        console.error('🎭 Failed to generate digital art:', error);
+        alert('Failed to generate digital art. Please try again.');
       } finally {
         setIsGenerating(false);
       }
     } else {
       console.log('🎭 No user concept provided');
-      alert('Please enter a scene concept to generate a backdrop.');
+      alert('Please enter a scene concept to generate digital art.');
     }
   };
 
@@ -217,7 +217,7 @@ export default function AuthorPromptBox({ onBackgroundImageGenerated }) {
               }
             }}
           >
-            {isGenerating ? "Generating..." : "Generate Backdrop"}
+            {isGenerating ? "Generating..." : "Generate Montage"}
           </button>
         </div>
 

@@ -261,8 +261,9 @@ const MotionInputPanel = () => {
           setPoseData(poseData); // Update store for motion distortion
           drawPoseLandmarks(results.landmarks, results.worldLandmarks);
           
-          // Map pose data to motion for background movement
-          mapPoseToMotion(poseData);
+          // Map pose data to motion for background movement (check if ambient animation is active)
+          const ambientAnimationActive = useStore.getState().ambientAnimationParams?.isActive ?? false;
+          mapPoseToMotion(poseData, ambientAnimationActive);
         } else {
           updatePoseData(null);
           setPoseData(null); // Clear store when no pose detected
@@ -272,6 +273,9 @@ const MotionInputPanel = () => {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
           }
+          // Map fallback motion data (check if ambient animation is active)
+          const ambientAnimationActive = useStore.getState().ambientAnimationParams?.isActive ?? false;
+          mapPoseToMotion(null, ambientAnimationActive);
         }
       } catch (err) {
         console.error('Error processing frame:', err);

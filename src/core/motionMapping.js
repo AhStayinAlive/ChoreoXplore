@@ -28,7 +28,7 @@ let previousPoseData = null;
 let previousTimestamp = 0;
 
 // Map pose landmarks to motion data
-export function mapPoseToMotion(poseData) {
+export function mapPoseToMotion(poseData, ambientAnimationActive = false) {
   if (!poseData || !poseData.landmarks) {
     // Fallback motion for testing when no pose detected
     const fallbackMotion = {
@@ -41,7 +41,7 @@ export function mapPoseToMotion(poseData) {
     };
     
     const fallbackData = {
-      background: mapToBackgroundTransform(fallbackMotion),
+      background: ambientAnimationActive ? { position: { x: 0, y: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1 }, opacity: 1 } : mapToBackgroundTransform(fallbackMotion),
       camera: mapToCameraTransform(fallbackMotion),
       effects: mapToVisualEffects(fallbackMotion)
     };
@@ -61,8 +61,10 @@ export function mapPoseToMotion(poseData) {
   previousPoseData = poseData;
   previousTimestamp = currentTimestamp;
   
-  // Map to background transformations
-  const backgroundTransform = mapToBackgroundTransform(motion);
+  // Map to background transformations (only if ambient animation is not active)
+  const backgroundTransform = ambientAnimationActive ? 
+    { position: { x: 0, y: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1 }, opacity: 1 } : 
+    mapToBackgroundTransform(motion);
   
   // Map to camera movements
   const cameraTransform = mapToCameraTransform(motion);

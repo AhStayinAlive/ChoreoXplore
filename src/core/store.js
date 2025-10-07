@@ -56,6 +56,17 @@ const useStore = create((set, get) => ({
   // Skeleton visibility state
   skeletonVisible: true,
   setSkeletonVisible: (visible) => set({ skeletonVisible: visible }),
+  
+  // Ambient animation parameters
+  ambientAnimationParams: {
+    isActive: true,
+    effectType: 'waterRipple',
+    speed: 1.0,
+    amplitude: 0.5,
+    wavelength: 1.0,
+    intensity: 0.3
+  },
+  setAmbientAnimationParams: (params) => set({ ambientAnimationParams: params }),
 
   // author mode state
   authorMode: {

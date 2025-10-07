@@ -15,9 +15,9 @@ import HumanoidAvatar from "../components/HumanoidAvatar";
 import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
-import ShaderDistortion from "../components/ShaderDistortion";
+import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
 
-function SceneRoot({ backgroundImage }) {
+function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
@@ -84,9 +84,15 @@ function SceneRoot({ backgroundImage }) {
           {skeletonVisible && <SimpleSkeleton />}
           {backgroundImage && (
             <>
-              <ShaderDistortion 
+              {/* Unified ambient animation with pose-based distortion */}
+              <AmbientBackgroundAnimation 
                 backgroundImage={backgroundImage} 
-                isActive={true} 
+                isActive={ambientAnimationParams?.isActive ?? true}
+                effectType={ambientAnimationParams?.effectType ?? 'waterRipple'}
+                speed={ambientAnimationParams?.speed ?? 1.0}
+                amplitude={ambientAnimationParams?.amplitude ?? 0.5}
+                wavelength={ambientAnimationParams?.wavelength ?? 1.0}
+                intensity={ambientAnimationParams?.intensity ?? 0.3}
               />
             </>
           )}
@@ -94,7 +100,7 @@ function SceneRoot({ backgroundImage }) {
       );
 }
 
-export default function Canvas3D({ backgroundImage }) {
+export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   
   return (
     <Canvas 
@@ -104,7 +110,7 @@ export default function Canvas3D({ backgroundImage }) {
       style={{ background: backgroundImage ? "transparent" : "#0A0A0C" }}
     >
       {!backgroundImage && <color attach="background" args={["#0A0A0C"]} />}
-      <SceneRoot backgroundImage={backgroundImage} />
+      <SceneRoot backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
     </Canvas>
   );
 }

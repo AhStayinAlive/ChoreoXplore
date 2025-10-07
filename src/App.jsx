@@ -4,12 +4,15 @@ import SettingPanel from "./ui/SettingPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AuthorPanel from "./components/AuthorPanel";
 import AuthorPromptBox from "./components/AuthorPromptBox";
+import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
   const mode = useStore(s => s.mode);
   const setMode = useStore((s) => s.setMode);
   const [backgroundImage, setBackgroundImage] = useState(null);
+  const ambientAnimationParams = useStore(s => s.ambientAnimationParams);
+  const setAmbientAnimationParams = useStore(s => s.setAmbientAnimationParams);
 
   const handleBackgroundImageGenerated = (imageUrl) => {
     console.log('🎨 App received background image:', imageUrl);
@@ -35,7 +38,7 @@ export default function App() {
           `}
         </style>
       )}
-      {/* Background Image Layer - RE-ENABLED WITH SHADER DISTORTION */}
+      {/* Background Image Layer - Always show static background */}
       {backgroundImage && (
         <div 
           id="background-image-layer"
@@ -71,7 +74,7 @@ export default function App() {
         zIndex: 1
       }} />
       <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
-        <Canvas3D backgroundImage={backgroundImage} />
+        <Canvas3D backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
         
         {/* Single persistent MotionInputPanel - always running, UI visibility changes by mode */}
         <div className="glass-scrollbar" style={{ 
@@ -92,13 +95,33 @@ export default function App() {
           <MotionInputPanel />
         </div>
 
+        {/* Single persistent AmbientAnimationControlPanel - visible when background image exists, hidden in performance mode */}
+        {backgroundImage && mode !== "performance" && (
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            right: 12, 
+            bottom: 12, 
+            width: 320, 
+            height: "auto", 
+            maxHeight: "50vh", 
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden", 
+            zIndex: 10
+          }}>
+            <AmbientAnimationControlPanel 
+              isVisible={true}
+            />
+          </div>
+        )}
+
 
         {mode === "generative" && (
-          <>
-            <div className="glass-scrollbar" style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
-              <SettingPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
-            </div>
-          </>
+          <div className="glass-scrollbar" style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
+            <SettingPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
+          </div>
         )}
 
         {mode === "author" && (
