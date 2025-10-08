@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AIAssetGenerator from "../components/AIAssetGenerator";
+import { audioSourceManager$, switchAudioSource, youtubeControls } from "../core/audioSourceManager";
+import { youtubeAudio$ } from "../core/youtubeAudio";
 
 // Genius API Configuration
 const GENIUS_API_KEY = 'S2Ws82lMaMFMb7Erz9w2jjU089TlwxPqRDCVsPly3xzdZNR-FDP0nAASO4DLg6Jt'; // Get your free API key from https://genius.com/api-clients
@@ -16,6 +18,36 @@ export default function SettingPanel({ onBackgroundImageGenerated, onAssetsGener
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualLyrics, setManualLyrics] = useState("");
   const [parsedTitle, setParsedTitle] = useState(null);
+
+  // Audio source management
+  const [audioSourceState, setAudioSourceState] = useState({
+    currentSource: 'microphone',
+    isMicrophoneActive: false,
+    isYouTubeActive: false,
+    youtubeVideoId: null,
+    youtubeVideoTitle: null,
+    error: null
+  });
+  const [youtubeState, setYoutubeState] = useState({
+    isPlaying: false,
+    isLoaded: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 1.0,
+    error: null
+  });
+
+  // Subscribe to audio source manager
+  useEffect(() => {
+    const subscription = audioSourceManager$.subscribe(setAudioSourceState);
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Subscribe to YouTube audio state
+  useEffect(() => {
+    const subscription = youtubeAudio$.subscribe(setYoutubeState);
+    return () => subscription.unsubscribe();
+  }, []);
 
   // AI Generated Assets
   const [aiAssets, setAiAssets] = useState([]);
@@ -467,6 +499,18 @@ The AI analysis will work perfectly with any lyrics you provide!`;
       const foundLyrics = await searchLyrics(parsedTitle);
       setLyrics(foundLyrics);
       setMusicFile({ name: parsedTitle.original, type: "youtube" });
+      
+      // Step 3: Load YouTube audio for music reactivity
+      setLoadingStep("Loading audio for music reactivity...");
+      const { switchAudioSource } = await import("../core/audioSourceManager");
+      const audioSuccess = await switchAudioSource('youtube', videoId);
+      
+      if (audioSuccess) {
+        console.log('YouTube audio loaded successfully for music reactivity');
+      } else {
+        console.warn('Failed to load YouTube audio, music reactivity will use microphone');
+      }
+      
     } catch (error) {
       console.error("Error fetching lyrics:", error);
       setLyrics(`Error: Could not fetch lyrics for this video. Please try a different URL or search manually for: ${youtubeUrl}`);
@@ -505,6 +549,46 @@ The AI analysis will work perfectly with any lyrics you provide!`;
       setIsLoadingLyrics(false);
       setLoadingStep("");
     }
+  };
+
+  // Audio control functions
+  const handleSwitchToMicrophone = async () => {
+    try {
+      await switchAudioSource('microphone');
+    } catch (error) {
+      console.error('Error switching to microphone:', error);
+    }
+  };
+
+  const handleSwitchToYouTube = async () => {
+    if (audioSourceState.youtubeVideoId) {
+      try {
+        await switchAudioSource('youtube', audioSourceState.youtubeVideoId);
+      } catch (error) {
+        console.error('Error switching to YouTube:', error);
+      }
+    }
+  };
+
+  const handlePlay = () => youtubeControls.play();
+  const handlePause = () => youtubeControls.pause();
+  const handleStop = () => youtubeControls.stop();
+
+  const handleVolumeChange = (e) => {
+    const volume = parseFloat(e.target.value);
+    youtubeControls.setVolume(volume);
+  };
+
+  const handleSeek = (e) => {
+    const time = parseFloat(e.target.value);
+    youtubeControls.seek(time);
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
 
@@ -601,6 +685,219 @@ The AI analysis will work perfectly with any lyrics you provide!`;
                 {isLoadingLyrics ? (loadingStep || "Loading...") : "Get Lyrics"}
               </button>
             </div>
+
+            {/* Audio Source Controls */}
+            {audioSourceState.youtubeVideoId && (
+              <div style={{ marginBottom: 8 }}>
+                {/* Current Audio Source Status */}
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  marginBottom: 6,
+                  padding: "4px 8px",
+                  backgroundColor: "rgba(0,0,0,0.3)",
+                  borderRadius: "4px"
+                }}>
+                  <div style={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: "50%", 
+                    backgroundColor: audioSourceState.currentSource === 'youtube' && audioSourceState.isYouTubeActive 
+                      ? "#10b981" 
+                      : "#6b7280"
+                  }}></div>
+                  <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.8)" }}>
+                    Audio: {audioSourceState.currentSource === 'youtube' ? 'YouTube' : 'Microphone'}
+                  </span>
+                  {audioSourceState.youtubeVideoTitle && (
+                    <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.6)", marginLeft: "auto" }}>
+                      {audioSourceState.youtubeVideoTitle.length > 30 
+                        ? audioSourceState.youtubeVideoTitle.substring(0, 30) + "..." 
+                        : audioSourceState.youtubeVideoTitle}
+                    </span>
+                  )}
+                </div>
+
+                {/* Audio Source Switch */}
+                <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                  <button
+                    onClick={handleSwitchToMicrophone}
+                    style={{
+                      flex: 1,
+                      padding: "4px 8px",
+                      fontSize: "10px",
+                      backgroundColor: audioSourceState.currentSource === 'microphone' 
+                        ? "rgba(34,197,94,0.3)" 
+                        : "rgba(255,255,255,0.1)",
+                      border: `1px solid ${audioSourceState.currentSource === 'microphone' 
+                        ? "rgba(34,197,94,0.5)" 
+                        : "rgba(255,255,255,0.2)"}`,
+                      borderRadius: "4px",
+                      color: "white",
+                      cursor: "pointer"
+                    }}
+                  >
+                    🎤 Mic
+                  </button>
+                  <button
+                    onClick={handleSwitchToYouTube}
+                    style={{
+                      flex: 1,
+                      padding: "4px 8px",
+                      fontSize: "10px",
+                      backgroundColor: audioSourceState.currentSource === 'youtube' 
+                        ? "rgba(34,197,94,0.3)" 
+                        : "rgba(255,255,255,0.1)",
+                      border: `1px solid ${audioSourceState.currentSource === 'youtube' 
+                        ? "rgba(34,197,94,0.5)" 
+                        : "rgba(255,255,255,0.2)"}`,
+                      borderRadius: "4px",
+                      color: "white",
+                      cursor: "pointer"
+                    }}
+                  >
+                    🎵 YouTube
+                  </button>
+                </div>
+
+                {/* YouTube Audio Controls */}
+                {audioSourceState.currentSource === 'youtube' && youtubeState.isLoaded && (
+                  <div style={{ marginBottom: 6 }}>
+                    {/* Playback Controls */}
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                      <button
+                        onClick={handlePlay}
+                        disabled={youtubeState.isPlaying}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          fontSize: "9px",
+                          backgroundColor: youtubeState.isPlaying 
+                            ? "rgba(255,255,255,0.1)" 
+                            : "rgba(34,197,94,0.3)",
+                          border: "1px solid rgba(34,197,94,0.5)",
+                          borderRadius: "3px",
+                          color: "white",
+                          cursor: youtubeState.isPlaying ? "not-allowed" : "pointer",
+                          opacity: youtubeState.isPlaying ? 0.6 : 1
+                        }}
+                      >
+                        ▶️ Play
+                      </button>
+                      <button
+                        onClick={handlePause}
+                        disabled={!youtubeState.isPlaying}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          fontSize: "9px",
+                          backgroundColor: !youtubeState.isPlaying 
+                            ? "rgba(255,255,255,0.1)" 
+                            : "rgba(251,191,36,0.3)",
+                          border: "1px solid rgba(251,191,36,0.5)",
+                          borderRadius: "3px",
+                          color: "white",
+                          cursor: !youtubeState.isPlaying ? "not-allowed" : "pointer",
+                          opacity: !youtubeState.isPlaying ? 0.6 : 1
+                        }}
+                      >
+                        ⏸️ Pause
+                      </button>
+                      <button
+                        onClick={handleStop}
+                        style={{
+                          flex: 1,
+                          padding: "4px 6px",
+                          fontSize: "9px",
+                          backgroundColor: "rgba(239,68,68,0.3)",
+                          border: "1px solid rgba(239,68,68,0.5)",
+                          borderRadius: "3px",
+                          color: "white",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ⏹️ Stop
+                      </button>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div style={{ marginBottom: 4 }}>
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        fontSize: "8px", 
+                        color: "rgba(255,255,255,0.6)", 
+                        marginBottom: 2 
+                      }}>
+                        <span>{formatTime(youtubeState.currentTime)}</span>
+                        <span>{formatTime(youtubeState.duration)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max={youtubeState.duration || 0}
+                        value={youtubeState.currentTime || 0}
+                        onChange={handleSeek}
+                        style={{
+                          width: "100%",
+                          height: "4px",
+                          background: "rgba(255,255,255,0.2)",
+                          borderRadius: "2px",
+                          outline: "none",
+                          cursor: "pointer"
+                        }}
+                      />
+                    </div>
+
+                    {/* Volume Control */}
+                    <div>
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        fontSize: "8px", 
+                        color: "rgba(255,255,255,0.6)", 
+                        marginBottom: 2 
+                      }}>
+                        <span>Volume</span>
+                        <span>{Math.round(youtubeState.volume * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={youtubeState.volume}
+                        onChange={handleVolumeChange}
+                        style={{
+                          width: "100%",
+                          height: "4px",
+                          background: "rgba(255,255,255,0.2)",
+                          borderRadius: "2px",
+                          outline: "none",
+                          cursor: "pointer"
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Display */}
+                {audioSourceState.error && (
+                  <div style={{ 
+                    padding: "4px 6px", 
+                    backgroundColor: "rgba(239,68,68,0.2)", 
+                    border: "1px solid rgba(239,68,68,0.3)", 
+                    borderRadius: "3px", 
+                    fontSize: "9px", 
+                    color: "#fca5a5" 
+                  }}>
+                    {audioSourceState.error}
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Manual Input Option */}
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>

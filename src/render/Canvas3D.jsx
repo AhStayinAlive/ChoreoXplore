@@ -5,6 +5,8 @@ import useStore from "../core/store";
 import { startAudio, audio$ } from "../core/audio";
 import { startPose, pose$ } from "../core/pose";
 import { applyRoutes } from "../core/routing";
+import { startMusicReactivity } from "../core/musicReactivity";
+import { startMicrophoneAudio, audioSourceManager$ } from "../core/audioSourceManager";
 import { buildScene } from "../composition/scene.js";
 import { createMixer } from "../core/mixer";
 import { loadAnglesPack } from "../core/assets";
@@ -34,7 +36,9 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
 
   useEffect(() => { 
     startAudio(); 
+    startMicrophoneAudio(); // Start with microphone audio by default
     startPose(); 
+    startMusicReactivity(); // Start music reactivity system
     
     // Subscribe to motion data for camera control
     const motionSubscription = subscribeToMotionData((motionData) => {

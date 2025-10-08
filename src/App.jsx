@@ -5,6 +5,7 @@ import MotionInputPanel from "./components/MotionInputPanel";
 import AuthorPanel from "./components/AuthorPanel";
 import AuthorPromptBox from "./components/AuthorPromptBox";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
+import MusicReactivityControlPanel from "./components/MusicReactivityControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
@@ -116,6 +117,29 @@ export default function App() {
             />
           </div>
         )}
+
+        {/* Music Reactivity Control Panel - always visible when not in performance mode */}
+        {mode !== "performance" && (
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            left: 12, 
+            bottom: 12, 
+            width: 320, 
+            height: "auto", 
+            maxHeight: "50vh", 
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden", 
+            zIndex: 10
+          }}>
+            <MusicReactivityControlPanel 
+              isVisible={true}
+            />
+          </div>
+        )}
+
 
 
         {mode === "generative" && (

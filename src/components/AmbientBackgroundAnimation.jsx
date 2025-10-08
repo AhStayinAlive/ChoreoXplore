@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import useStore from '../core/store';
+import { musicReactivity$, startMusicReactivity } from '../core/musicReactivity';
 
 const AmbientBackgroundAnimation = ({ 
   backgroundImage, 
@@ -17,11 +18,26 @@ const AmbientBackgroundAnimation = ({
   const { size } = useThree();
   const [shaderMaterial, setShaderMaterial] = useState(null);
   const poseData = useStore(s => s.poseData);
+  const [musicReactivity, setMusicReactivity] = useState({
+    speedMultiplier: 1.0,
+    amplitudeMultiplier: 1.0,
+    colorIntensity: 0.0,
+    pulsationStrength: 0.0,
+    distortionIntensity: 0.0,
+    rotationSpeed: 0.0
+  });
   
   // Pose data is now working correctly
   
   // Load background texture
   const texture = useTexture(backgroundImage);
+  
+  // Subscribe to music reactivity
+  useEffect(() => {
+    startMusicReactivity();
+    const subscription = musicReactivity$.subscribe(setMusicReactivity);
+    return () => subscription.unsubscribe();
+  }, []);
   
   // Create shader material with ambient animation effects
   useEffect(() => {
@@ -38,7 +54,15 @@ const AmbientBackgroundAnimation = ({
         u_intensity: { value: intensity },
         u_effect_type: { value: getEffectTypeValue(effectType) },
         u_pose_data: { value: new Float32Array(33 * 2) }, // 33 landmarks * 2 (x,y)
-        u_pose_active: { value: 0.0 } // 1.0 if pose data is available, 0.0 otherwise
+        u_pose_active: { value: 0.0 }, // 1.0 if pose data is available, 0.0 otherwise
+        
+        // Music reactivity uniforms
+        u_music_speed_multiplier: { value: 1.0 },
+        u_music_amplitude_multiplier: { value: 1.0 },
+        u_music_color_intensity: { value: 0.0 },
+        u_music_pulsation_strength: { value: 0.0 },
+        u_music_distortion_intensity: { value: 0.0 },
+        u_music_rotation_speed: { value: 0.0 }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -58,6 +82,15 @@ const AmbientBackgroundAnimation = ({
         uniform float u_effect_type;
         uniform float u_pose_data[66]; // 33 landmarks * 2 (x,y)
         uniform float u_pose_active;
+        
+        // Music reactivity uniforms
+        uniform float u_music_speed_multiplier;
+        uniform float u_music_amplitude_multiplier;
+        uniform float u_music_color_intensity;
+        uniform float u_music_pulsation_strength;
+        uniform float u_music_distortion_intensity;
+        uniform float u_music_rotation_speed;
+        
         varying vec2 vUv;
         
         // Noise function for organic movement
@@ -94,73 +127,100 @@ const AmbientBackgroundAnimation = ({
           return value;
         }
         
-        // Water ripple effect
+        // Water ripple effect with music reactivity
         vec2 waterRipple(vec2 uv, float time) {
           vec2 center = vec2(0.5, 0.5);
           float dist = distance(uv, center);
           
-          // Create multiple ripple layers
-          float ripple1 = sin(dist * u_wavelength * 20.0 - time * u_speed * 2.0) * u_amplitude * 0.02;
-          float ripple2 = sin(dist * u_wavelength * 35.0 - time * u_speed * 1.5) * u_amplitude * 0.015;
-          float ripple3 = sin(dist * u_wavelength * 50.0 - time * u_speed * 1.2) * u_amplitude * 0.01;
+          // Apply music-reactive speed and amplitude
+          float musicSpeed = u_speed * u_music_speed_multiplier;
+          float musicAmplitude = u_amplitude * u_music_amplitude_multiplier;
+          
+          // Create multiple ripple layers with music-reactive timing
+          float ripple1 = sin(dist * u_wavelength * 20.0 - time * musicSpeed * 2.0) * musicAmplitude * 0.02;
+          float ripple2 = sin(dist * u_wavelength * 35.0 - time * musicSpeed * 1.5) * musicAmplitude * 0.015;
+          float ripple3 = sin(dist * u_wavelength * 50.0 - time * musicSpeed * 1.2) * musicAmplitude * 0.01;
+          
+          // Add music-reactive pulsation
+          float pulsation = sin(time * musicSpeed * 4.0) * u_music_pulsation_strength * 0.01;
           
           // Add some randomness for organic feel
-          float noiseRipple = fractalNoise(uv * 3.0 + time * 0.1) * u_amplitude * 0.005;
+          float noiseRipple = fractalNoise(uv * 3.0 + time * 0.1) * musicAmplitude * 0.005;
           
-          float totalRipple = (ripple1 + ripple2 + ripple3 + noiseRipple) * u_intensity;
+          float totalRipple = (ripple1 + ripple2 + ripple3 + noiseRipple + pulsation) * u_intensity;
           
           // Radial distortion
           vec2 direction = normalize(uv - center);
           return direction * totalRipple;
         }
         
-        // Heat wave effect
+        // Heat wave effect with music reactivity
         vec2 heatWave(vec2 uv, float time) {
-          // Vertical heat shimmer
-          float heat1 = sin(uv.x * u_wavelength * 15.0 + time * u_speed * 3.0) * u_amplitude * 0.02;
-          float heat2 = sin(uv.x * u_wavelength * 25.0 + time * u_speed * 2.0) * u_amplitude * 0.015;
+          // Apply music-reactive speed and amplitude
+          float musicSpeed = u_speed * u_music_speed_multiplier;
+          float musicAmplitude = u_amplitude * u_music_amplitude_multiplier;
+          
+          // Vertical heat shimmer with music-reactive timing
+          float heat1 = sin(uv.x * u_wavelength * 15.0 + time * musicSpeed * 3.0) * musicAmplitude * 0.02;
+          float heat2 = sin(uv.x * u_wavelength * 25.0 + time * musicSpeed * 2.0) * musicAmplitude * 0.015;
           
           // Add some horizontal variation
-          float heat3 = sin(uv.y * u_wavelength * 10.0 + time * u_speed * 1.5) * u_amplitude * 0.01;
+          float heat3 = sin(uv.y * u_wavelength * 10.0 + time * musicSpeed * 1.5) * musicAmplitude * 0.01;
+          
+          // Add music-reactive distortion intensity
+          float musicDistortion = u_music_distortion_intensity * 0.01;
           
           // Noise-based distortion
-          float noiseHeat = fractalNoise(uv * 2.0 + time * 0.05) * u_amplitude * 0.008;
+          float noiseHeat = fractalNoise(uv * 2.0 + time * 0.05) * musicAmplitude * 0.008;
           
-          return vec2(heat1 + heat2 + noiseHeat, heat3) * u_intensity;
+          return vec2(heat1 + heat2 + noiseHeat + musicDistortion, heat3) * u_intensity;
         }
         
-        // Flowing distortion effect
+        // Flowing distortion effect with music reactivity
         vec2 flowingDistortion(vec2 uv, float time) {
-          // Create flowing patterns
-          float flow1 = sin(uv.x * u_wavelength * 12.0 + uv.y * u_wavelength * 8.0 + time * u_speed * 2.5) * u_amplitude * 0.02;
-          float flow2 = sin(uv.x * u_wavelength * 18.0 - uv.y * u_wavelength * 12.0 + time * u_speed * 1.8) * u_amplitude * 0.015;
+          // Apply music-reactive speed and amplitude
+          float musicSpeed = u_speed * u_music_speed_multiplier;
+          float musicAmplitude = u_amplitude * u_music_amplitude_multiplier;
           
-          // Add circular flow patterns
+          // Create flowing patterns with music-reactive timing
+          float flow1 = sin(uv.x * u_wavelength * 12.0 + uv.y * u_wavelength * 8.0 + time * musicSpeed * 2.5) * musicAmplitude * 0.02;
+          float flow2 = sin(uv.x * u_wavelength * 18.0 - uv.y * u_wavelength * 12.0 + time * musicSpeed * 1.8) * musicAmplitude * 0.015;
+          
+          // Add circular flow patterns with music-reactive rotation
           vec2 center = vec2(0.5, 0.5);
           float angle = atan(uv.y - center.y, uv.x - center.x);
           float radius = distance(uv, center);
           
-          float circularFlow = sin(angle * 8.0 + radius * u_wavelength * 20.0 + time * u_speed * 2.0) * u_amplitude * 0.01;
+          // Add music-reactive rotation
+          float rotationOffset = time * u_music_rotation_speed * 0.5;
+          float circularFlow = sin(angle * 8.0 + radius * u_wavelength * 20.0 + time * musicSpeed * 2.0 + rotationOffset) * musicAmplitude * 0.01;
           
           // Noise-based flow
-          float noiseFlow = fractalNoise(uv * 1.5 + time * 0.03) * u_amplitude * 0.006;
+          float noiseFlow = fractalNoise(uv * 1.5 + time * 0.03) * musicAmplitude * 0.006;
           
           return vec2(flow1 + circularFlow + noiseFlow, flow2 + noiseFlow) * u_intensity;
         }
         
-        // Gentle wave effect
+        // Gentle wave effect with music reactivity
         vec2 gentleWave(vec2 uv, float time) {
-          // Soft, gentle waves
-          float wave1 = sin(uv.x * u_wavelength * 8.0 + time * u_speed * 1.5) * u_amplitude * 0.015;
-          float wave2 = sin(uv.y * u_wavelength * 6.0 + time * u_speed * 1.2) * u_amplitude * 0.012;
+          // Apply music-reactive speed and amplitude
+          float musicSpeed = u_speed * u_music_speed_multiplier;
+          float musicAmplitude = u_amplitude * u_music_amplitude_multiplier;
+          
+          // Soft, gentle waves with music-reactive timing
+          float wave1 = sin(uv.x * u_wavelength * 8.0 + time * musicSpeed * 1.5) * musicAmplitude * 0.015;
+          float wave2 = sin(uv.y * u_wavelength * 6.0 + time * musicSpeed * 1.2) * musicAmplitude * 0.012;
           
           // Subtle diagonal waves
-          float wave3 = sin((uv.x + uv.y) * u_wavelength * 10.0 + time * u_speed * 1.8) * u_amplitude * 0.008;
+          float wave3 = sin((uv.x + uv.y) * u_wavelength * 10.0 + time * musicSpeed * 1.8) * musicAmplitude * 0.008;
+          
+          // Add gentle music-reactive pulsation
+          float gentlePulsation = sin(time * musicSpeed * 2.0) * u_music_pulsation_strength * 0.005;
           
           // Very subtle noise
-          float noiseWave = fractalNoise(uv * 1.0 + time * 0.02) * u_amplitude * 0.003;
+          float noiseWave = fractalNoise(uv * 1.0 + time * 0.02) * musicAmplitude * 0.003;
           
-          return vec2(wave1 + wave3 + noiseWave, wave2 + noiseWave) * u_intensity;
+          return vec2(wave1 + wave3 + noiseWave + gentlePulsation, wave2 + noiseWave) * u_intensity;
         }
         
         // Function to get distance from point to line segment
@@ -569,6 +629,22 @@ const AmbientBackgroundAnimation = ({
           float colorVariation = length(totalDistortion) * 0.1;
           background.rgb = mix(background.rgb, background.rgb * 1.1, colorVariation);
           
+          // Add music-reactive color effects
+          if (u_music_color_intensity > 0.0) {
+            // Create color shifts based on music intensity
+            vec3 musicColorShift = vec3(
+              sin(u_time * 2.0 + u_music_color_intensity) * 0.1,
+              sin(u_time * 1.5 + u_music_color_intensity + 2.0) * 0.1,
+              sin(u_time * 1.8 + u_music_color_intensity + 4.0) * 0.1
+            );
+            
+            // Apply color intensity scaling
+            musicColorShift *= u_music_color_intensity;
+            
+            // Mix with background color
+            background.rgb = mix(background.rgb, background.rgb + musicColorShift, 0.3);
+          }
+          
           // Pose distortion is now working properly
           
           gl_FragColor = background;
@@ -790,11 +866,19 @@ const AmbientBackgroundAnimation = ({
     transparent: false
   });
 
-  // Update time uniform and pose data
+  // Update time uniform, pose data, and music reactivity
   useFrame((state) => {
     if (shaderMaterial) {
         // Always update time (needed for both ambient animation and pose distortion)
         shaderMaterial.uniforms.u_time.value = state.clock.elapsedTime;
+        
+        // Update music reactivity uniforms
+        shaderMaterial.uniforms.u_music_speed_multiplier.value = musicReactivity.speedMultiplier;
+        shaderMaterial.uniforms.u_music_amplitude_multiplier.value = musicReactivity.amplitudeMultiplier;
+        shaderMaterial.uniforms.u_music_color_intensity.value = musicReactivity.colorIntensity;
+        shaderMaterial.uniforms.u_music_pulsation_strength.value = musicReactivity.pulsationStrength;
+        shaderMaterial.uniforms.u_music_distortion_intensity.value = musicReactivity.distortionIntensity;
+        shaderMaterial.uniforms.u_music_rotation_speed.value = musicReactivity.rotationSpeed;
     }
     
     // Also update static shader material if it exists
