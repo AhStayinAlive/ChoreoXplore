@@ -260,6 +260,10 @@ const MotionInputPanel = () => {
           updatePoseData(poseData);
           setPoseData(poseData); // Update store for motion distortion
           drawPoseLandmarks(results.landmarks, results.worldLandmarks);
+          // Bridge to Irina Angles feature (motion-reactive visuals)
+          if (typeof window !== 'undefined' && window.__onPose) {
+            try { window.__onPose(poseData); } catch (e) { /* noop */ }
+          }
           
           // Map pose data to motion for background movement (check if ambient animation is active)
           const ambientAnimationActive = useStore.getState().ambientAnimationParams?.isActive ?? false;

@@ -1,0 +1,27 @@
+import Meyda from 'meyda';
+import { BehaviorSubject } from 'rxjs';
+
+export type AudioFeatures = { rms: number; energy: number; centroid: number; bpmish: number; };
+export const audio$ = new BehaviorSubject<AudioFeatures>({ rms:0, energy:0, centroid:0, bpmish:0 });
+
+export async function attachAudio(el: HTMLMediaElement | MediaStream) {
+  const Ctx: any = (window.AudioContext || (window as any).webkitAudioContext);
+  const ctx = new Ctx();
+  const src = el instanceof HTMLMediaElement ? ctx.createMediaElementSource(el)
+                                             : ctx.createMediaStreamSource(el as MediaStream);
+  const analyser = Meyda.createMeydaAnalyzer({
+    audioContext: ctx,
+    source: src,
+    bufferSize: 1024,
+    featureExtractors: ['rms','spectralCentroid'],
+    callback: ({ rms, spectralCentroid }) => {
+      const prev = audio$.value;
+      const energy = prev.energy*0.85 + (rms ?? 0)*0.15;
+      const centroid = spectralCentroid ?? 0;
+      audio$.next({ rms: rms ?? 0, energy, centroid, bpmish: prev.bpmish*0.98 + (energy>prev.energy?1:0)*0.02 });
+    }
+  });
+  src.connect(ctx.destination);
+  analyser.start();
+}
+

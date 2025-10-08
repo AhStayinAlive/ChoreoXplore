@@ -3,12 +3,15 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import "@xyflow/react/dist/style.css";
 import App from "./App.jsx";
+import AppAngles from "./AppAngles";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) console.error("No #root div found in index.html");
 
 createRoot(rootEl).render(
   <StrictMode>
+    {/* Temporarily mount the Irina Angles scene below the main app */}
     <App />
+    <AppAngles />
   </StrictMode>
 );
