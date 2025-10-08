@@ -17,7 +17,8 @@ const AmbientAnimationControlPanel = ({
     { value: 'waterRipple', label: 'Water Ripple', description: 'Gentle ripples like water surface' },
     { value: 'heatWave', label: 'Heat Wave', description: 'Heat shimmer distortion effect' },
     { value: 'flowingDistortion', label: 'Flowing Distortion', description: 'Organic flowing patterns' },
-    { value: 'gentleWave', label: 'Gentle Wave', description: 'Soft, subtle wave motion' }
+    { value: 'gentleWave', label: 'Gentle Wave', description: 'Soft, subtle wave motion' },
+    { value: 'irinaAngles', label: 'Irina Angles', description: 'Crisp angular line fields' }
   ];
 
   // Parameters are now managed by the store, no need to notify parent

@@ -8,10 +8,9 @@ import AppAngles from "./AppAngles";
 const rootEl = document.getElementById("root");
 if (!rootEl) console.error("No #root div found in index.html");
 
+const isAngles = window.location.pathname.startsWith('/angles');
 createRoot(rootEl).render(
   <StrictMode>
-    {/* Temporarily mount the Irina Angles scene below the main app */}
-    <App />
-    <AppAngles />
+    {isAngles ? <AppAngles /> : <App />}
   </StrictMode>
 );

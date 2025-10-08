@@ -16,6 +16,7 @@ import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
+import { IrinaAngles } from "../visuals/IrinaAngles";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const group = useRef();
@@ -82,20 +83,19 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
             <group ref={group} />
           </Motion3DController>
           {skeletonVisible && <SimpleSkeleton />}
-          {backgroundImage && (
-            <>
-              {/* Unified ambient animation with pose-based distortion */}
-              <AmbientBackgroundAnimation 
-                backgroundImage={backgroundImage} 
-                isActive={ambientAnimationParams?.isActive ?? true}
-                effectType={ambientAnimationParams?.effectType ?? 'waterRipple'}
-                speed={ambientAnimationParams?.speed ?? 1.0}
-                amplitude={ambientAnimationParams?.amplitude ?? 0.5}
-                wavelength={ambientAnimationParams?.wavelength ?? 1.0}
-                intensity={ambientAnimationParams?.intensity ?? 0.3}
-              />
-            </>
-          )}
+          {ambientAnimationParams?.effectType === 'irinaAngles' ? (
+            <IrinaAngles />
+          ) : backgroundImage ? (
+            <AmbientBackgroundAnimation 
+              backgroundImage={backgroundImage} 
+              isActive={ambientAnimationParams?.isActive ?? true}
+              effectType={ambientAnimationParams?.effectType ?? 'waterRipple'}
+              speed={ambientAnimationParams?.speed ?? 1.0}
+              amplitude={ambientAnimationParams?.amplitude ?? 0.5}
+              wavelength={ambientAnimationParams?.wavelength ?? 1.0}
+              intensity={ambientAnimationParams?.intensity ?? 0.3}
+            />
+          ) : null}
         </>
       );
 }
