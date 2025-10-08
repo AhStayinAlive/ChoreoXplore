@@ -54,7 +54,8 @@ export function IrinaAngles() {
       uIntensity: { value: 0.8 },
     },
   }), []);
-  const geom = useMemo(() => new THREE.PlaneGeometry(2, 2, 1, 1), []);
+  // Use a large plane so it covers the orthographic view fully
+  const geom = useMemo(() => new THREE.PlaneGeometry(1000, 1000, 1, 1), []);
 
   // Stable selectors: avoid object literals that change identity every render
   const music  = useVisStore((s) => s.music);
@@ -63,11 +64,14 @@ export function IrinaAngles() {
 
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt * (0.6 + params.speed);
-    material.uniforms.uHue.value = params.colorHue;
+    const hue = (params as any).hue ?? (params as any).colorHue ?? 210;
+    const musicReact = (params as any).musicReact ?? (params as any).musicReactivity ?? 0.9;
+    const motionReact = (params as any).motionReact ?? (params as any).motionReactivity ?? 0.9;
+    material.uniforms.uHue.value = hue;
     material.uniforms.uIntensity.value = params.intensity;
 
-    const energy = (music?.energy ?? 0) * params.musicReactivity;
-    const sharp  = (motion?.sharpness ?? 0) * params.motionReactivity;
+    const energy = (music?.energy ?? 0) * musicReact;
+    const sharp  = (motion?.sharpness ?? 0) * motionReact;
 
     material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
       material.uniforms.uEnergy.value, energy, 0.2
