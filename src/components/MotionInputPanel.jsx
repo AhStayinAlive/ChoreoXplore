@@ -259,7 +259,18 @@ const MotionInputPanel = () => {
           
           updatePoseData(poseData);
           setPoseData(poseData); // Update store for motion distortion
+          // Push motion features to visuals store for Irina Angles
+          try {
+            const { computeMotionFeatures } = await import('@/engine/poseFeatures');
+            const { useVisStore } = await import('@/state/useVisStore');
+            const mf = computeMotionFeatures({ landmarks: poseData.landmarks, timestamp: performance.now() });
+            useVisStore.getState().setMotion(mf);
+          } catch (_) { /* ignore */ }
           drawPoseLandmarks(results.landmarks, results.worldLandmarks);
+          // Bridge to Irina Angles feature (motion-reactive visuals)
+          if (typeof window !== 'undefined' && window.__onPose) {
+            try { window.__onPose(poseData); } catch (e) { /* noop */ }
+          }
           
           // Map pose data to motion for background movement (check if ambient animation is active)
           const ambientAnimationActive = useStore.getState().ambientAnimationParams?.isActive ?? false;

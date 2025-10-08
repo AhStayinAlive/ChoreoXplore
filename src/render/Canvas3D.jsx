@@ -16,6 +16,8 @@ import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
+import IrinaSystem from "@/visuals/IrinaSystem";
+import { startCoreAudioBridge } from "@/adapters/bridgeCoreAudioToIrina";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const group = useRef();
@@ -31,6 +33,13 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
     // Clear static nodes; mixer will spawn visuals
     setSceneNodes([]);
   }, [setSceneNodes]);
+  // Bridge core audio into Irina visuals when selected
+  useEffect(()=>{
+    if (ambientAnimationParams?.effectType === 'irinaAngles'){
+      const stop = startCoreAudioBridge();
+      return ()=>stop();
+    }
+  }, [ambientAnimationParams?.effectType]);
 
   useEffect(() => { 
     startAudio(); 
@@ -82,20 +91,19 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
             <group ref={group} />
           </Motion3DController>
           {skeletonVisible && <SimpleSkeleton />}
-          {backgroundImage && (
-            <>
-              {/* Unified ambient animation with pose-based distortion */}
-              <AmbientBackgroundAnimation 
-                backgroundImage={backgroundImage} 
-                isActive={ambientAnimationParams?.isActive ?? true}
-                effectType={ambientAnimationParams?.effectType ?? 'waterRipple'}
-                speed={ambientAnimationParams?.speed ?? 1.0}
-                amplitude={ambientAnimationParams?.amplitude ?? 0.5}
-                wavelength={ambientAnimationParams?.wavelength ?? 1.0}
-                intensity={ambientAnimationParams?.intensity ?? 0.3}
-              />
-            </>
-          )}
+          {ambientAnimationParams?.effectType === 'irinaAngles' ? (
+            <IrinaSystem />
+          ) : backgroundImage ? (
+            <AmbientBackgroundAnimation 
+              backgroundImage={backgroundImage} 
+              isActive={ambientAnimationParams?.isActive ?? true}
+              effectType={ambientAnimationParams?.effectType ?? 'waterRipple'}
+              speed={ambientAnimationParams?.speed ?? 1.0}
+              amplitude={ambientAnimationParams?.amplitude ?? 0.5}
+              wavelength={ambientAnimationParams?.wavelength ?? 1.0}
+              intensity={ambientAnimationParams?.intensity ?? 0.3}
+            />
+          ) : null}
         </>
       );
 }
