@@ -25,18 +25,32 @@ void main() {
   vec2 uv = vUv*2.0-1.0;
   uv *= 0.1; // Scale down UV to make patterns larger
   float t = uTime;
-  float ang = 1.5708 * (0.25 + 0.75*fract(t*0.07 + uMotion*0.4));
+  
+  // Make music reactivity much more dramatic
+  float musicBoost = uEnergy * 3.0; // Triple the music energy effect
+  float musicPulse = sin(t * 4.0 + uEnergy * 10.0) * musicBoost; // Faster, more dramatic pulsing
+  
+  float ang = 1.5708 * (0.25 + 0.75*fract(t*0.07 + uMotion*0.4 + musicPulse*0.5));
   float f = angleField(uv*1.2, ang);
-  f = min(f, angleField(uv*1.2 + vec2(0.17,0.11)*sin(t*0.3+uMotion), ang+1.047));
-  f = min(f, angleField(uv*1.2 + vec2(-0.2,0.07)*cos(t*0.23), ang+2.094));
-  float thickness = mix(0.08, 0.24, clamp(uEnergy*1.4 + 0.3, 0.0, 1.0)); // Increased base thickness
+  f = min(f, angleField(uv*1.2 + vec2(0.17,0.11)*sin(t*0.3+uMotion + musicPulse), ang+1.047));
+  f = min(f, angleField(uv*1.2 + vec2(-0.2,0.07)*cos(t*0.23 + musicPulse*0.8), ang+2.094));
+  
+  // Make thickness much more reactive to music
+  float thickness = mix(0.05, 0.35, clamp(uEnergy*2.0 + musicBoost*0.5 + 0.2, 0.0, 1.0));
   float line = smoothstep(thickness, thickness*0.6, f);
-  vec3 base = vec3(0.02);
+  
+  vec3 base = vec3(0.0); // Make base transparent
   float h = uHue/360.0;
   vec3 accent = clamp(vec3(abs(h*6.0-3.0)-1.0, 2.0-abs(h*6.0-2.0), 2.0-abs(h*6.0-4.0)), 0.0, 1.0);
-  vec3 col = mix(base, accent, line * uIntensity * 2.0); // Doubled intensity
   
-  gl_FragColor = vec4(pow(col, vec3(0.9)), 1.0);
+  // Make color intensity much more reactive to music
+  float musicIntensity = uIntensity * (1.0 + musicBoost * 2.0); // Music can double the intensity
+  vec3 col = mix(base, accent, line * musicIntensity);
+  
+  // Make alpha much more reactive to music
+  float musicAlpha = line * uIntensity * (0.4 + musicBoost * 0.8); // Music can significantly increase alpha
+  
+  gl_FragColor = vec4(pow(col, vec3(0.9)), musicAlpha);
 }
 `;
 
@@ -56,9 +70,12 @@ export default function Lines1D_Irina() {
       uMotion: { value: 0 },
       uIntensity: { value: 0.8 },
     },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
   }), []);
   
-  const geom = useMemo(() => new THREE.PlaneGeometry(10000, 10000, 1, 1), []);
+  const geom = useMemo(() => new THREE.PlaneGeometry(19500, 9550, 1, 1), []);
 
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
@@ -80,5 +97,5 @@ export default function Lines1D_Irina() {
     );
   });
 
-  return <mesh geometry={geom} material={material} position={[0, 0, 1]} />;
+  return <mesh geometry={geom} material={material} position={[0, 0, 2]} />;
 }
