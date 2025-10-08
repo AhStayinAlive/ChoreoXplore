@@ -11,7 +11,8 @@ const AmbientBackgroundAnimation = ({
   speed = 1.0,
   amplitude = 0.5,
   wavelength = 1.0,
-  intensity = 0.3
+  intensity = 0.3,
+  scale = 1.0 // Add scale prop
 }) => {
   const meshRef = useRef();
   const { size } = useThree();
@@ -872,7 +873,7 @@ const AmbientBackgroundAnimation = ({
   // When not active, render a static background without animation
   if (!isActive) {
     return (
-      <mesh ref={meshRef} position={[0, 0, 1]}>
+      <mesh ref={meshRef} position={[0, 0, 1]} scale={[scale, scale, scale]}>
         <planeGeometry args={[20000, 10000]} />
         <primitive object={staticShaderMaterial} />
       </mesh>
@@ -880,7 +881,7 @@ const AmbientBackgroundAnimation = ({
   }
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 1]}>
+    <mesh ref={meshRef} position={[0, 0, 1]} scale={[scale, scale, scale]}>
       <planeGeometry args={[20000, 10000]} />
       <primitive object={shaderMaterial} />
     </mesh>

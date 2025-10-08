@@ -16,12 +16,15 @@ import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
+import IrinaSystem from "../components/IrinaSystem";
+import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
   const skeletonVisible = useStore(s => s.skeletonVisible);
+  const mode = useStore(s => s.mode);
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
@@ -36,12 +39,20 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
     startAudio(); 
     startPose(); 
     
+    // Start Irina bridges
+    const stopAudioBridge = startIrinaAudioBridge();
+    const stopPoseBridge = startIrinaPoseBridge();
+    
     // Subscribe to motion data for camera control
     const motionSubscription = subscribeToMotionData((motionData) => {
       motionDataRef.current = motionData;
     });
     
-    return () => motionSubscription.unsubscribe();
+    return () => {
+      motionSubscription.unsubscribe();
+      stopAudioBridge();
+      stopPoseBridge();
+    };
   }, []);
 
   useEffect(() => {
@@ -81,7 +92,9 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
-          {skeletonVisible && <SimpleSkeleton />}
+          {skeletonVisible && (
+            <SimpleSkeleton scale={mode === "irina" ? 1.0 : 1.0} />
+          )}
           {backgroundImage && (
             <>
               {/* Unified ambient animation with pose-based distortion */}
@@ -93,7 +106,13 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
                 amplitude={ambientAnimationParams?.amplitude ?? 0.5}
                 wavelength={ambientAnimationParams?.wavelength ?? 1.0}
                 intensity={ambientAnimationParams?.intensity ?? 0.3}
+                scale={mode === "irina" ? 1.0 : 1.0} // Same scale for all modes
               />
+            </>
+          )}
+          {mode === "irina" && (
+            <>
+              <IrinaSystem />
             </>
           )}
         </>
@@ -101,11 +120,25 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
 }
 
 export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
+  const mode = useStore(s => s.mode);
+  
+  // Different camera settings for different modes
+  const getCameraSettings = () => {
+    switch (mode) {
+      case "irina":
+        return { zoom: 500, position: [0, 0, 10] }; // Groupmates' settings for Irina
+      default:
+        return { zoom: 0.1, position: [0, 0, 10] }; // Original settings for other modes
+    }
+  };
   
   return (
     <Canvas 
       orthographic 
-      camera={{ zoom: 0.1, position: [0, 0, 10] }} 
+      camera={{ 
+        zoom: mode === "irina" ? 0.1 : 0.1, 
+        position: mode === "irina" ? [0, 0, 5] : [0, 0, 10] 
+      }}
       dpr={[1, 2]}
       style={{ background: backgroundImage ? "transparent" : "#0A0A0C" }}
     >

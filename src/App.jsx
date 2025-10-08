@@ -5,6 +5,7 @@ import MotionInputPanel from "./components/MotionInputPanel";
 import AuthorPanel from "./components/AuthorPanel";
 import AuthorPromptBox from "./components/AuthorPromptBox";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
+import IrinaControlPanel from "./components/IrinaControlPanel";
 import useStore from "./core/store";
 
 export default function App() {
@@ -144,11 +145,29 @@ export default function App() {
             <AuthorPromptBox onBackgroundImageGenerated={handleBackgroundImageGenerated} />
           </>
         )}
+
+        {mode === "irina" && (
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            left: 12, 
+            top: 12, 
+            width: 360, 
+            height: "auto", 
+            maxHeight: "60vh", 
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden" 
+          }}>
+            <IrinaControlPanel />
+          </div>
+        )}
         <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12 }}>
           <button 
             className="ghost" 
             onClick={() => {
-              const modes = ["performance", "generative", "author"];
+              const modes = ["performance", "generative", "author", "irina"];
               const currentIndex = modes.indexOf(mode);
               const nextIndex = (currentIndex + 1) % modes.length;
               setMode(modes[nextIndex]);
@@ -156,6 +175,7 @@ export default function App() {
           >
             {mode === "performance" ? "Switch to Generative" : 
              mode === "generative" ? "Switch to Author" : 
+             mode === "author" ? "Switch to Irina" :
              "Switch to Performance"}
           </button>
         </div>

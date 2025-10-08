@@ -4,7 +4,7 @@ import usePoseDetection from '../hooks/usePoseDetection';
 import useStore from '../core/store';
 import * as THREE from 'three';
 
-const SimpleSkeleton = () => {
+const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   const groupRef = useRef();
   const poseDataRef = useRef(null);
   const { poseData } = usePoseDetection();
@@ -66,6 +66,9 @@ const SimpleSkeleton = () => {
       scale = 4.4 / normalizedWidth; // Invert so closer = bigger, 2x smaller base scale
       scale = Math.max(11.2, Math.min(44.4, scale)); // Clamp between 11.2x and 44.4x for 2x smaller skeleton
     }
+    
+    // Apply mode-based scale override
+    scale *= modeScale;
 
     // Clear existing children
     while (groupRef.current.children.length > 0) {

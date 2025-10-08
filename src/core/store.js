@@ -3,7 +3,7 @@ import { create } from "zustand";
 const allowedAngles = [0, 15, 22.5, 30, 45, 60, 75, 90, 105, 120, 135];
 
 const useStore = create((set, get) => ({
-  mode: "generative", // "performance" | "generative" | "author"
+  mode: "generative", // "performance" | "generative" | "author" | "irina"
   fps: 0,
   palette: ["#0A0A0C", "#EDEEF2", "#5FA8FF"],
 
@@ -85,6 +85,23 @@ const useStore = create((set, get) => ({
   },
   setAuthorMode: (fn) => set((state) => ({
     authorMode: { ...state.authorMode, ...fn(state.authorMode) }
+  })),
+
+  // Irina Angles mode state
+  irinaMode: {
+    music: { rms: 0, energy: 0, centroid: 0, bpmish: 0 },
+    motion: null,
+    params: { 
+      speed: 0.6, 
+      intensity: 0.8, 
+      hue: 210, 
+      musicReactivity: 0.9, 
+      motionReactivity: 0.9, 
+      mode: "auto" // "auto" | "lines" | "surfaces" | "volumes"
+    }
+  },
+  setIrinaMode: (fn) => set((state) => ({
+    irinaMode: { ...state.irinaMode, ...fn(state.irinaMode) }
   })),
 }));
 
