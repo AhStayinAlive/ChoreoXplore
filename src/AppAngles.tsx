@@ -6,16 +6,28 @@ import { useVisStore } from './state/useVisStore';
 import { audio$, attachAudio } from './engine/audioFeatures';
 import { computeMotionFeatures } from './engine/poseFeatures';
 
+class R3FBoundary extends React.Component<React.PropsWithChildren, {err?:Error}> {
+  state = { err: undefined as any };
+  static getDerivedStateFromError(err: Error) { return { err }; }
+  render() { return this.state.err ? null : this.props.children; }
+}
+
 export default function AppAngles(){
   const setMusic = useVisStore(s=>s.setMusic);
   const setMotion = useVisStore(s=>s.setMotion);
 
   useEffect(()=>{
     const sub = audio$.subscribe(setMusic);
-    const el = document.querySelector<HTMLMediaElement>('#player');
-    if (el) attachAudio(el);
-    else navigator.mediaDevices.getUserMedia({ audio: true }).then(attachAudio);
-    return ()=>sub.unsubscribe();
+    let detach: (()=>void) | undefined;
+    (async () => {
+      const el = document.querySelector<HTMLMediaElement>('#player');
+      if (el) detach = await attachAudio(el);
+      else {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        detach = await attachAudio(stream);
+      }
+    })();
+    return ()=>{ sub.unsubscribe(); detach?.(); };
   }, [setMusic]);
 
   useEffect(()=>{
@@ -28,11 +40,19 @@ export default function AppAngles(){
     };
   }, [setMotion]);
 
+  const onCreated = ({ gl }: any) => {
+    gl.domElement.addEventListener('webglcontextlost', (e:any) => { e.preventDefault(); }, false);
+  };
+
   return (
     <>
-      <Canvas orthographic camera={{ zoom: 500, position: [0,0,10] }}>
-        <IrinaAngles />
-      </Canvas>
+      <R3FBoundary>
+        <Canvas orthographic camera={{ zoom: 500, position: [0,0,10] }}
+                gl={{ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
+                onCreated={onCreated}>
+          <IrinaAngles />
+        </Canvas>
+      </R3FBoundary>
 
       <div className="fixed bottom-4 left-4 z-50 bg-white/70 backdrop-blur rounded-xl p-3 space-x-3">
         <label>Hue <input type="range" min={0} max={360}

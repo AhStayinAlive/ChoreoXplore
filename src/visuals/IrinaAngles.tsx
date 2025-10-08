@@ -43,22 +43,38 @@ void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(p
 `;
 
 export function IrinaAngles() {
-  const material = useMemo(()=>new THREE.ShaderMaterial({
-    fragmentShader: frag, vertexShader: vert,
-    uniforms: { uTime:{value:0}, uHue:{value:210}, uEnergy:{value:0}, uMotion:{value:0}, uIntensity:{value:0.8} }
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    fragmentShader: frag,
+    vertexShader: vert,
+    uniforms: {
+      uTime: { value: 0 },
+      uHue: { value: 210 },
+      uEnergy: { value: 0 },
+      uMotion: { value: 0 },
+      uIntensity: { value: 0.8 },
+    },
   }), []);
-  const geom = useMemo(()=>new THREE.PlaneGeometry(2, 2, 1, 1), []);
+  const geom = useMemo(() => new THREE.PlaneGeometry(2, 2, 1, 1), []);
 
-  const get = useVisStore(s=>({ music: s.music, motion: s.motion, params: s.params }));
+  // Stable selectors: avoid object literals that change identity every render
+  const music  = useVisStore((s) => s.music);
+  const motion = useVisStore((s) => s.motion);
+  const params = useVisStore((s) => s.params);
 
   useFrame((_, dt) => {
-    material.uniforms.uTime.value += dt * (0.6 + get.params.speed);
-    material.uniforms.uHue.value = get.params.colorHue;
-    material.uniforms.uIntensity.value = get.params.intensity;
-    const energy = get.music.energy * get.params.musicReactivity;
-    const sharp  = (get.motion?.sharpness ?? 0) * get.params.motionReactivity;
-    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(material.uniforms.uEnergy.value, energy, 0.2);
-    material.uniforms.uMotion.value = THREE.MathUtils.lerp(material.uniforms.uMotion.value, sharp, 0.15);
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uHue.value = params.colorHue;
+    material.uniforms.uIntensity.value = params.intensity;
+
+    const energy = (music?.energy ?? 0) * params.musicReactivity;
+    const sharp  = (motion?.sharpness ?? 0) * params.motionReactivity;
+
+    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
+      material.uniforms.uEnergy.value, energy, 0.2
+    );
+    material.uniforms.uMotion.value = THREE.MathUtils.lerp(
+      material.uniforms.uMotion.value, sharp, 0.15
+    );
   });
 
   return <mesh geometry={geom} material={material} />;
