@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Slider from './reusables/Slider';
 import ToggleButton from './reusables/ToggleButton';
 import useStore from '../core/store';
+import { useVisStore } from '@/state/useVisStore';
 
 const AmbientAnimationControlPanel = ({ 
   onParametersChange,
@@ -11,6 +12,8 @@ const AmbientAnimationControlPanel = ({
   const parameters = useStore(s => s.ambientAnimationParams);
   const setParameters = useStore(s => s.setAmbientAnimationParams);
   const [isExpanded, setIsExpanded] = useState(false);
+  const visMode = useVisStore(s=>s.params.mode);
+  const setVisParams = (p)=>useVisStore.getState().setParams(p);
 
   // Effect type options
   const effectTypes = [
@@ -132,6 +135,26 @@ const AmbientAnimationControlPanel = ({
           ))}
         </div>
       </div>
+
+      {/* Irina Mode (only shown when Irina is active) */}
+      {parameters.effectType === 'irinaAngles' && (
+        <div className="mb-4">
+          <label className="text-white/90 text-sm font-medium mb-2 block">Irina Mode</label>
+          <select
+            value={visMode}
+            onChange={(e)=>setVisParams({ mode: e.target.value })}
+            style={{
+              width: '100%', padding: '8px 10px', borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.06)', color: 'white'
+            }}
+          >
+            <option value="auto">Auto</option>
+            <option value="lines">Lines</option>
+            <option value="surfaces">Surfaces</option>
+            <option value="volumes">Volumes</option>
+          </select>
+        </div>
+      )}
 
       {/* Expanded Controls */}
       {isExpanded && (

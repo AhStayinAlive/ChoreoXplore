@@ -261,8 +261,8 @@ const MotionInputPanel = () => {
           setPoseData(poseData); // Update store for motion distortion
           // Push motion features to visuals store for Irina Angles
           try {
-            const { computeMotionFeatures } = await import('../engine/poseFeatures');
-            const { useVisStore } = await import('../state/useVisStore');
+            const { computeMotionFeatures } = await import('@/engine/poseFeatures');
+            const { useVisStore } = await import('@/state/useVisStore');
             const mf = computeMotionFeatures({ landmarks: poseData.landmarks, timestamp: performance.now() });
             useVisStore.getState().setMotion(mf);
           } catch (_) { /* ignore */ }

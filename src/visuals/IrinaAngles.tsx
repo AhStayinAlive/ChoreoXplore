@@ -2,7 +2,7 @@ import React from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
-import { useVisStore } from '../state/useVisStore';
+import { useVisStore } from '@/state/useVisStore';
 
 const frag = `
 uniform float uTime;
