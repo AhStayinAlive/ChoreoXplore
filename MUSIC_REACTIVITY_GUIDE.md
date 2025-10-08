@@ -228,3 +228,4 @@ The Music Reactivity System transforms your ChoreoXplore application into a dyna
 
 Whether you're creating ambient backgrounds, performance visuals, or interactive installations, the music reactivity system provides the tools to create compelling, music-driven experiences that engage and captivate your audience.
 
+
