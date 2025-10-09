@@ -2,6 +2,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import useStore from "../core/store";
+import { useVisStore } from "../state/useVisStore";
 import { startAudio, audio$ } from "../core/audio";
 import { startPose, pose$ } from "../core/pose";
 import { applyRoutes } from "../core/routing";
@@ -25,6 +26,7 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const setSceneNodes = useStore((s) => s.setSceneNodes);
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const mode = useStore(s => s.mode);
+  const irinaIsActive = useVisStore(s => s.isActive);
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
@@ -110,7 +112,7 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
               />
             </>
           )}
-          {mode === "irina" && (
+          {irinaIsActive && (
             <>
               <IrinaSystem />
             </>
@@ -121,12 +123,17 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
 
 export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const mode = useStore(s => s.mode);
+  const irinaIsActive = useVisStore(s => s.isActive);
   
   // Different camera settings for different modes
   const getCameraSettings = () => {
+    if (irinaIsActive) {
+      return { zoom: 500, position: [0, 0, 10] }; // Irina settings when visuals are active
+    }
     switch (mode) {
       case "irina":
-        return { zoom: 500, position: [0, 0, 10] }; // Groupmates' settings for Irina
+      case "performance":
+        return { zoom: 500, position: [0, 0, 10] }; // Groupmates' settings for Irina and Performance
       default:
         return { zoom: 0.1, position: [0, 0, 10] }; // Original settings for other modes
     }
@@ -136,8 +143,8 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
     <Canvas 
       orthographic 
       camera={{ 
-        zoom: mode === "irina" ? 0.1 : 0.1, 
-        position: mode === "irina" ? [0, 0, 5] : [0, 0, 10] 
+        zoom: irinaIsActive ? 0.1 : (mode === "irina" || mode === "performance") ? 0.1 : 0.1, 
+        position: irinaIsActive ? [0, 0, 5] : (mode === "irina" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
       }}
       dpr={[1, 2]}
       style={{ background: backgroundImage ? "transparent" : "#0A0A0C" }}

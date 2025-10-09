@@ -4,6 +4,7 @@ import IrinaAngles from './IrinaAngles';
 import Lines1D_Irina from './Lines1D_Irina';
 import Surfaces2D_Ribbons from './Surfaces2D_Ribbons';
 import Volumes3D_Bursts from './Volumes3D_Bursts';
+import QuandCestMode from './QuandCestMode';
 
 export default function IrinaSystem() {
   const motion = useVisStore(s => s.motion);
@@ -21,6 +22,7 @@ export default function IrinaSystem() {
   if (mode === 'surfaces') return <Surfaces2D_Ribbons />;
   if (mode === 'volumes') return <Volumes3D_Bursts />;
   if (mode === 'lines') return <Lines1D_Irina />;
+  if (mode === 'quand_cest') return <QuandCestMode />;
   
   // Default to IrinaAngles for auto mode
   return <IrinaAngles />;

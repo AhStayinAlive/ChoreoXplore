@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
@@ -7,8 +6,9 @@ export default function IrinaControlPanel() {
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
   const params = useVisStore(s => s.params);
+  const isActive = useVisStore(s => s.isActive);
   const setParams = useVisStore(s => s.setParams);
-  const [isActive, setIsActive] = useState(false);
+  const setIsActive = useVisStore(s => s.setIsActive);
 
   const handleParamChange = (param, value) => {
     setParams({ [param]: value });
@@ -37,7 +37,7 @@ export default function IrinaControlPanel() {
         <div style={{ marginBottom: 16 }}>
           <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0" }}>Visual Mode</h4>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {["auto", "lines", "surfaces", "volumes"].map(mode => (
+            {["auto", "lines", "surfaces", "volumes", "quand_cest"].map(mode => (
               <button
                 key={mode}
                 onClick={() => handleModeChange(mode)}
@@ -52,7 +52,7 @@ export default function IrinaControlPanel() {
                   textTransform: "capitalize"
                 }}
               >
-                {mode}
+                {mode === 'quand_cest' ? 'Quand C\'est' : mode}
               </button>
             ))}
           </div>
