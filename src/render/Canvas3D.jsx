@@ -19,6 +19,9 @@ import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
 import IrinaSystem from "../components/IrinaSystem";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
+import AudioReactiveChromaColumns from "../components/AudioReactiveChromaColumns";
+import CornerEmitters from "../components/CornerEmitters";
+import StarLayer from "../components/StarLayer";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const group = useRef();
@@ -96,6 +99,13 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
           </Motion3DController>
           {skeletonVisible && (
             <SimpleSkeleton scale={mode === "irina" ? 1.0 : 1.0} />
+          )}
+          {useStore.getState().audioEnabled && (
+            <>
+              <AudioReactiveChromaColumns />
+              <StarLayer />
+              <CornerEmitters />
+            </>
           )}
           {backgroundImage && (
             <>

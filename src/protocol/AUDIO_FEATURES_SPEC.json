@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ViTunePortableAudioFeatures",
+  "type": "object",
+  "properties": {
+    "bands": {
+      "type": "object",
+      "properties": {
+        "background": {"type":"number"},
+        "lowground": {"type":"number"},
+        "highground": {"type":"number"},
+        "foreground": {"type":"number"}
+      },
+      "required": ["background","lowground","highground","foreground"]
+    },
+    "events": {
+      "type":"object",
+      "properties": {
+        "percussiveSpike": {"type":"boolean"},
+        "beat": {"type":"boolean"}
+      },
+      "required": ["percussiveSpike","beat"]
+    },
+    "vizAttributes": {
+      "type":"object",
+      "properties": {
+        "particleActivity":{"type":"number"},
+        "particlePeriodicity":{"type":"number"},
+        "percussiveCoincidence":{"type":"number"},
+        "layerIndependence":{"type":"number"},
+        "rectangleContiguity":{"type":"number"},
+        "starProminence":{"type":"number"},
+        "movementPredictability":{"type":"number"},
+        "pulsation":{"type":"number"}
+      },
+      "required": ["particleActivity","percussiveCoincidence","starProminence"]
+    },
+    "lyrics": {
+      "type":"object",
+      "properties": {
+        "currentLine":{"type":"string"},
+        "progress":{"type":"number"}
+      }
+    },
+    "meta": {
+      "type":"object",
+      "properties": {
+        "sampleRate":{"type":"number"},
+        "fftSize":{"type":"number"},
+        "windowMs":{"type":"number"},
+        "timestampMs":{"type":"number"}
+      }
+    }
+  },
+  "required": ["bands","events","vizAttributes","meta"]
+}

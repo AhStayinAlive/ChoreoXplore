@@ -23,6 +23,14 @@ const useStore = create((set, get) => ({
   setFPS: (fps) => set({ fps }),
   setMode: (mode) => set({ mode }),
 
+  // audio reactivity state
+  audioEnabled: false,
+  audioSource: "mic", // "mic" | "element"
+  audioFeatures: null,
+  setAudioEnabled: (enabled) => set({ audioEnabled: !!enabled }),
+  setAudioSource: (source) => set({ audioSource: source }),
+  setAudioFeatures: (features) => set({ audioFeatures: features }),
+
   // presets
   currentPreset: null,
   setPreset: (p) => set((state) => ({

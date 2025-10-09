@@ -1,4 +1,6 @@
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, combineLatest } from "rxjs";
+import { createAudioFeatureStream } from "../audio/createAudioFeatureStream";
+import useStore from "./store";
 
 // Motion mapping system for connecting pose data to visual elements
 export const motionData$ = new BehaviorSubject({
@@ -298,4 +300,41 @@ export function getCurrentMotionData() {
 // Subscribe to motion data changes
 export function subscribeToMotionData(callback) {
   return motionData$.subscribe(callback);
+}
+
+// --- New audio integration ---
+export const audio$ = new BehaviorSubject(null);
+
+export function initAudio(audioElement = null) {
+  const stream = createAudioFeatureStream();
+  const start = async () => {
+    try {
+      if (audioElement) {
+        stream.startFromElement(audioElement);
+      } else {
+        await stream.startFromMic();
+      }
+    } catch (_) {
+      // ignore failures (permissions etc.)
+    }
+  };
+  start();
+  stream.features$.subscribe((f) => {
+    audio$.next(f);
+    // also mirror into Zustand for UI/components access
+    try { useStore.getState().setAudioFeatures(f); } catch (_) {}
+  });
+  return stream;
+}
+
+// Combined motion stream for camera/bg augmentation
+export const combinedMotion$ = new BehaviorSubject({ pose: null, audio: null, bgBoost: 0, camShake: 0 });
+
+export function initMotionMappingWithAudio(poseStream$) {
+  combineLatest([poseStream$, audio$]).subscribe(([pose, audio]) => {
+    const bgBoost = audio ? (audio.bands?.lowground || 0) * 0.3 : 0;
+    const camShake = audio?.events?.percussiveSpike ? 0.02 : 0;
+    combinedMotion$.next({ pose, audio, bgBoost, camShake });
+  });
+  return combinedMotion$;
 }
