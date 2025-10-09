@@ -3,6 +3,7 @@ import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { mapPoseToMotion } from '../core/motionMapping';
 import useStore from '../core/store';
+import { initAudio } from '../core/motionMapping';
 
 const MotionInputPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +15,10 @@ const MotionInputPanel = () => {
   const setIsActive = useStore(s => s.setMotionCaptureActive);
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const setSkeletonVisible = useStore(s => s.setSkeletonVisible);
+  const audioEnabled = useStore(s => s.audioEnabled);
+  const setAudioEnabled = useStore(s => s.setAudioEnabled);
+  const audioSource = useStore(s => s.audioSource);
+  const setAudioSource = useStore(s => s.setAudioSource);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -316,6 +321,18 @@ const MotionInputPanel = () => {
     };
   }, [stopCamera]);
 
+  // Initialize audio stream lazily when toggled on
+  const handleToggleAudio = useCallback(() => {
+    const next = !audioEnabled;
+    setAudioEnabled(next);
+    if (next) {
+      const audioEl = document.getElementById('track');
+      const stream = initAudio(audioSource === 'element' ? audioEl : null);
+      // expose for manual controls
+      window.__audioFeatureStream__ = stream;
+    }
+  }, [audioEnabled, setAudioEnabled, audioSource]);
+
   return (
     <div className="motion-input-panel bg-gray-900 text-white rounded-lg">
       {/* Header with Title and Buttons */}
@@ -360,6 +377,39 @@ const MotionInputPanel = () => {
           >
             {skeletonVisible ? 'Hide Avatar' : 'Show Avatar'}
           </button>
+          <button
+            onClick={handleToggleAudio}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: audioEnabled ? "rgba(34,197,94,0.8)" : "rgba(107,114,128,0.8)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px",
+              color: "white",
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+              minWidth: "auto",
+              flexShrink: 0
+            }}
+          >
+            {audioEnabled ? 'Audio On' : 'Audio Off'}
+          </button>
+          <select
+            value={audioSource}
+            onChange={(e) => setAudioSource(e.target.value)}
+            style={{
+              padding: "6px 8px",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px",
+              color: "white",
+              fontSize: "12px"
+            }}
+          >
+            <option value="mic">Mic</option>
+            <option value="element">Audio</option>
+          </select>
         </div>
       </div>
 
