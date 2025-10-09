@@ -78,7 +78,7 @@ const useStore = create((set, get) => ({
       lightingMood: "soft warm lighting",
       colorTone: "warm tones (reds, oranges, golds)",
       compositionLayout: "layered depth",
-      emotionalTheme: "joy / celebration"
+      emotionalTheme: "joy"
     },
     finalPrompt: "",
     negativePrompt: "no stage, no curtains, no performers, no spotlights, no instruments, no props, no crowd, no signs, no text, no vehicles, no faces, no humanoid forms, no animals, no hands, no surreal distortions, no floating objects, no AI logos, no abstract symbols unless described, no frame borders, no watermarks, no signature."
