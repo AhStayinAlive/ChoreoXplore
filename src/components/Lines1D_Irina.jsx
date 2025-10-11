@@ -35,9 +35,9 @@ void main() {
   f = min(f, angleField(uv*1.2 + vec2(0.17,0.11)*sin(t*0.3+uMotion + musicPulse), ang+1.047));
   f = min(f, angleField(uv*1.2 + vec2(-0.2,0.07)*cos(t*0.23 + musicPulse*0.8), ang+2.094));
   
-  // Make thickness much more reactive to music
+  // Make thickness much more reactive to music with sharper edges
   float thickness = mix(0.05, 0.35, clamp(uEnergy*2.0 + musicBoost*0.5 + 0.2, 0.0, 1.0));
-  float line = smoothstep(thickness, thickness*0.6, f);
+  float line = 1.0 - smoothstep(thickness*0.8, thickness, f); // Sharper line edges
   
   vec3 base = vec3(0.0); // Make base transparent
   float h = uHue/360.0;
@@ -50,7 +50,7 @@ void main() {
   // Make alpha much more reactive to music
   float musicAlpha = line * uIntensity * (0.4 + musicBoost * 0.8); // Music can significantly increase alpha
   
-  gl_FragColor = vec4(pow(col, vec3(0.9)), musicAlpha);
+  gl_FragColor = vec4(col, musicAlpha);
 }
 `;
 
@@ -72,7 +72,7 @@ export default function Lines1D_Irina() {
     },
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
   }), []);
   
   const geom = useMemo(() => new THREE.PlaneGeometry(19500, 9550, 1, 1), []);

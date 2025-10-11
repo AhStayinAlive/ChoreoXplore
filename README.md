@@ -203,7 +203,7 @@ ChoreoXplore/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project would adhere to all copyright materials and for academic research purposes only.
 
 ## 🙏 Acknowledgments
 

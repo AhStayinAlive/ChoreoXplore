@@ -5,6 +5,8 @@ import Lines1D_Irina from './Lines1D_Irina';
 import Surfaces2D_Ribbons from './Surfaces2D_Ribbons';
 import Volumes3D_Bursts from './Volumes3D_Bursts';
 import QuandCestMode from './QuandCestMode';
+import PulsatingCircleMode from './PulsatingCircleMode';
+import PulsatingSphereMode from './PulsatingSphereMode';
 
 export default function IrinaSystem() {
   const motion = useVisStore(s => s.motion);
@@ -23,6 +25,8 @@ export default function IrinaSystem() {
   if (mode === 'volumes') return <Volumes3D_Bursts />;
   if (mode === 'lines') return <Lines1D_Irina />;
   if (mode === 'quand_cest') return <QuandCestMode />;
+  if (mode === 'pulsating_circle') return <PulsatingCircleMode />;
+  if (mode === 'pulsating_sphere') return <PulsatingSphereMode />;
   
   // Default to IrinaAngles for auto mode
   return <IrinaAngles />;
