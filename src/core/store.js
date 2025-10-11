@@ -24,7 +24,7 @@ const useStore = create((set, get) => ({
   setMode: (mode) => set({ mode }),
 
   // audio reactivity state
-  audioEnabled: false,
+  audioEnabled: true,
   audioSource: "mic", // "mic" | "element"
   audioFeatures: null,
   setAudioEnabled: (enabled) => set({ audioEnabled: !!enabled }),

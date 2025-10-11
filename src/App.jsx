@@ -26,7 +26,7 @@ export default function App() {
 
   return (
     <>
-      <audio id="track" controls style={{ position: "fixed", bottom: 8, left: 8, zIndex: 1000 }} />
+      <audio id="track" controls src="/demo.mp3" style={{ position: "fixed", bottom: 8, left: 8, zIndex: 1000 }} />
       {/* Set body and html background to transparent when image is present */}
       {backgroundImage && (
         <style>

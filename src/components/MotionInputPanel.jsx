@@ -333,6 +333,15 @@ const MotionInputPanel = () => {
     }
   }, [audioEnabled, setAudioEnabled, audioSource]);
 
+  // Auto-start audio on mount if enabled
+  useEffect(() => {
+    if (audioEnabled && !window.__audioFeatureStream__) {
+      const audioEl = document.getElementById('track');
+      const stream = initAudio(audioSource === 'element' ? audioEl : null);
+      window.__audioFeatureStream__ = stream;
+    }
+  }, [audioEnabled, audioSource]);
+
   return (
     <div className="motion-input-panel bg-gray-900 text-white rounded-lg">
       {/* Header with Title and Buttons */}
