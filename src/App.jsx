@@ -3,6 +3,7 @@ import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import IrinaControlPanel from "./components/IrinaControlPanel";
+import ShaderFxPanel from "./components/ShaderFxPanel";
 import SongInputMode from "./components/SongInputMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -182,6 +183,24 @@ function AppContent({
             <IrinaControlPanel />
           </div>
         )}
+
+        {/* Shader FX panel (mode toggle + reactivity sliders) */}
+        <div className="glass-scrollbar" style={{ 
+          position: "absolute", 
+          left: 12, 
+          bottom: 12, 
+          width: 320, 
+          height: "auto", 
+          maxHeight: "50vh", 
+          background: "rgba(0,0,0,.4)", 
+          backdropFilter: "blur(10px)", 
+          padding: 12, 
+          borderRadius: 12, 
+          overflow: "hidden", 
+          zIndex: 10
+        }}>
+          <ShaderFxPanel />
+        </div>
         <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12 }}>
           <button 
             className="ghost" 
