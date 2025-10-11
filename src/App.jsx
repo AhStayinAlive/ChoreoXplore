@@ -5,6 +5,7 @@ import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPa
 import IrinaControlPanel from "./components/IrinaControlPanel";
 import SongInputMode from "./components/SongInputMode";
 import SpotifyCallback from "./components/SpotifyCallback";
+import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
 import { SpotifyProvider } from "./contexts/SpotifyContext.jsx";
 import useStore from "./core/store";
 
@@ -198,6 +199,9 @@ function AppContent({
         </div>
       </div>
     </div>
+    
+    {/* Spotify Playback Control */}
+    <SpotifyPlaybackControl />
     </>
   );
 }

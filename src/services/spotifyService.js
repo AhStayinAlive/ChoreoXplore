@@ -62,7 +62,11 @@ export const exchangeCodeForToken = async (code) => {
 export const searchTrack = async (songTitle, artistName, accessToken) => {
   spotifyApi.setAccessToken(accessToken);
   
-  const query = `track:${songTitle} artist:${artistName}`;
+  // Build query with optional artist
+  let query = `track:${songTitle}`;
+  if (artistName && artistName.trim()) {
+    query += ` artist:${artistName.trim()}`;
+  }
   console.log('🔍 Searching for:', query);
   
   try {
@@ -80,6 +84,13 @@ export const searchTrack = async (songTitle, artistName, accessToken) => {
     }
   } catch (error) {
     console.error('Error searching track:', error);
+    
+    // Check for 401 unauthorized error
+    if (error.status === 401 || (error.message && error.message.includes('401'))) {
+      console.log('🔐 Spotify API returned 401 - token expired or invalid');
+      throw new Error('401 Unauthorized - Please re-authenticate with Spotify');
+    }
+    
     return null;
   }
 };
@@ -176,6 +187,122 @@ export const playTrack = async (trackUri, accessToken) => {
     return true;
   } catch (error) {
     console.error('Error playing track:', error);
+    return false;
+  }
+};
+
+// Additional playback control functions
+export const getCurrentPlayback = async (accessToken) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get playback state: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting playback state:', error);
+    return null;
+  }
+};
+
+export const pausePlayback = async (accessToken) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error pausing playback:', error);
+    return false;
+  }
+};
+
+export const resumePlayback = async (accessToken) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error resuming playback:', error);
+    return false;
+  }
+};
+
+export const skipNext = async (accessToken) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/next', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error skipping to next:', error);
+    return false;
+  }
+};
+
+export const skipPrevious = async (accessToken) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/previous', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error skipping to previous:', error);
+    return false;
+  }
+};
+
+export const seekToPosition = async (accessToken, positionMs) => {
+  try {
+    const response = await fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${positionMs}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error seeking to position:', error);
+    return false;
+  }
+};
+
+export const setVolume = async (accessToken, volumePercent) => {
+  try {
+    const response = await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${volumePercent}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error setting volume:', error);
     return false;
   }
 };
