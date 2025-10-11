@@ -33,12 +33,15 @@ export default function ShaderStage() {
         vec2 m = uPointer;
         float d = distance(p, m);
         float vel = length(uPointerVel);
-        float ring = smoothstep(0.22 + 0.15*uExpand, 0.20 + 0.13*uExpand, d);
+        float inner = 0.20 + 0.13*uExpand;
+        float outer = 0.22 + 0.15*uExpand;
+        float ring = smoothstep(inner, outer, d);
         float pulse = 0.4 + 0.6*ring + 0.5*uBodySpeed + 0.6*vel + 0.8*uAccent;
         float mixAmt = clamp(uMotionReactivity, 0.0, 1.0);
         float base = 0.25 + 0.25*sin(uTime*1.5);
         float v = mix(base, pulse, mixAmt);
-        gl_FragColor = vec4(vec3(v), 1.0);
+        vec3 grad = vec3(vUv, 0.0);
+        gl_FragColor = vec4(mix(grad, vec3(v), 0.8), 1.0);
       }
     `;
     return { vertexShader, fragmentShader };
@@ -52,14 +55,13 @@ export default function ShaderStage() {
 
   // Pointer tracking on the canvas -> update store.pointer normalized and velocity
   useEffect(() => {
-    const canvas = gl.domElement;
-    function onMove(e: PointerEvent) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+    const target: EventTarget = window;
+    function handleMove(clientX: number, clientY: number) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+      const y = Math.min(Math.max(clientY - rect.top, 0), rect.height);
       const nx = rect.width > 0 ? x / rect.width : 0.5;
       const ny = rect.height > 0 ? 1 - (y / rect.height) : 0.5;
-      // simple finite diff velocity in normalized space
       const prev = useStore.getState().pointer;
       const now = performance.now();
       const dt = Math.max(1e-3, (now - (onMove as any)._last || 0) / 1000);
@@ -68,8 +70,14 @@ export default function ShaderStage() {
       const vy = (ny - prev.y) / dt;
       useStore.getState().setPointer({ x: nx, y: ny, vx, vy });
     }
-    canvas.addEventListener('pointermove', onMove);
-    return () => canvas.removeEventListener('pointermove', onMove);
+    function onMove(e: PointerEvent) { handleMove(e.clientX, e.clientY); }
+    function onMouseMove(e: MouseEvent) { handleMove(e.clientX, e.clientY); }
+    target.addEventListener('pointermove', onMove as any, { passive: true } as any);
+    target.addEventListener('mousemove', onMouseMove as any, { passive: true } as any);
+    return () => {
+      target.removeEventListener('pointermove', onMove as any);
+      target.removeEventListener('mousemove', onMouseMove as any);
+    };
   }, [gl]);
 
   // Convert current poseData to uniform bundle with smoothing and accent decay
@@ -172,7 +180,7 @@ export default function ShaderStage() {
   if (!material) return null;
 
   return (
-    <mesh position={[0, 0, 0]} renderOrder={9999}>
+    <mesh position={[0, 0, 0]} renderOrder={9999} frustumCulled={false}>
       <planeGeometry args={[2, 2]} />
       <primitive object={material} attach="material" />
     </mesh>

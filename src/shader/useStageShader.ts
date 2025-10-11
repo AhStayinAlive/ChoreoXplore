@@ -41,10 +41,14 @@ export function useStageShader(effect: StageEffect) {
       vertexShader: effect.vertexShader,
       fragmentShader: effect.fragmentShader,
       uniforms,
-      transparent: true,
+      transparent: false,
       depthWrite: false,
       depthTest: false,
     });
+
+    mat.side = THREE.DoubleSide;
+    mat.toneMapped = false;
+    mat.fog = false;
 
     materialRef.current = mat;
     return mat;
