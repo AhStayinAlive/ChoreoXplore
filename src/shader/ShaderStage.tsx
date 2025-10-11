@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
 import useStore from '../core/store';
-import { type CommonUniforms } from './uniforms';
 import { useStageShader } from './useStageShader';
-import { localCreamEffect } from './effects/localCream';
 
 export default function ShaderStage() {
   const { gl } = useThree();
@@ -14,20 +11,39 @@ export default function ShaderStage() {
   const poseData = useStore(s => s.poseData);
   const pointer = useStore(s => s.pointer);
 
-  // Load external shaders package if present, else use local fallback
-  const [effect, setEffect] = useState<any>(localCreamEffect);
-  useEffect(() => {
-    let mounted = true;
-    import(/* @vite-ignore */ '@stage/shaders').then((pkg: any) => {
-      if (!mounted) return;
-      if (pkg?.createEffect && pkg?.creamEffect) {
-        const eff = pkg.createEffect(pkg.creamEffect);
-        setEffect(eff);
+  // Pass A — Sanity shader to prove the pipeline
+  const sanityEffect = useMemo(() => {
+    const vertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position, 1.0);
       }
-    }).catch(() => { /* keep local fallback */ });
-    return () => { mounted = false; };
+    `;
+    const fragmentShader = `
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime, uDelta;
+      uniform vec2  uPointer, uPointerVel;
+      uniform float uBodySpeed, uExpand, uAccent;
+      uniform float uMusicReactivity, uMotionReactivity;
+
+      void main() {
+        vec2 p = vUv;
+        vec2 m = uPointer;
+        float d = distance(p, m);
+        float vel = length(uPointerVel);
+        float ring = smoothstep(0.22 + 0.15*uExpand, 0.20 + 0.13*uExpand, d);
+        float pulse = 0.4 + 0.6*ring + 0.5*uBodySpeed + 0.6*vel + 0.8*uAccent;
+        float mixAmt = clamp(uMotionReactivity, 0.0, 1.0);
+        float base = 0.25 + 0.25*sin(uTime*1.5);
+        float v = mix(base, pulse, mixAmt);
+        gl_FragColor = vec4(vec3(v), 1.0);
+      }
+    `;
+    return { vertexShader, fragmentShader };
   }, []);
-  const { material, setUniforms } = useStageShader(effect);
+  const { material, setUniforms } = useStageShader(sanityEffect);
 
   // Update reactivity uniforms when changed
   useEffect(() => {
@@ -42,7 +58,7 @@ export default function ShaderStage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const nx = rect.width > 0 ? x / rect.width : 0.5;
-      const ny = rect.height > 0 ? y / rect.height : 0.5;
+      const ny = rect.height > 0 ? 1 - (y / rect.height) : 0.5;
       // simple finite diff velocity in normalized space
       const prev = useStore.getState().pointer;
       const now = performance.now();
@@ -106,6 +122,7 @@ export default function ShaderStage() {
   const smoothRef = useRef({ px: 0.5, py: 0.5, vx: 0, vy: 0 });
   const dropRef = useRef(0);
   const skipRef = useRef(false);
+  const { size } = useThree();
   useFrame((_, dt) => {
     timeRef.current += dt;
     // perf drop detection
@@ -134,22 +151,29 @@ export default function ShaderStage() {
     const poseU = fxMode === 'pose' ? getPoseUniforms(dt) : { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
 
     setUniforms({
-      uTime: timeRef.current, uDelta: dt,
-      uPointer, uPointerVel,
+      uTime: timeRef.current,
+      iTime: timeRef.current,
+      uDelta: dt,
+      uPointer,
+      u_mouse: uPointer as any,
+      iMouse: uPointer as any,
+      uPointerVel,
       uJoints: poseU.joints,
       uBodySpeed: poseU.bodySpeed,
       uExpand: poseU.expand,
       uAccent: poseU.accent,
       uMusicReactivity: visParams.musicReact,
       uMotionReactivity: visParams.motionReact,
+      u_resolution: [size.width, size.height] as any,
+      iResolution: [size.width, size.height] as any,
     });
   });
 
   if (!material) return null;
 
   return (
-    <mesh position={[0, 0, 0]}>
-      <planeGeometry args={[20000, 10000]} />
+    <mesh position={[0, 0, 0]} renderOrder={9999}>
+      <planeGeometry args={[2, 2]} />
       <primitive object={material} attach="material" />
     </mesh>
   );
