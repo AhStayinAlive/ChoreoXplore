@@ -45,5 +45,5 @@ export default function CornerEmitters() {
     return () => clearInterval(id);
   }, [audioEnabled, audioFeatures?.events?.percussiveSpike]);
 
-  return <points geometry={geometryRef.current} material={materialRef.current} />;
+  return <points geometry={geometryRef.current} material={materialRef.current} position={[0, 0, 2.4]} />;
 }

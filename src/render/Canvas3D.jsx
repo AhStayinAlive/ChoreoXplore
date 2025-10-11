@@ -134,6 +134,7 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
 export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const mode = useStore(s => s.mode);
   const irinaIsActive = useVisStore(s => s.isActive);
+  const audioEnabled = useStore(s => s.audioEnabled);
   
   // Different camera settings for different modes
   const getCameraSettings = () => {
@@ -161,6 +162,13 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
     >
       {!backgroundImage && <color attach="background" args={["#0A0A0C"]} />}
       <SceneRoot backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
+      {audioEnabled && (
+        <>
+          <AudioReactiveChromaColumns />
+          <StarLayer />
+          <CornerEmitters />
+        </>
+      )}
     </Canvas>
   );
 }

@@ -11,7 +11,7 @@ export default function AudioReactiveChromaColumns() {
   const materials = useMemo(
     () =>
       Array.from({ length: 12 }).map((_, i) =>
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshBasicMaterial({
           color: new THREE.Color().setHSL(i / 12, 0.7, 0.5),
           transparent: true,
           opacity: 0.6,
@@ -35,7 +35,7 @@ export default function AudioReactiveChromaColumns() {
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, -2]}>
+    <group ref={groupRef} position={[0, 0, 2.2]}>
       {Array.from({ length: 12 }).map((_, i) => (
         <mesh key={i} position={[i - 5.5, 0, 0]} scale={[0.6, 0.25, 0.1]} material={materials[i]}>
           <boxGeometry args={[1, 1, 0.2]} />

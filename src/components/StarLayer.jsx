@@ -19,5 +19,5 @@ export default function StarLayer() {
     mat.opacity = 0.4 + 0.6 * (audioFeatures.vizAttributes?.starProminence ?? 0);
   });
 
-  return <mesh ref={meshRef} geometry={geo} material={mat} position={[0, 0, -1.5]} />;
+  return <mesh ref={meshRef} geometry={geo} material={mat} position={[0, 0, 2.0]} />;
 }
