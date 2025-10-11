@@ -31,7 +31,7 @@ export function useStageShader(effect: StageEffect) {
     const mat = new THREE.ShaderMaterial({
       vertexShader: effect.vertexShader,
       fragmentShader: effect.fragmentShader,
-      uniforms, transparent: true
+      uniforms, transparent: true, depthWrite: false
     });
 
     materialRef.current = mat;

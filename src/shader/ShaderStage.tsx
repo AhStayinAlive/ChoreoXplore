@@ -14,8 +14,19 @@ export default function ShaderStage() {
   const poseData = useStore(s => s.poseData);
   const pointer = useStore(s => s.pointer);
 
-  // instantiate effect (use package when available; local fallback here)
-  const effect = useMemo(() => localCreamEffect, []);
+  // Load external shaders package if present, else use local fallback
+  const [effect, setEffect] = useState<any>(localCreamEffect);
+  useEffect(() => {
+    let mounted = true;
+    import(/* @vite-ignore */ '@stage/shaders').then((pkg: any) => {
+      if (!mounted) return;
+      if (pkg?.createEffect && pkg?.creamEffect) {
+        const eff = pkg.createEffect(pkg.creamEffect);
+        setEffect(eff);
+      }
+    }).catch(() => { /* keep local fallback */ });
+    return () => { mounted = false; };
+  }, []);
   const { material, setUniforms } = useStageShader(effect);
 
   // Update reactivity uniforms when changed
@@ -94,11 +105,13 @@ export default function ShaderStage() {
   const timeRef = useRef(0);
   const smoothRef = useRef({ px: 0.5, py: 0.5, vx: 0, vy: 0 });
   const dropRef = useRef(0);
+  const skipRef = useRef(false);
   useFrame((_, dt) => {
     timeRef.current += dt;
     // perf drop detection
     dropRef.current = dt > 0.028 ? Math.min(6, dropRef.current + 1) : Math.max(0, dropRef.current - 1);
     const qualityScale = dropRef.current >= 3 ? 0.6 : 1.0;
+    if (dropRef.current >= 3) { skipRef.current = !skipRef.current; if (skipRef.current) return; }
 
     // smooth pointer and velocity
     const alpha = 0.3; // low-pass factor
