@@ -1,14 +1,17 @@
 import { useVisStore } from "../state/useVisStore";
+import useStore from "../core/store";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
 
-export default function IrinaControlPanel() {
+export default function ChoreoXploreControlPanel() {
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
   const params = useVisStore(s => s.params);
   const isActive = useVisStore(s => s.isActive);
   const setParams = useVisStore(s => s.setParams);
   const setIsActive = useVisStore(s => s.setIsActive);
+  const userColors = useStore(s => s.userColors);
+  const setUserColors = useStore(s => s.setUserColors);
 
   const handleParamChange = (param, value) => {
     setParams({ [param]: value });
@@ -20,17 +23,75 @@ export default function IrinaControlPanel() {
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>Irina Angles Mode</h3>
+      <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>ChoreoXplore</h3>
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         
-        {/* Activation Toggle */}
-        <div style={{ marginBottom: 16 }}>
-          <ToggleButton
-            label="Enable Irina Visuals"
-            checked={isActive}
-            onChange={setIsActive}
-          />
+        {/* Activation Toggle with Color Pickers */}
+        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ flex: 1 }}>
+            <ToggleButton
+              label="Enable Visuals"
+              selected={isActive}
+              onChange={setIsActive}
+            />
+          </div>
+          
+          {/* Background Color Picker */}
+          <div style={{ minWidth: '60px' }}>
+            <label style={{
+              display: 'block',
+              color: 'white',
+              fontSize: '10px',
+              marginBottom: '4px',
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              Background
+            </label>
+            <input
+              type="color"
+              value={userColors.bgColor}
+              onChange={(e) => setUserColors({ ...userColors, bgColor: e.target.value })}
+              style={{
+                width: '100%',
+                height: '28px',
+                border: '1px solid rgba(0, 150, 255, 0.3)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: 'transparent',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* Visual Assets Color Picker */}
+          <div style={{ minWidth: '60px' }}>
+            <label style={{
+              display: 'block',
+              color: 'white',
+              fontSize: '10px',
+              marginBottom: '4px',
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              Assets
+            </label>
+            <input
+              type="color"
+              value={userColors.assetColor}
+              onChange={(e) => setUserColors({ ...userColors, assetColor: e.target.value })}
+              style={{
+                width: '100%',
+                height: '28px',
+                border: '1px solid rgba(0, 150, 255, 0.3)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: 'transparent',
+                outline: 'none'
+              }}
+            />
+          </div>
         </div>
 
         {/* Visual Mode Selection */}
@@ -94,10 +155,10 @@ export default function IrinaControlPanel() {
           />
         </div>
 
-        {/* Intensity Control */}
+        {/* Transparency Control */}
         <div style={{ marginBottom: 16 }}>
           <Slider
-            label="Intensity"
+            label="Transparency"
             value={params.intensity}
             min={0.0}
             max={1.0}
@@ -106,17 +167,6 @@ export default function IrinaControlPanel() {
           />
         </div>
 
-        {/* Hue Control */}
-        <div style={{ marginBottom: 16 }}>
-          <Slider
-            label="Color Hue"
-            value={params.hue}
-            min={0}
-            max={360}
-            step={1}
-            onChange={(value) => handleParamChange('hue', value)}
-          />
-        </div>
 
         {/* Music Reactivity */}
         <div style={{ marginBottom: 16 }}>
@@ -142,19 +192,6 @@ export default function IrinaControlPanel() {
           />
         </div>
 
-        {/* Status Display */}
-        <div style={{ 
-          fontSize: "10px", 
-          color: "rgba(255,255,255,0.7)", 
-          padding: "8px",
-          backgroundColor: "rgba(0,0,0,0.3)",
-          borderRadius: "4px",
-          marginTop: "8px"
-        }}>
-          <div><strong>Music:</strong> Energy: {music.energy.toFixed(3)}</div>
-          <div><strong>Motion:</strong> {motion ? `Sharpness: ${motion.sharpness.toFixed(3)}` : "No motion data"}</div>
-          <div><strong>Mode:</strong> {params.mode}</div>
-        </div>
       </div>
     </div>
   );

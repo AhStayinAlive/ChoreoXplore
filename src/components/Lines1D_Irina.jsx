@@ -3,10 +3,11 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import { useVisStore } from '../state/useVisStore';
+import useStore, { hexToRGB } from '../core/store';
 
 const frag = `
 uniform float uTime;
-uniform float uHue;
+uniform vec3 uColor;
 uniform float uEnergy;
 uniform float uMotion;
 uniform float uIntensity;
@@ -40,8 +41,8 @@ void main() {
   float line = 1.0 - smoothstep(thickness*0.8, thickness, f); // Sharper line edges
   
   vec3 base = vec3(0.0); // Make base transparent
-  float h = uHue/360.0;
-  vec3 accent = clamp(vec3(abs(h*6.0-3.0)-1.0, 2.0-abs(h*6.0-2.0), 2.0-abs(h*6.0-4.0)), 0.0, 1.0);
+  // Use RGB color directly
+  vec3 accent = uColor;
   
   // Make color intensity much more reactive to music
   float musicIntensity = uIntensity * (1.0 + musicBoost * 2.0); // Music can double the intensity
@@ -63,13 +64,13 @@ export default function Lines1D_Irina() {
   const material = useMemo(() => new THREE.ShaderMaterial({
     fragmentShader: frag,
     vertexShader: vert,
-    uniforms: {
-      uTime: { value: 0 },
-      uHue: { value: 210 },
-      uEnergy: { value: 0 },
-      uMotion: { value: 0 },
-      uIntensity: { value: 0.8 },
-    },
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
+        uEnergy: { value: 0 },
+        uMotion: { value: 0 },
+        uIntensity: { value: 0.8 },
+      },
     transparent: true,
     depthWrite: false,
     blending: THREE.NormalBlending,
@@ -80,10 +81,12 @@ export default function Lines1D_Irina() {
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
   const params = useVisStore(s => s.params);
+  const userColors = useStore(s => s.userColors);
 
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt * (0.6 + params.speed);
-    material.uniforms.uHue.value = params.hue;
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
     material.uniforms.uIntensity.value = params.intensity;
 
     const energy = (music?.energy ?? 0) * params.musicReact;

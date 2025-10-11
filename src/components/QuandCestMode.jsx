@@ -3,10 +3,11 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import { useVisStore } from '../state/useVisStore';
+import useStore, { hexToRGB } from '../core/store';
 
 const frag = `
 uniform float uTime;
-uniform float uHue;
+uniform vec3 uColor;
 uniform float uEnergy;
 uniform float uMotion;
 uniform float uIntensity;
@@ -96,13 +97,8 @@ void main() {
     }
   }
   
-  // Color based on hue
-  float h = uHue / 360.0;
-  vec3 accent = clamp(vec3(
-    abs(h * 6.0 - 3.0) - 1.0, 
-    2.0 - abs(h * 6.0 - 2.0), 
-    2.0 - abs(h * 6.0 - 4.0)
-  ), 0.0, 1.0);
+  // Use RGB color directly
+  vec3 accent = uColor;
   
   vec3 col = accent * pattern * uIntensity;
   
@@ -125,14 +121,14 @@ export default function QuandCestMode() {
       vertexShader: vert,
       uniforms: {
         uTime: { value: 0 },
-        uHue: { value: 210 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uEnergy: { value: 0 },
         uMotion: { value: 0 },
         uIntensity: { value: 0.8 },
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     });
   }, []);
   
@@ -141,10 +137,12 @@ export default function QuandCestMode() {
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
   const params = useVisStore(s => s.params);
+  const userColors = useStore(s => s.userColors);
 
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt * (0.6 + params.speed);
-    material.uniforms.uHue.value = params.hue;
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
     material.uniforms.uIntensity.value = params.intensity;
 
     const energy = (music?.energy ?? 0) * params.musicReact;

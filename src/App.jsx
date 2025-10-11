@@ -2,8 +2,8 @@ import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
-import IrinaControlPanel from "./components/IrinaControlPanel";
-import SongInputMode from "./components/SongInputMode";
+import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
+import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
 import { SpotifyProvider } from "./contexts/SpotifyContext.jsx";
@@ -66,8 +66,8 @@ function AppContent({
 
   return (
     <>
-      {/* Song Input Mode - Full screen overlay */}
-      {mode === "songInput" && <SongInputMode />}
+      {/* Welcome Mode - Full screen overlay */}
+      {mode === "welcome" && <WelcomeMode />}
       
       {/* Set body and html background to transparent when image is present */}
       {backgroundImage && (
@@ -118,85 +118,89 @@ function AppContent({
         background: backgroundImage ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.1)",
         zIndex: 1
       }} />
+      {/* Canvas layer */}
       <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
         <Canvas3D backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
-        
-        {/* Single persistent MotionInputPanel - always running, UI visibility changes by mode */}
+      </div>
+
+      {/* UI panels layer - outside Canvas parent for independent z-index */}
+      {/* Single persistent MotionInputPanel - always running, UI visibility changes by mode */}
+      <div className="glass-scrollbar" style={{ 
+        position: "absolute", 
+        right: 12, 
+        top: 12, 
+        width: 420, 
+        height: "auto", 
+        maxHeight: "70vh", 
+        background: "rgba(0,0,0,.4)", 
+        backdropFilter: "blur(10px)", 
+        padding: 12, 
+        borderRadius: 12, 
+        overflow: "hidden", 
+        zIndex: 10,
+        display: mode === "performance" ? "none" : "block" // Show in irina mode, hide in performance
+      }}>
+        <MotionInputPanel />
+      </div>
+
+      {/* Single persistent AmbientAnimationControlPanel - visible when background image exists, hidden in performance mode */}
+      {backgroundImage && mode !== "performance" && (
         <div className="glass-scrollbar" style={{ 
           position: "absolute", 
           right: 12, 
-          top: 12, 
-          width: 420, 
+          bottom: 12, 
+          width: 320, 
           height: "auto", 
-          maxHeight: "70vh", 
+          maxHeight: "50vh", 
           background: "rgba(0,0,0,.4)", 
           backdropFilter: "blur(10px)", 
           padding: 12, 
           borderRadius: 12, 
           overflow: "hidden", 
-          zIndex: 10,
-          display: mode === "performance" ? "none" : "block" // Show in irina mode, hide in performance
+          zIndex: 10
         }}>
-          <MotionInputPanel />
+          <AmbientAnimationControlPanel 
+            isVisible={true}
+          />
         </div>
+      )}
 
-        {/* Single persistent AmbientAnimationControlPanel - visible when background image exists, hidden in performance mode */}
-        {backgroundImage && mode !== "performance" && (
-          <div className="glass-scrollbar" style={{ 
-            position: "absolute", 
-            right: 12, 
-            bottom: 12, 
-            width: 320, 
-            height: "auto", 
-            maxHeight: "50vh", 
-            background: "rgba(0,0,0,.4)", 
-            backdropFilter: "blur(10px)", 
-            padding: 12, 
-            borderRadius: 12, 
-            overflow: "hidden", 
-            zIndex: 10
-          }}>
-            <AmbientAnimationControlPanel 
-              isVisible={true}
-            />
-          </div>
-        )}
-
-
-
-
-        {mode === "irina" && (
-          <div className="glass-scrollbar" style={{ 
-            position: "absolute", 
-            left: 12, 
-            top: 12, 
-            width: 360, 
-            height: "auto", 
-            maxHeight: "60vh", 
-            background: "rgba(0,0,0,.4)", 
-            backdropFilter: "blur(10px)", 
-            padding: 12, 
-            borderRadius: 12, 
-            overflow: "hidden" 
-          }}>
-            <IrinaControlPanel />
-          </div>
-        )}
-        <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12 }}>
-          <button 
-            className="ghost" 
-            onClick={() => {
-              const modes = ["songInput", "irina", "performance"];
-              const currentIndex = modes.indexOf(mode);
-              const nextIndex = (currentIndex + 1) % modes.length;
-              setMode(modes[nextIndex]);
-            }}
-          >
-            {mode === "songInput" ? "Skip to Irina Mode" : 
-             mode === "irina" ? "Switch to Performance" : 
-             "Switch to Song Input"}
-          </button>
+      {mode === "choreoxplore" && (
+        <div className="glass-scrollbar" style={{ 
+          position: "absolute", 
+          left: 12, 
+          top: 12, 
+          width: 360, 
+          height: "auto", 
+          maxHeight: "60vh", 
+          background: "rgba(0,0,0,.4)", 
+          backdropFilter: "blur(10px)", 
+          padding: 12, 
+          borderRadius: 12, 
+          overflow: "hidden",
+          zIndex: 10
+        }}>
+          <ChoreoXploreControlPanel />
         </div>
+      )}
+
+      <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12, zIndex: 10 }}>
+        <button 
+          className="ghost" 
+          onClick={() => {
+            if (mode === "welcome") {
+              setMode("choreoxplore");
+            } else if (mode === "choreoxplore") {
+              setMode("performance");
+            } else if (mode === "performance") {
+              setMode("choreoxplore");
+            }
+          }}
+        >
+          {mode === "welcome" ? "Start" : 
+           mode === "choreoxplore" ? "Switch to Performance" : 
+           "Back to ChoreoXplore"}
+        </button>
       </div>
     </div>
     

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import { useVisStore } from '../state/useVisStore';
+import useStore, { hexToHue } from '../core/store';
 
 const frag = `
 uniform float uTime;
@@ -51,11 +52,11 @@ varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
 `;
 
-export default function IrinaAngles() {
-  console.log('🎨 IrinaAngles component rendering');
+export default function ChoreoXplore() {
+  console.log('🎨 ChoreoXplore component rendering');
   
   const material = useMemo(() => {
-    console.log('🎨 Creating IrinaAngles material');
+    console.log('🎨 Creating ChoreoXplore material');
     return new THREE.ShaderMaterial({
       fragmentShader: frag,
       vertexShader: vert,
@@ -68,7 +69,7 @@ export default function IrinaAngles() {
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     });
   }, []);
   
@@ -77,10 +78,11 @@ export default function IrinaAngles() {
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
   const params = useVisStore(s => s.params);
+  const userColors = useStore(s => s.userColors);
 
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt * (0.6 + params.speed);
-    material.uniforms.uHue.value = params.hue;
+    material.uniforms.uHue.value = hexToHue(userColors.bgColor);
     material.uniforms.uIntensity.value = params.intensity;
 
     const energy = (music?.energy ?? 0) * params.musicReact;

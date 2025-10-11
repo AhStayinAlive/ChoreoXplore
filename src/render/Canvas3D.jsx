@@ -17,7 +17,7 @@ import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
-import IrinaSystem from "../components/IrinaSystem";
+import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams }) {
@@ -26,7 +26,7 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
   const setSceneNodes = useStore((s) => s.setSceneNodes);
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const mode = useStore(s => s.mode);
-  const irinaIsActive = useVisStore(s => s.isActive);
+  const choreoxploreIsActive = useVisStore(s => s.isActive);
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
@@ -108,13 +108,13 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
                 amplitude={ambientAnimationParams?.amplitude ?? 0.5}
                 wavelength={ambientAnimationParams?.wavelength ?? 1.0}
                 intensity={ambientAnimationParams?.intensity ?? 0.3}
-                scale={mode === "irina" ? 1.0 : 1.0} // Same scale for all modes
+                scale={mode === "choreoxplore" ? 1.0 : 1.0} // Same scale for all modes
               />
             </>
           )}
-          {irinaIsActive && (
+          {choreoxploreIsActive && (
             <>
-              <IrinaSystem />
+              <ChoreoXploreSystem />
             </>
           )}
         </>
@@ -123,17 +123,18 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
 
 export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const mode = useStore(s => s.mode);
-  const irinaIsActive = useVisStore(s => s.isActive);
+  const userColors = useStore(s => s.userColors);
+  const choreoxploreIsActive = useVisStore(s => s.isActive);
   
   // Different camera settings for different modes
   const getCameraSettings = () => {
-    if (irinaIsActive) {
-      return { zoom: 500, position: [0, 0, 10] }; // Irina settings when visuals are active
+    if (choreoxploreIsActive) {
+      return { zoom: 500, position: [0, 0, 10] }; // ChoreoXplore settings when visuals are active
     }
     switch (mode) {
-      case "irina":
+      case "choreoxplore":
       case "performance":
-        return { zoom: 500, position: [0, 0, 10] }; // Groupmates' settings for Irina and Performance
+        return { zoom: 500, position: [0, 0, 10] }; // Groupmates' settings for ChoreoXplore and Performance
       default:
         return { zoom: 0.1, position: [0, 0, 10] }; // Original settings for other modes
     }
@@ -143,13 +144,16 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
     <Canvas 
       orthographic 
       camera={{ 
-        zoom: irinaIsActive ? 0.1 : (mode === "irina" || mode === "performance") ? 0.1 : 0.1, 
-        position: irinaIsActive ? [0, 0, 5] : (mode === "irina" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
+        zoom: choreoxploreIsActive ? 0.1 : (mode === "choreoxplore" || mode === "performance") ? 0.1 : 0.1, 
+        position: choreoxploreIsActive ? [0, 0, 5] : (mode === "choreoxplore" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
       }}
       dpr={[1, 2]}
-      style={{ background: backgroundImage ? "transparent" : "#0A0A0C" }}
+      style={{ 
+        background: backgroundImage ? "transparent" : userColors.bgColor,
+        pointerEvents: 'none'
+      }}
     >
-      {!backgroundImage && <color attach="background" args={["#0A0A0C"]} />}
+      {!backgroundImage && <color attach="background" args={[userColors.bgColor]} />}
       <SceneRoot backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
     </Canvas>
   );

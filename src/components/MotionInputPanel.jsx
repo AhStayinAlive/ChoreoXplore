@@ -240,16 +240,9 @@ const MotionInputPanel = () => {
     if (lastVideoTimeRef.current !== currentTime) {
       lastVideoTimeRef.current = currentTime;
 
-      try {
-        // Create an ImageData object with proper dimensions for MediaPipe
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        const results = poseLandmarker.detectForVideo(imageData, currentTime * 1000);
+    try {
+      // Pass video element directly - MediaPipe handles dimensions automatically
+      const results = poseLandmarker.detectForVideo(video, currentTime * 1000);
         
         if (results.landmarks && results.landmarks.length > 0) {
           const poseData = {
@@ -318,26 +311,49 @@ const MotionInputPanel = () => {
   }, [stopCamera]);
 
   return (
-    <div className="motion-input-panel bg-gray-900 text-white rounded-lg">
+    <div style={{
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
       {/* Header with Title and Buttons */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold" style={{ color: 'white', margin: 0 }}>Motion Input</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{
+          color: 'white',
+          fontSize: '18px',
+          fontWeight: '600',
+          margin: 0
+        }}>
+          Motion Input
+        </h3>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'nowrap'
+        }}>
           <button
             onClick={toggleMotionDetection}
             disabled={isLoading}
             style={{
-              padding: "6px 12px",
-              backgroundColor: isActive ? "rgba(220,38,38,0.8)" : "rgba(34,197,94,0.8)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "6px",
-              color: "white",
-              fontSize: "12px",
-              cursor: isLoading ? "not-allowed" : "pointer",
+              padding: '6px 12px',
+              backgroundColor: isActive ? 'rgba(220,38,38,0.8)' : 'rgba(34,197,94,0.8)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.5 : 1,
-              transition: "all 0.2s ease",
-              whiteSpace: "nowrap",
-              minWidth: "auto",
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: 'auto',
               flexShrink: 0
             }}
           >
@@ -346,16 +362,16 @@ const MotionInputPanel = () => {
           <button
             onClick={() => setSkeletonVisible(!skeletonVisible)}
             style={{
-              padding: "6px 12px",
-              backgroundColor: skeletonVisible ? "rgba(34,197,94,0.8)" : "rgba(107,114,128,0.8)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "6px",
-              color: "white",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              whiteSpace: "nowrap",
-              minWidth: "auto",
+              padding: '6px 12px',
+              backgroundColor: skeletonVisible ? 'rgba(34,197,94,0.8)' : 'rgba(107,114,128,0.8)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: 'auto',
               flexShrink: 0
             }}
           >
@@ -364,34 +380,75 @@ const MotionInputPanel = () => {
         </div>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded text-red-200">
+        <div style={{
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: 'rgba(185, 28, 28, 0.9)',
+          border: '1px solid rgba(185, 28, 28, 0.7)',
+          borderRadius: '8px',
+          color: 'rgb(254, 202, 202)'
+        }}>
           {error}
         </div>
       )}
 
-      <div className="relative bg-black rounded-lg overflow-hidden" style={{ height: '300px' }}>
+      {/* Video Container */}
+      <div style={{
+        position: 'relative',
+        backgroundColor: 'black',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        height: '300px'
+      }}>
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
           playsInline
           muted
         />
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style={{ imageRendering: 'pixelated' }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            imageRendering: 'pixelated',
+            zIndex: 10
+          }}
         />
         
+        {/* Overlay when inactive */}
         {!isActive && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
-            <div className="text-center">
-              <div className="text-sm">Click Start to begin motion detection</div>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(55, 65, 81, 0.75)'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              color: 'white',
+              fontSize: '14px'
+            }}>
+              Click Start to begin motion detection
             </div>
           </div>
         )}
       </div>
-
     </div>
   );
 };

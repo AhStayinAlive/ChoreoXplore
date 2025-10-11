@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSpotify } from '../contexts/SpotifyContext';
 import { searchTrack, playTrack } from '../services/spotifyService';
+import useStore from '../core/store';
 
 const SpotifyPlaybackControl = () => {
   const { isAuthenticated, accessToken } = useSpotify();
+  const mode = useStore(s => s.mode);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -205,8 +207,9 @@ const SpotifyPlaybackControl = () => {
     }
   }, [isAuthenticated, accessToken]);
 
-  if (!isAuthenticated || !currentTrack) {
-    return null; // Don't show if not authenticated or no track
+
+  if (!isAuthenticated || mode === 'performance' || mode === 'welcome') {
+    return null; // Don't show if not authenticated, in performance mode, or on welcome page
   }
 
   const formatTime = (ms) => {
@@ -216,6 +219,125 @@ const SpotifyPlaybackControl = () => {
   };
 
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+
+  // If no current track, show a message to start playing music
+  if (!currentTrack) {
+    return (
+      <div style={{
+        position: 'fixed',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '12px',
+        padding: '12px 20px',
+        minWidth: '600px',
+        maxWidth: '900px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          color: '#EDEEF2',
+          fontSize: '14px',
+          marginBottom: '12px'
+        }}>
+          No music playing
+        </div>
+        
+        {/* Search Inputs and Button */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          minWidth: '300px',
+          justifyContent: 'center'
+        }}>
+          <input
+            type="text"
+            placeholder="Song name..."
+            value={songName}
+            onChange={(e) => {
+              console.log('🎵 Song input changed:', e.target.value);
+              setSongName(e.target.value);
+            }}
+            onKeyPress={handleKeyPress}
+            disabled={isSearching}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              fontSize: '12px',
+              color: '#EDEEF2',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(0, 150, 255, 0.3)',
+              borderRadius: '6px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box'
+            }}
+            className="search-input"
+            onFocus={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)'}
+            onBlur={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)'}
+          />
+          <input
+            type="text"
+            placeholder="Artist (optional)..."
+            value={artistName}
+            onChange={(e) => {
+              console.log('🎵 Artist input changed:', e.target.value);
+              setArtistName(e.target.value);
+            }}
+            onKeyPress={handleKeyPress}
+            disabled={isSearching}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              fontSize: '12px',
+              color: '#EDEEF2',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(0, 150, 255, 0.3)',
+              borderRadius: '6px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box'
+            }}
+            className="search-input"
+            onFocus={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)'}
+            onBlur={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)'}
+          />
+          <button
+            onClick={handleSearch}
+            disabled={!songName.trim() || isSearching}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              color: '#EDEEF2',
+              background: isSearching ? 'rgba(0, 150, 255, 0.3)' : 'rgba(0, 150, 255, 0.6)',
+              border: '1px solid rgba(0, 150, 255, 0.6)',
+              borderRadius: '6px',
+              cursor: isSearching ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => {
+              if (!isSearching && songName.trim()) {
+                e.target.style.background = 'rgba(0, 150, 255, 0.8)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSearching) {
+                e.target.style.background = 'rgba(0, 150, 255, 0.6)';
+              }
+            }}
+          >
+            {isSearching ? '⏳' : '🔍'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

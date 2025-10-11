@@ -3,9 +3,16 @@ import { create } from "zustand";
 const allowedAngles = [0, 15, 22.5, 30, 45, 60, 75, 90, 105, 120, 135];
 
 const useStore = create((set, get) => ({
-  mode: "songInput", // "songInput" | "performance" | "irina"
+  mode: "welcome", // "welcome" | "performance" | "choreoxplore"
   fps: 0,
   palette: ["#0A0A0C", "#EDEEF2", "#5FA8FF"],
+
+  // User-selected colors
+  userColors: {
+    bgColor: '#000000', // Default black
+    assetColor: '#ffffff' // Default white
+  },
+  setUserColors: (colors) => set({ userColors: colors }),
 
   constraints: {
     allowedAngles,
@@ -73,8 +80,8 @@ const useStore = create((set, get) => ({
   setAmbientAnimationParams: (params) => set({ ambientAnimationParams: params }),
 
 
-  // Irina Angles mode state
-  irinaMode: {
+  // ChoreoXplore mode state
+  choreoxploreMode: {
     music: { rms: 0, energy: 0, centroid: 0, bpmish: 0 },
     motion: null,
     params: { 
@@ -86,10 +93,38 @@ const useStore = create((set, get) => ({
       mode: "auto" // "auto" | "lines" | "surfaces" | "volumes"
     }
   },
-  setIrinaMode: (fn) => set((state) => ({
-    irinaMode: { ...state.irinaMode, ...fn(state.irinaMode) }
+  setChoreoXploreMode: (fn) => set((state) => ({
+    choreoxploreMode: { ...state.choreoxploreMode, ...fn(state.choreoxploreMode) }
   })),
 }));
+
+// Helper function to convert hex color to hue value
+export const hexToHue = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  
+  let h = 0;
+  if (delta !== 0) {
+    if (max === r) h = ((g - b) / delta) % 6;
+    else if (max === g) h = (b - r) / delta + 2;
+    else h = (r - g) / delta + 4;
+  }
+  
+  return Math.round(h * 60);
+};
+
+// Convert hex color to RGB values (0-1 range)
+export const hexToRGB = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return { r, g, b };
+};
 
 export default useStore;
 
