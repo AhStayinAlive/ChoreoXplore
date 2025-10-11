@@ -48,6 +48,21 @@ export default function ShaderStage() {
   }, []);
   const { material, setUniforms } = useStageShader(sanityEffect);
 
+  // Expose a small debug handle for DevTools
+  useEffect(() => {
+    (window as any).__shaderStage = {
+      setUniforms,
+      get material() { return material; },
+      setPointer(x: number, y: number) {
+        const prev = useStore.getState().pointer;
+        useStore.getState().setPointer({ x, y, vx: 0, vy: 0 });
+      },
+      pulse(v: number = 1) { setUniforms({ uAccent: v }); },
+      time(t: number) { setUniforms({ uTime: t, iTime: t }); },
+    };
+    return () => { delete (window as any).__shaderStage; };
+  }, [material, setUniforms]);
+
   // Update reactivity uniforms when changed
   useEffect(() => {
     setUniforms({ uMusicReactivity: visParams.musicReact, uMotionReactivity: visParams.motionReact });
