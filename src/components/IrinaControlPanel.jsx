@@ -36,27 +36,49 @@ export default function IrinaControlPanel() {
         {/* Visual Mode Selection */}
         <div style={{ marginBottom: 16 }}>
           <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0" }}>Visual Mode</h4>
-          <select
-            value={params.mode}
-            onChange={(e) => handleModeChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              fontSize: "12px",
-              backgroundColor: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "6px",
-              color: "white",
-              cursor: "pointer",
-              outline: "none"
-            }}
-          >
-            <option value="auto">Auto</option>
-            <option value="lines">Lines</option>
-            <option value="surfaces">Surfaces</option>
-            <option value="volumes">Volumes</option>
-            <option value="quand_cest">Quand C'est</option>
-          </select>
+          <div style={{ position: "relative" }}>
+            <select
+              value={params.mode}
+              onChange={(e) => handleModeChange(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                fontSize: "13px",
+                backgroundColor: "rgba(0,0,0,0.4)",
+                border: "1px solid rgba(0,150,255,0.3)",
+                borderRadius: "8px",
+                color: "#ffffff",
+                cursor: "pointer",
+                outline: "none",
+                backdropFilter: "blur(10px)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                transition: "all 0.2s ease",
+                fontWeight: "500",
+                appearance: "none",
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 12px center",
+                backgroundSize: "16px",
+                paddingRight: "40px"
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "rgba(0,150,255,0.6)";
+                e.target.style.backgroundColor = "rgba(0,0,0,0.6)";
+                e.target.style.boxShadow = "0 4px 12px rgba(0,150,255,0.2)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "rgba(0,150,255,0.3)";
+                e.target.style.backgroundColor = "rgba(0,0,0,0.4)";
+                e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+              }}
+            >
+              <option value="auto" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Auto</option>
+              <option value="lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lines</option>
+              <option value="surfaces" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Surfaces</option>
+              <option value="volumes" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Volumes</option>
+              <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
+            </select>
+          </div>
         </div>
 
         {/* Speed Control */}
