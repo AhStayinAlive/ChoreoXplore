@@ -26,7 +26,7 @@ export default function AudioReactiveChromaColumns() {
     const mid = (bands.lowground + bands.highground) / 2;
 
     groupRef.current.children.forEach((mesh) => {
-      const targetY = 0.25 + 2.5 * mid;
+      const targetY = 0.25 + 2.5 * mid; // scales the base 1000px column
       mesh.scale.y = THREE.MathUtils.lerp(mesh.scale.y, targetY, 0.2);
     });
 
@@ -34,11 +34,18 @@ export default function AudioReactiveChromaColumns() {
     materials.forEach((m) => (m.opacity = opacity));
   });
 
+  const spacing = 1000;
   return (
     <group ref={groupRef} position={[0, 0, 2.2]}>
       {Array.from({ length: 12 }).map((_, i) => (
-        <mesh key={i} position={[i - 5.5, 0, 0]} scale={[0.6, 0.25, 0.1]} material={materials[i]}>
-          <boxGeometry args={[1, 1, 0.2]} />
+        <mesh
+          key={i}
+          position={[(i - 5.5) * spacing, 0, 0]}
+          scale={[1, 0.25, 1]}
+          material={materials[i]}
+        >
+          {/* Base column: 800w x 1000h x 200d; Y is scaled dynamically */}
+          <boxGeometry args={[800, 1000, 200]} />
         </mesh>
       ))}
     </group>
