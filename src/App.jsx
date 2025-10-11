@@ -1,11 +1,11 @@
 import { useState } from "react";
 import Canvas3D from "./render/Canvas3D";
-import SettingPanel from "./ui/SettingPanel";
 import MotionInputPanel from "./components/MotionInputPanel";
-import AuthorPanel from "./components/AuthorPanel";
-import AuthorPromptBox from "./components/AuthorPromptBox";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import IrinaControlPanel from "./components/IrinaControlPanel";
+import SongInputMode from "./components/SongInputMode";
+import SpotifyCallback from "./components/SpotifyCallback";
+import { SpotifyProvider } from "./contexts/SpotifyContext.jsx";
 import useStore from "./core/store";
 
 export default function App() {
@@ -14,6 +14,11 @@ export default function App() {
   const [backgroundImage, setBackgroundImage] = useState(null);
   const ambientAnimationParams = useStore(s => s.ambientAnimationParams);
   const setAmbientAnimationParams = useStore(s => s.setAmbientAnimationParams);
+
+  // Check if we're on the Spotify callback page
+  const isSpotifyCallback = window.location.pathname === '/callback' || 
+                           window.location.search.includes('code=') || 
+                           window.location.search.includes('error=');
 
   const handleBackgroundImageGenerated = (imageUrl) => {
     console.log('🎨 App received background image:', imageUrl);
@@ -24,8 +29,45 @@ export default function App() {
 
   console.log('🎨 App render - backgroundImage:', backgroundImage);
 
+  // Show Spotify callback component if we're on the callback page
+  if (isSpotifyCallback) {
+    return (
+      <SpotifyProvider>
+        <SpotifyCallback />
+      </SpotifyProvider>
+    );
+  }
+
+  return (
+    <SpotifyProvider>
+      <AppContent 
+        mode={mode}
+        setMode={setMode}
+        backgroundImage={backgroundImage}
+        setBackgroundImage={setBackgroundImage}
+        ambientAnimationParams={ambientAnimationParams}
+        setAmbientAnimationParams={setAmbientAnimationParams}
+        handleBackgroundImageGenerated={handleBackgroundImageGenerated}
+      />
+    </SpotifyProvider>
+  );
+}
+
+function AppContent({ 
+  mode, 
+  setMode, 
+  backgroundImage, 
+  setBackgroundImage, 
+  ambientAnimationParams, 
+  setAmbientAnimationParams, 
+  handleBackgroundImageGenerated 
+}) {
+
   return (
     <>
+      {/* Song Input Mode - Full screen overlay */}
+      {mode === "songInput" && <SongInputMode />}
+      
       {/* Set body and html background to transparent when image is present */}
       {backgroundImage && (
         <style>
@@ -65,7 +107,8 @@ export default function App() {
       backgroundColor: "transparent",
       color: "#fff", 
       position: "relative",
-      zIndex: 1
+      zIndex: 1,
+      display: mode === "songInput" ? "none" : "block"
     }}>
       {/* Light overlay to ensure text readability while showing background */}
       <div style={{
@@ -91,7 +134,7 @@ export default function App() {
           borderRadius: 12, 
           overflow: "hidden", 
           zIndex: 10,
-          display: mode === "performance" ? "none" : "block" // Show in generative and author modes, hide in performance
+          display: mode === "performance" ? "none" : "block" // Show in irina mode, hide in performance
         }}>
           <MotionInputPanel />
         </div>
@@ -119,32 +162,7 @@ export default function App() {
         )}
 
 
-        {mode === "generative" && (
-          <div className="glass-scrollbar" style={{ position: "absolute", left: 12, top: 12, width: 360, height: "auto", maxHeight: "60vh", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)", padding: 12, borderRadius: 12, overflow: "hidden" }}>
-            <SettingPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
-          </div>
-        )}
 
-        {mode === "author" && (
-          <>
-            <div className="glass-scrollbar" style={{ 
-              position: "absolute", 
-              left: 12, 
-              top: 12, 
-              width: 360, 
-              height: "55vh", 
-              maxHeight: "55vh", 
-              background: "rgba(0,0,0,.4)", 
-              backdropFilter: "blur(10px)", 
-              padding: 12, 
-              borderRadius: 12, 
-              overflow: "hidden" 
-            }}>
-              <AuthorPanel onBackgroundImageGenerated={handleBackgroundImageGenerated} />
-            </div>
-            <AuthorPromptBox onBackgroundImageGenerated={handleBackgroundImageGenerated} />
-          </>
-        )}
 
         {mode === "irina" && (
           <div className="glass-scrollbar" style={{ 
@@ -167,16 +185,15 @@ export default function App() {
           <button 
             className="ghost" 
             onClick={() => {
-              const modes = ["performance", "generative", "author", "irina"];
+              const modes = ["songInput", "irina", "performance"];
               const currentIndex = modes.indexOf(mode);
               const nextIndex = (currentIndex + 1) % modes.length;
               setMode(modes[nextIndex]);
             }}
           >
-            {mode === "performance" ? "Switch to Generative" : 
-             mode === "generative" ? "Switch to Author" : 
-             mode === "author" ? "Switch to Irina" :
-             "Switch to Performance"}
+            {mode === "songInput" ? "Skip to Irina Mode" : 
+             mode === "irina" ? "Switch to Performance" : 
+             "Switch to Song Input"}
           </button>
         </div>
       </div>

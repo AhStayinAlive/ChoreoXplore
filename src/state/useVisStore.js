@@ -9,7 +9,7 @@ const useVisStore = create((set, get) => ({
     speed: 0.6, 
     intensity: 0.8, 
     hue: 210, 
-    musicReact: 0.9, 
+    musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
     mode: "auto" 
   },

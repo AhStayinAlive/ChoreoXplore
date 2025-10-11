@@ -100,10 +100,11 @@ const MotionInputPanel = () => {
       
       console.log('MediaDevices API is available');
       
-      // Try the most basic approach - just get any camera
-      console.log('Requesting camera access...');
+      // Try the most basic approach - just get any camera (NO AUDIO)
+      console.log('Requesting camera access (video only)...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true 
+        video: true,
+        audio: false  // Explicitly disable audio to prevent feedback
       });
       
       console.log('✅ Camera access successful');

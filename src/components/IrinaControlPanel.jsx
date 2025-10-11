@@ -36,26 +36,27 @@ export default function IrinaControlPanel() {
         {/* Visual Mode Selection */}
         <div style={{ marginBottom: 16 }}>
           <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0" }}>Visual Mode</h4>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {["auto", "lines", "surfaces", "volumes", "quand_cest"].map(mode => (
-              <button
-                key={mode}
-                onClick={() => handleModeChange(mode)}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "11px",
-                  backgroundColor: params.mode === mode ? "rgba(0,150,255,0.3)" : "rgba(255,255,255,0.1)",
-                  border: `1px solid ${params.mode === mode ? "rgba(0,150,255,0.5)" : "rgba(255,255,255,0.2)"}`,
-                  borderRadius: "6px",
-                  color: "white",
-                  cursor: "pointer",
-                  textTransform: "capitalize"
-                }}
-              >
-                {mode === 'quand_cest' ? 'Quand C\'est' : mode}
-              </button>
-            ))}
-          </div>
+          <select
+            value={params.mode}
+            onChange={(e) => handleModeChange(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              fontSize: "12px",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px",
+              color: "white",
+              cursor: "pointer",
+              outline: "none"
+            }}
+          >
+            <option value="auto">Auto</option>
+            <option value="lines">Lines</option>
+            <option value="surfaces">Surfaces</option>
+            <option value="volumes">Volumes</option>
+            <option value="quand_cest">Quand C'est</option>
+          </select>
         </div>
 
         {/* Speed Control */}

@@ -21,8 +21,15 @@ export function startIrinaAudioBridge() {
         return;
       }
       
-      // Try to get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Use virtual cable audio for Irina bridge
+      console.log('🎵 Irina bridge using virtual cable audio');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,  // Disable echo cancellation for virtual cable
+          noiseSuppression: false,  // Disable noise suppression for virtual cable
+          autoGainControl: false    // Disable auto gain control for virtual cable
+        }
+      });
       await attachAudio(stream);
     } catch (error) {
       console.log('Could not attach audio:', error);

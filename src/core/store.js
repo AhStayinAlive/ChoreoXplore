@@ -3,7 +3,7 @@ import { create } from "zustand";
 const allowedAngles = [0, 15, 22.5, 30, 45, 60, 75, 90, 105, 120, 135];
 
 const useStore = create((set, get) => ({
-  mode: "generative", // "performance" | "generative" | "author" | "irina"
+  mode: "songInput", // "songInput" | "performance" | "irina"
   fps: 0,
   palette: ["#0A0A0C", "#EDEEF2", "#5FA8FF"],
 
@@ -22,6 +22,10 @@ const useStore = create((set, get) => ({
 
   setFPS: (fps) => set({ fps }),
   setMode: (mode) => set({ mode }),
+
+  // Song data for the input mode
+  songData: null,
+  setSongData: (songData) => set({ songData }),
 
   // presets
   currentPreset: null,
@@ -68,24 +72,6 @@ const useStore = create((set, get) => ({
   },
   setAmbientAnimationParams: (params) => set({ ambientAnimationParams: params }),
 
-  // author mode state
-  authorMode: {
-    lyrics: "",
-    sentimentAnalysis: null,
-    promptTemplate: {
-      userConcept: "",
-      artStyle: "digital painting",
-      lightingMood: "soft warm lighting",
-      colorTone: "warm tones (reds, oranges, golds)",
-      compositionLayout: "layered depth",
-      emotionalTheme: "joy"
-    },
-    finalPrompt: "",
-    negativePrompt: "no stage, no curtains, no performers, no spotlights, no instruments, no props, no crowd, no signs, no text, no vehicles, no faces, no humanoid forms, no animals, no hands, no surreal distortions, no floating objects, no AI logos, no abstract symbols unless described, no frame borders, no watermarks, no signature."
-  },
-  setAuthorMode: (fn) => set((state) => ({
-    authorMode: { ...state.authorMode, ...fn(state.authorMode) }
-  })),
 
   // Irina Angles mode state
   irinaMode: {

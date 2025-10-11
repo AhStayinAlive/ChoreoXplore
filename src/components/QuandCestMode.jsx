@@ -27,11 +27,12 @@ void main() {
   if(uv.x < 0.02) pattern = 1.0;
   
   // Create organic diagonal lines extending from edges toward center when music plays
-  float energyBoost = uEnergy * 15.0; // Increased amplification for better visibility
+  float energyBoost = uEnergy * 20.0; // Stronger amplification for better audio reactivity
   
   // Always show some lines for testing, but make them longer with music
-  float baseLength = 0.08; // Reduced from 0.1 to 0.08 for slightly shorter lines
-  float musicLength = energyBoost * 0.25; // Back to 0.25 for balanced music responsiveness
+  float baseLength = 0.1; // Keep original base length
+  float musicLength = energyBoost * 0.35; // Increased music responsiveness
+  
   float totalLength = baseLength + musicLength;
   
   if(totalLength > 0.05) { // Lowered threshold
@@ -154,6 +155,7 @@ export default function QuandCestMode() {
       console.log('🎵 Music energy:', energy, 'Music React:', params.musicReact, 'Raw energy:', music?.energy);
     }
 
+    // Balanced audio reactivity
     material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
       material.uniforms.uEnergy.value, energy, 0.2
     );

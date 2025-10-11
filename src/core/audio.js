@@ -11,7 +11,22 @@ export async function startAudio() {
   } catch (_) {
     return;
   }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  
+  console.log('🎵 Starting audio analysis - please follow these steps:');
+  console.log('1. Download and install VB-Audio Virtual Cable: https://vb-audio.com/Cable/');
+  console.log('2. Set "CABLE Input" as your default playback device in Windows Sound settings');
+  console.log('3. Play Spotify through the virtual cable');
+  console.log('4. Grant microphone permission to this app to capture the virtual cable audio');
+  
+  // Request microphone access (which will capture the virtual cable audio)
+  const stream = await navigator.mediaDevices.getUserMedia({ 
+    audio: {
+      echoCancellation: false,  // Disable echo cancellation for virtual cable
+      noiseSuppression: false,  // Disable noise suppression for virtual cable
+      autoGainControl: false    // Disable auto gain control for virtual cable
+    }
+  });
+  
   const src = ctx.createMediaStreamSource(stream);
   analyser = ctx.createAnalyser();
   analyser.fftSize = 2048;
