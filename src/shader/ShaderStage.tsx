@@ -101,59 +101,47 @@ export default function ShaderStage() {
   const dropRef = useRef(0);
   const skipRef = useRef(false);
   useFrame((_, dt) => {
+    if (!material) return;
+    // time
     timeRef.current += dt;
-    dropRef.current = dt > 0.028 ? Math.min(6, dropRef.current + 1) : Math.max(0, dropRef.current - 1);
-    const qualityScale = dropRef.current >= 3 ? 0.6 : 1.0;
-    if (dropRef.current >= 3) { skipRef.current = !skipRef.current; if (skipRef.current) return; }
 
-    const alpha = 0.3;
-    const targetX = pointerRef.current.x;
-    const targetY = pointerRef.current.y;
-    smoothRef.current.px += (targetX - smoothRef.current.px) * alpha;
-    smoothRef.current.py += (targetY - smoothRef.current.py) * alpha;
-    const rawVx = (pointerRef.current.vx ?? 0) * qualityScale;
-    const rawVy = (pointerRef.current.vy ?? 0) * qualityScale;
-    smoothRef.current.vx += (rawVx - smoothRef.current.vx) * alpha;
-    smoothRef.current.vy += (rawVy - smoothRef.current.vy) * alpha;
+    // live pointer
+    const p = pointerRef.current;
+    const px = p.x, py = p.y, pvx = p.vx, pvy = p.vy;
 
-    const vmax = 3.0 * qualityScale;
-    const pvx = Math.max(-vmax, Math.min(vmax, smoothRef.current.vx));
-    const pvy = Math.max(-vmax, Math.min(vmax, smoothRef.current.vy));
-    const uPointer: [number, number] = [smoothRef.current.px, smoothRef.current.py];
-    const uPointerVel: [number, number] = [pvx, pvy];
+    // optional pose (zeros for now)
+    const uJoints = new Float32Array(66);
+    const uBodySpeed = 0, uExpand = 0, uAccent = 0;
 
-    let poseU = { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
-    if (fxMode === 'pose' && (poseData as any)?.landmarks?.length) {
-      const lm: any[] = (poseData as any).landmarks;
-      const w = (poseData as any).width || size.width;
-      const h = (poseData as any).height || size.height;
-      const feats = computePoseFeatures(poseFeatRef.current, lm, Math.max(dt, 1 / 120));
-      poseFeatRef.current = feats;
-      poseU = {
-        joints: normalizeJoints(lm, w, h),
-        bodySpeed: feats.bodySpeed,
-        expand: feats.expand,
-        accent: feats.accent,
-      };
+    // direct uniform writes
+    const uni: any = material.uniforms;
+    if (uni.uTime) uni.uTime.value = timeRef.current;
+    if (uni.iTime) uni.iTime.value = timeRef.current;
+    if (uni.uDelta) uni.uDelta.value = dt;
+    if (uni.uPointer?.value?.set) uni.uPointer.value.set(px, py);
+    if (uni.u_mouse?.value?.set) uni.u_mouse.value.set(px, py);
+    if (uni.iMouse?.value?.set) uni.iMouse.value.set(px, py);
+    if (uni.uPointerVel?.value?.set) uni.uPointerVel.value.set(pvx, pvy);
+    if (uni.u_resolution?.value?.set) uni.u_resolution.value.set(size.width, size.height);
+    if (uni.iResolution?.value?.set) uni.iResolution.value.set(size.width, size.height);
+    if (uni.uBodySpeed) uni.uBodySpeed.value = uBodySpeed;
+    if (uni.uExpand) uni.uExpand.value = uExpand;
+    if (uni.uAccent) uni.uAccent.value = uAccent;
+    if (uni.uMusicReactivity) uni.uMusicReactivity.value = visParams.musicReact ?? 0.9;
+    if (uni.uMotionReactivity) uni.uMotionReactivity.value = visParams.motionReact ?? 0.9;
+    if (uni.uJoints?.value instanceof Float32Array) (uni.uJoints.value as Float32Array).set(uJoints);
+
+    // periodic debug
+    const now = performance.now();
+    const last = (window as any).__lastLog || 0;
+    if (now - last > 1000) {
+      (window as any).__lastLog = now;
+      // eslint-disable-next-line no-console
+      console.log('[frame] write uPointer→GPU', [px, py], 'vel', [pvx, pvy]);
+      try { /* eslint-disable no-console */
+        console.log('[frame] GPU now', uni.uPointer?.value?.toArray?.());
+      } catch {}
     }
-
-    setUniforms({
-      uTime: timeRef.current,
-      iTime: timeRef.current,
-      uDelta: dt,
-      uPointer,
-      u_mouse: uPointer as any,
-      iMouse: uPointer as any,
-      uPointerVel,
-      uJoints: poseU.joints,
-      uBodySpeed: poseU.bodySpeed,
-      uExpand: poseU.expand,
-      uAccent: poseU.accent,
-      uMusicReactivity: visParams.musicReact,
-      uMotionReactivity: visParams.motionReact,
-      u_resolution: [size.width, size.height] as any,
-      iResolution: [size.width, size.height] as any,
-    });
   });
 
   if (!material) return null;
