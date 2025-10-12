@@ -1,86 +1,157 @@
-import { useThree, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useVisStore } from '../state/useVisStore';
+import useStore from '../core/store';
+import { useStageShader } from './useStageShader';
+import { localCreamEffect } from './effects/localCream';
 
 export default function ShaderStage() {
   const { gl, size } = useThree();
-  const matRef = useRef<THREE.ShaderMaterial | null>(null);
-  const pointer = useRef({ x: 0.5, y: 0.5, vx: 0, vy: 0, t: performance.now() });
+  const fxMode = useVisStore(s => s.fxMode);
+  const visParams = useVisStore(s => s.params);
+  const poseData = useStore(s => s.poseData);
+  const pointerState = useStore(s => s.pointer);
 
-  // Track pointer on the canvas and normalize to 0..1 (Y flipped)
+  // Load external shaders package if present, else use local fallback
+  const [effect, setEffect] = useState<any>(localCreamEffect);
   useEffect(() => {
-    const el = gl.domElement;
-    function onMove(e: PointerEvent) {
-      const r = el.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = 1 - (e.clientY - r.top) / r.height;
+    let mounted = true;
+    import(/* @vite-ignore */ '@stage/shaders').then((pkg: any) => {
+      if (!mounted) return;
+      if (pkg?.createEffect && pkg?.creamEffect) {
+        const eff = pkg.createEffect(pkg.creamEffect);
+        setEffect(eff);
+      }
+    }).catch(() => { /* keep local fallback */ });
+    return () => { mounted = false; };
+  }, []);
+
+  const { material, setUniforms } = useStageShader(effect);
+
+  // Pointer tracking on the window -> update store.pointer normalized and velocity
+  useEffect(() => {
+    const target: EventTarget = window;
+    function handleMove(clientX: number, clientY: number) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+      const y = Math.min(Math.max(clientY - rect.top, 0), rect.height);
+      const nx = rect.width > 0 ? x / rect.width : 0.5;
+      const ny = rect.height > 0 ? 1 - (y / rect.height) : 0.5;
+      const prev = useStore.getState().pointer;
       const now = performance.now();
-      const dt = Math.max((now - pointer.current.t) / 1000, 1e-3);
-      const vx = (x - pointer.current.x) / dt;
-      const vy = (y - pointer.current.y) / dt;
-      pointer.current = { x, y, vx, vy, t: now };
+      const dt = Math.max(1e-3, (now - (handleMove as any)._last || 0) / 1000);
+      (handleMove as any)._last = now;
+      const vx = (nx - prev.x) / dt;
+      const vy = (ny - prev.y) / dt;
+      useStore.getState().setPointer({ x: nx, y: ny, vx, vy });
     }
-    el.addEventListener("pointermove", onMove);
-    return () => el.removeEventListener("pointermove", onMove);
+    function onMove(e: PointerEvent) { handleMove(e.clientX, e.clientY); }
+    function onMouseMove(e: MouseEvent) { handleMove(e.clientX, e.clientY); }
+    target.addEventListener('pointermove', onMove as any, { passive: true } as any);
+    target.addEventListener('mousemove', onMouseMove as any, { passive: true } as any);
+    return () => {
+      target.removeEventListener('pointermove', onMove as any);
+      target.removeEventListener('mousemove', onMouseMove as any);
+    };
   }, [gl]);
 
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uPointer: { value: new THREE.Vector2(0.5, 0.5) },
-      uPointerVel: { value: new THREE.Vector2(0, 0) },
-      uResolution: { value: new THREE.Vector2(size.width, size.height) },
-    }),
-    [size]
-  );
+  // Convert current poseData to uniform bundle with smoothing and accent decay
+  const lastRef = useRef<{ cx: number; cy: number; vx: number; vy: number; accent: number } | null>(null);
+  function getPoseUniforms(dt: number) {
+    const lm: any[] | undefined = (poseData as any)?.landmarks;
+    const joints = new Float32Array(66);
+    let bodySpeed = 0, expand = 0, accent = 0;
+    if (!lm || lm.length < 33) return { joints, bodySpeed, expand, accent };
 
-  const vertexShader = /* glsl */`
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = vec4(position, 1.0); // full-screen quad (plane 2x2)
+    for (let i = 0; i < 33; i++) { const p = lm[i]; joints[i*2] = p?.x ?? 0; joints[i*2+1] = p?.y ?? 0; }
+
+    const shL = lm[11], shR = lm[12], hipL = lm[23], hipR = lm[24];
+    if (shL && shR && hipL && hipR) {
+      const cSx = (shL.x + shR.x) * 0.5, cSy = (shL.y + shR.y) * 0.5;
+      const cHx = (hipL.x + hipR.x) * 0.5, cHy = (hipL.y + hipR.y) * 0.5;
+      const cx = (cSx + cHx) * 0.5;
+      const cy = (cSy + cHy) * 0.5;
+      const shoulderW = Math.hypot(shR.x - shL.x, shR.y - shL.y) + 1e-5;
+      const last = lastRef.current;
+      const vx = last ? (cx - last.cx) / Math.max(1e-3, dt) : 0;
+      const vy = last ? (cy - last.cy) / Math.max(1e-3, dt) : 0;
+      const vmag = Math.hypot(vx, vy) / shoulderW;
+      bodySpeed = last ? (0.2 * vmag + 0.8 * Math.min(1, vmag)) : Math.min(1, vmag);
+      const accel = last ? (Math.hypot(vx - last.vx, vy - last.vy) / Math.max(1e-3, dt)) / shoulderW : 0;
+      const gain = Math.min(1, accel * 0.2);
+      const decayed = Math.max(0, (last?.accent ?? 0) * 0.9);
+      accent = Math.max(decayed, gain);
+      lastRef.current = { cx, cy, vx, vy, accent };
     }
-  `;
-
-  const fragmentShader = /* glsl */`
-    precision highp float;
-    varying vec2 vUv;
-    uniform float uTime;
-    uniform vec2  uPointer;
-    uniform vec2  uPointerVel;
-
-    void main() {
-      float d = distance(vUv, uPointer);
-      // bright ring that follows the pointer; pulsing on velocity
-      float ring = 1.0 - smoothstep(0.20, 0.22, d);
-      float vel  = clamp(length(uPointerVel) * 0.05, 0.0, 1.0);
-      vec3  col  = mix(vec3(0.1,0.2,0.6), vec3(1.0), ring);
-      col += vel * 0.35;
-      gl_FragColor = vec4(col, 1.0);
+    const wL = lm[15], wR = lm[16], aL = lm[27], aR = lm[28];
+    if (wL && wR && shL && shR) {
+      const wristSpan = Math.hypot(wR.x - wL.x, wR.y - wL.y);
+      const shoulderW = Math.hypot(shR.x - shL.x, shR.y - shL.y) + 1e-5;
+      expand += wristSpan / shoulderW;
     }
-  `;
+    if (aL && aR && shL && shR) {
+      const ankleSpan = Math.hypot(aR.x - aL.x, aR.y - aL.y);
+      const shoulderW = Math.hypot(shR.x - shL.x, shR.y - shL.y) + 1e-5;
+      expand += ankleSpan / shoulderW;
+    }
+    expand = Math.min(1, expand * 0.7);
+    return { joints, bodySpeed, expand, accent };
+  }
 
+  // rAF update
+  const timeRef = useRef(0);
+  const smoothRef = useRef({ px: 0.5, py: 0.5, vx: 0, vy: 0 });
+  const dropRef = useRef(0);
+  const skipRef = useRef(false);
   useFrame((_, dt) => {
-    uniforms.uTime.value += dt;
-    uniforms.uPointer.value.set(pointer.current.x, pointer.current.y);
-    uniforms.uPointerVel.value.set(pointer.current.vx, pointer.current.vy);
+    timeRef.current += dt;
+    dropRef.current = dt > 0.028 ? Math.min(6, dropRef.current + 1) : Math.max(0, dropRef.current - 1);
+    const qualityScale = dropRef.current >= 3 ? 0.6 : 1.0;
+    if (dropRef.current >= 3) { skipRef.current = !skipRef.current; if (skipRef.current) return; }
+
+    const alpha = 0.3;
+    const targetX = pointerState?.x ?? 0.5;
+    const targetY = pointerState?.y ?? 0.5;
+    smoothRef.current.px += (targetX - smoothRef.current.px) * alpha;
+    smoothRef.current.py += (targetY - smoothRef.current.py) * alpha;
+    const rawVx = (pointerState?.vx ?? 0) * qualityScale;
+    const rawVy = (pointerState?.vy ?? 0) * qualityScale;
+    smoothRef.current.vx += (rawVx - smoothRef.current.vx) * alpha;
+    smoothRef.current.vy += (rawVy - smoothRef.current.vy) * alpha;
+
+    const vmax = 3.0 * qualityScale;
+    const pvx = Math.max(-vmax, Math.min(vmax, smoothRef.current.vx));
+    const pvy = Math.max(-vmax, Math.min(vmax, smoothRef.current.vy));
+    const uPointer: [number, number] = [smoothRef.current.px, smoothRef.current.py];
+    const uPointerVel: [number, number] = [pvx, pvy];
+
+    const poseU = fxMode === 'pose' ? getPoseUniforms(dt) : { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
+
+    setUniforms({
+      uTime: timeRef.current,
+      iTime: timeRef.current,
+      uDelta: dt,
+      uPointer,
+      u_mouse: uPointer as any,
+      iMouse: uPointer as any,
+      uPointerVel,
+      uJoints: poseU.joints,
+      uBodySpeed: poseU.bodySpeed,
+      uExpand: poseU.expand,
+      uAccent: poseU.accent,
+      uMusicReactivity: visParams.musicReact,
+      uMotionReactivity: visParams.motionReact,
+      u_resolution: [size.width, size.height] as any,
+      iResolution: [size.width, size.height] as any,
+    });
   });
 
+  if (!material) return null;
+
   return (
-    <mesh renderOrder={9999} frustumCulled={false}>
+    <mesh position={[0, 0, 0]} renderOrder={9999} frustumCulled={false}>
       <planeGeometry args={[2, 2]} />
-      <shaderMaterial
-        ref={matRef as any}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms as any}
-        depthTest={false}
-        depthWrite={false}
-        transparent
-        side={THREE.DoubleSide}
-        toneMapped={false}
-        fog={false}
-      />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 }
