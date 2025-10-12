@@ -52,10 +52,6 @@ const useStore = create((set, get) => ({
   // pose data for motion distortion
   poseData: null,
   setPoseData: (poseData) => set({ poseData }),
-
-  // Pointer normalized coords + velocity for shader stage
-  pointer: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
-  setPointer: (pointer) => set({ pointer }),
   
   // Motion capture state
   motionCaptureActive: false,
