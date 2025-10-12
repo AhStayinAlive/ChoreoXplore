@@ -7,6 +7,7 @@ export default function ShaderStage() {
   const matRef = useRef<THREE.ShaderMaterial | null>(null);
   const pointer = useRef({ x: 0.5, y: 0.5, vx: 0, vy: 0, t: performance.now() });
 
+  // Track pointer on the canvas and normalize to 0..1 (Y flipped)
   useEffect(() => {
     const el = gl.domElement;
     function onMove(e: PointerEvent) {
@@ -33,22 +34,24 @@ export default function ShaderStage() {
     [size]
   );
 
-  const vertexShader = `
+  const vertexShader = /* glsl */`
     varying vec2 vUv;
     void main() {
       vUv = uv;
-      gl_Position = vec4(position, 1.0);
+      gl_Position = vec4(position, 1.0); // full-screen quad (plane 2x2)
     }
   `;
 
-  const fragmentShader = `
+  const fragmentShader = /* glsl */`
     precision highp float;
     varying vec2 vUv;
     uniform float uTime;
     uniform vec2  uPointer;
     uniform vec2  uPointerVel;
+
     void main() {
       float d = distance(vUv, uPointer);
+      // bright ring that follows the pointer; pulsing on velocity
       float ring = 1.0 - smoothstep(0.20, 0.22, d);
       float vel  = clamp(length(uPointerVel) * 0.05, 0.0, 1.0);
       vec3  col  = mix(vec3(0.1,0.2,0.6), vec3(1.0), ring);
