@@ -5,9 +5,11 @@ import useStore from '../core/store';
 import { useStageShader } from './useStageShader';
 import { localCreamEffect } from './effects/localCream';
 import { normalizeJoints, computePoseFeatures } from './poseFeatures';
+import { usePointerUniforms } from './usePointerUniforms';
 
 export default function ShaderStage() {
   const { gl, size } = useThree();
+  usePointerUniforms();
   const fxMode = useVisStore(s => s.fxMode);
   const visParams = useVisStore(s => s.params);
   const poseData = useStore(s => s.poseData);
