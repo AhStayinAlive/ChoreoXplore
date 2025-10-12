@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
 import useStore from '../core/store';
 import { useStageShader } from './useStageShader';
-import { localCreamEffect } from './effects/localCream';
 import { normalizeJoints, computePoseFeatures } from './poseFeatures';
 import { usePointerUniforms } from './usePointerUniforms';
+import { createEffect, creamEffect } from '@stage/shaders';
 
 export default function ShaderStage() {
   const { size } = useThree();
@@ -15,25 +15,18 @@ export default function ShaderStage() {
   const poseData = useStore(s => s.poseData);
   const pointerState = useStore(s => s.pointer);
 
-  // Load external shaders package if present, else use local fallback
-  const [effect, setEffect] = useState<any>(localCreamEffect);
-  useEffect(() => {
-    let mounted = true;
-    import(/* @vite-ignore */ '@stage/shaders').then((pkg: any) => {
-      if (!mounted) return;
-      if (pkg?.createEffect && pkg?.creamEffect) {
-        const eff = pkg.createEffect(pkg.creamEffect);
-        setEffect(eff);
-      }
-    }).catch(() => { /* keep local fallback */ });
-    return () => { mounted = false; };
-  }, []);
-
+  // Choose real effect (via alias). Our hook injects reactivity if needed
+  const effect = useMemo(() => createEffect(creamEffect), []);
   const { material, setUniforms } = useStageShader(effect);
 
   // Expose debug handle for DevTools
   useEffect(() => {
     (window as any).__shaderStage = { material, setUniforms, effect };
+    try {
+      const keys = material && material.uniforms ? Object.keys(material.uniforms) : [];
+      // eslint-disable-next-line no-console
+      console.log('[ShaderStage] uniforms:', keys);
+    } catch {}
     return () => { delete (window as any).__shaderStage; };
   }, [material, setUniforms, effect]);
 
