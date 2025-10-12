@@ -1,60 +1,56 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
 import useStore from '../core/store';
-import { type CommonUniforms } from './uniforms';
 import { useStageShader } from './useStageShader';
-import { localCreamEffect } from './effects/localCream';
+import { normalizeJoints, computePoseFeatures } from './poseFeatures';
+import { usePointerUniforms } from './usePointerUniforms';
+import { createEffect, creamEffect } from '@stage/shaders';
+import { RingDebugEffect } from './effects/RingDebug';
 
 export default function ShaderStage() {
-  const { gl } = useThree();
+  const { gl, size } = useThree();
+  // Bypass store: live pointer from window events
+  const pointerRef = useRef({ x: 0.5, y: 0.5, vx: 0, vy: 0 });
+  useEffect(() => {
+    const el = gl.domElement;
+    let last = { x: 0.5, y: 0.5, t: performance.now() };
+    function onMove(e: PointerEvent) {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = 1 - (e.clientY - r.top) / r.height; // flip Y -> UV space
+      const now = performance.now();
+      const dt = Math.max((now - last.t) / 1000, 1e-3);
+      const vx = (x - last.x) / dt;
+      const vy = (y - last.y) / dt;
+      last = { x, y, t: now };
+      pointerRef.current = { x, y, vx, vy };
+    }
+    window.addEventListener('pointermove', onMove as any, { passive: true } as any);
+    return () => window.removeEventListener('pointermove', onMove as any);
+  }, [gl]);
+  // Optional debug surfacing
+  useEffect(() => { (window as any).__pointer = pointerRef; }, []);
   const fxMode = useVisStore(s => s.fxMode);
   const visParams = useVisStore(s => s.params);
   const poseData = useStore(s => s.poseData);
-  const pointer = useStore(s => s.pointer);
 
-  // Load external shaders package if present, else use local fallback
-  const [effect, setEffect] = useState<any>(localCreamEffect);
-  useEffect(() => {
-    let mounted = true;
-    import(/* @vite-ignore */ '@stage/shaders').then((pkg: any) => {
-      if (!mounted) return;
-      if (pkg?.createEffect && pkg?.creamEffect) {
-        const eff = pkg.createEffect(pkg.creamEffect);
-        setEffect(eff);
-      }
-    }).catch(() => { /* keep local fallback */ });
-    return () => { mounted = false; };
-  }, []);
+  // TEMP: use ring debug effect to visually confirm cursor mapping
+  const effect = useMemo(() => RingDebugEffect, []);
   const { material, setUniforms } = useStageShader(effect);
 
-  // Update reactivity uniforms when changed
+  // Expose debug handle for DevTools
   useEffect(() => {
-    setUniforms({ uMusicReactivity: visParams.musicReact, uMotionReactivity: visParams.motionReact });
-  }, [visParams.musicReact, visParams.motionReact]);
+    (window as any).__shaderStage = { material, setUniforms, effect };
+    try {
+      const keys = material && material.uniforms ? Object.keys(material.uniforms) : [];
+      // eslint-disable-next-line no-console
+      console.log('[ShaderStage] uniforms:', keys);
+    } catch {}
+    return () => { delete (window as any).__shaderStage; };
+  }, [material, setUniforms, effect]);
 
-  // Pointer tracking on the canvas -> update store.pointer normalized and velocity
-  useEffect(() => {
-    const canvas = gl.domElement;
-    function onMove(e: PointerEvent) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const nx = rect.width > 0 ? x / rect.width : 0.5;
-      const ny = rect.height > 0 ? y / rect.height : 0.5;
-      // simple finite diff velocity in normalized space
-      const prev = useStore.getState().pointer;
-      const now = performance.now();
-      const dt = Math.max(1e-3, (now - (onMove as any)._last || 0) / 1000);
-      (onMove as any)._last = now;
-      const vx = (nx - prev.x) / dt;
-      const vy = (ny - prev.y) / dt;
-      useStore.getState().setPointer({ x: nx, y: ny, vx, vy });
-    }
-    canvas.addEventListener('pointermove', onMove);
-    return () => canvas.removeEventListener('pointermove', onMove);
-  }, [gl]);
+  // Pointer tracking handled by usePointerUniforms()
 
   // Convert current poseData to uniform bundle with smoothing and accent decay
   const lastRef = useRef<{ cx: number; cy: number; vx: number; vy: number; accent: number } | null>(null);
@@ -77,9 +73,7 @@ export default function ShaderStage() {
       const vx = last ? (cx - last.cx) / Math.max(1e-3, dt) : 0;
       const vy = last ? (cy - last.cy) / Math.max(1e-3, dt) : 0;
       const vmag = Math.hypot(vx, vy) / shoulderW;
-      // low-pass body speed
-      bodySpeed = last ? (last.vx * 0 + last.vy * 0, (0.2 * vmag + 0.8 * Math.min(1, vmag))) : Math.min(1, vmag);
-      // jerk/accel based accent with short decay
+      bodySpeed = last ? (0.2 * vmag + 0.8 * Math.min(1, vmag)) : Math.min(1, vmag);
       const accel = last ? (Math.hypot(vx - last.vx, vy - last.vy) / Math.max(1e-3, dt)) / shoulderW : 0;
       const gain = Math.min(1, accel * 0.2);
       const decayed = Math.max(0, (last?.accent ?? 0) * 0.9);
@@ -104,52 +98,58 @@ export default function ShaderStage() {
   // rAF update
   const timeRef = useRef(0);
   const smoothRef = useRef({ px: 0.5, py: 0.5, vx: 0, vy: 0 });
+  const poseFeatRef = useRef<any>(null);
   const dropRef = useRef(0);
   const skipRef = useRef(false);
   useFrame((_, dt) => {
+    if (!material) return;
+    // time
     timeRef.current += dt;
-    // perf drop detection
-    dropRef.current = dt > 0.028 ? Math.min(6, dropRef.current + 1) : Math.max(0, dropRef.current - 1);
-    const qualityScale = dropRef.current >= 3 ? 0.6 : 1.0;
-    if (dropRef.current >= 3) { skipRef.current = !skipRef.current; if (skipRef.current) return; }
 
-    // smooth pointer and velocity
-    const alpha = 0.3; // low-pass factor
-    const targetX = pointer?.x ?? 0.5;
-    const targetY = pointer?.y ?? 0.5;
-    smoothRef.current.px += (targetX - smoothRef.current.px) * alpha;
-    smoothRef.current.py += (targetY - smoothRef.current.py) * alpha;
-    const rawVx = (pointer?.vx ?? 0) * qualityScale;
-    const rawVy = (pointer?.vy ?? 0) * qualityScale;
-    smoothRef.current.vx += (rawVx - smoothRef.current.vx) * alpha;
-    smoothRef.current.vy += (rawVy - smoothRef.current.vy) * alpha;
+    // live pointer
+    const p = pointerRef.current;
+    const px = p.x, py = p.y, pvx = p.vx, pvy = p.vy;
 
-    // clamp velocity to control intensity
-    const vmax = 3.0 * qualityScale;
-    const pvx = Math.max(-vmax, Math.min(vmax, smoothRef.current.vx));
-    const pvy = Math.max(-vmax, Math.min(vmax, smoothRef.current.vy));
-    const uPointer: [number, number] = [smoothRef.current.px, smoothRef.current.py];
-    const uPointerVel: [number, number] = [pvx, pvy];
+    // optional pose (zeros for now)
+    const uJoints = new Float32Array(66);
+    const uBodySpeed = 0, uExpand = 0, uAccent = 0;
 
-    const poseU = fxMode === 'pose' ? getPoseUniforms(dt) : { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
+    // direct uniform writes
+    const uni: any = material.uniforms;
+    if (uni.uTime) uni.uTime.value = timeRef.current;
+    if (uni.iTime) uni.iTime.value = timeRef.current;
+    if (uni.uDelta) uni.uDelta.value = dt;
+    if (uni.uPointer?.value?.set) uni.uPointer.value.set(px, py);
+    if (uni.u_mouse?.value?.set) uni.u_mouse.value.set(px, py);
+    if (uni.iMouse?.value?.set) uni.iMouse.value.set(px, py);
+    if (uni.uPointerVel?.value?.set) uni.uPointerVel.value.set(pvx, pvy);
+    if (uni.u_resolution?.value?.set) uni.u_resolution.value.set(size.width, size.height);
+    if (uni.iResolution?.value?.set) uni.iResolution.value.set(size.width, size.height);
+    if (uni.uBodySpeed) uni.uBodySpeed.value = uBodySpeed;
+    if (uni.uExpand) uni.uExpand.value = uExpand;
+    if (uni.uAccent) uni.uAccent.value = uAccent;
+    if (uni.uMusicReactivity) uni.uMusicReactivity.value = visParams.musicReact ?? 0.9;
+    if (uni.uMotionReactivity) uni.uMotionReactivity.value = visParams.motionReact ?? 0.9;
+    if (uni.uJoints?.value instanceof Float32Array) (uni.uJoints.value as Float32Array).set(uJoints);
 
-    setUniforms({
-      uTime: timeRef.current, uDelta: dt,
-      uPointer, uPointerVel,
-      uJoints: poseU.joints,
-      uBodySpeed: poseU.bodySpeed,
-      uExpand: poseU.expand,
-      uAccent: poseU.accent,
-      uMusicReactivity: visParams.musicReact,
-      uMotionReactivity: visParams.motionReact,
-    });
+    // periodic debug
+    const now = performance.now();
+    const last = (window as any).__lastLog || 0;
+    if (now - last > 1000) {
+      (window as any).__lastLog = now;
+      // eslint-disable-next-line no-console
+      console.log('[frame] write uPointer→GPU', [px, py], 'vel', [pvx, pvy]);
+      try { /* eslint-disable no-console */
+        console.log('[frame] GPU now', uni.uPointer?.value?.toArray?.());
+      } catch {}
+    }
   });
 
   if (!material) return null;
 
   return (
-    <mesh position={[0, 0, 0]}>
-      <planeGeometry args={[20000, 10000]} />
+    <mesh position={[0, 0, 0]} renderOrder={9999} frustumCulled={false}>
+      <planeGeometry args={[2, 2]} />
       <primitive object={material} attach="material" />
     </mesh>
   );
