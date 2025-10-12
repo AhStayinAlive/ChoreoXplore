@@ -84,31 +84,51 @@ export function useStageShader(effect: StageEffect) {
     return mat;
   }, [effect]);
 
-  function setUniforms(u: Partial<CommonUniforms> & Record<string, any>) {
-    const mat = materialRef.current; if (!mat) return;
+  function setUniforms(u: Record<string, any>) {
+    const mat = materialRef.current;
+    if (!mat) return;
     const uni = mat.uniforms as any;
+
     for (const k in u) {
-      if (!uni[k]) continue;
-      const next = (u as any)[k];
-      if (uni[k].value?.set && Array.isArray(next)) {
-        uni[k].value.set(...next);
-      } else if (uni[k].value instanceof Float32Array && next instanceof Float32Array) {
-        uni[k].value.set(next);
-      } else {
-        uni[k].value = next;
+      if (!(k in uni)) continue;
+
+      const src = (u as any)[k];
+      const dst = uni[k].value;
+
+      // Vector2/3/4: spread the array into .set(x, y [,z, w])
+      if (dst && typeof dst.set === 'function' && Array.isArray(src)) {
+        if ((dst as any).isVector2 && src.length >= 2) (dst as any).set(src[0], src[1]);
+        else if ((dst as any).isVector3 && src.length >= 3) (dst as any).set(src[0], src[1], src[2]);
+        else if ((dst as any).isVector4 && src.length >= 4) (dst as any).set(src[0], src[1], src[2], src[3]);
+        else dst.set(...src);
+        continue;
       }
+
+      // Typed arrays
+      if (dst instanceof Float32Array && src instanceof Float32Array) {
+        dst.set(src);
+        continue;
+      }
+
+      // Everything else (numbers, booleans, textures, etc.)
+      uni[k].value = src;
     }
-    // broadcast canonical → aliases
+
+    // (optional) broadcast to aliases after updating canonical names
     const aliasMap: Record<string, string[]> = {
       uPointer: ['u_mouse', 'iMouse', 'mouse', 'uMouse'],
       uTime: ['iTime', 'time', 'u_time'],
       u_resolution: ['iResolution', 'resolution', 'uResolution'],
     };
-    for (const [src, aliases] of Object.entries(aliasMap)) {
-      if (!uni[src]) continue;
-      for (const a of aliases) if (uni[a]) {
-        const v = uni[src].value;
-        if (uni[a].value?.set && v?.set) uni[a].value.set(v); else uni[a].value = v;
+    for (const [srcName, aliases] of Object.entries(aliasMap)) {
+      if (!(srcName in uni)) continue;
+      for (const a of aliases) {
+        if (!(a in uni)) continue;
+        const v = uni[srcName].value;
+        const d = uni[a].value;
+        if (d?.set && Array.isArray(v)) d.set(...v);
+        else if (d instanceof Float32Array && v instanceof Float32Array) d.set(v);
+        else uni[a].value = v;
       }
     }
   }
