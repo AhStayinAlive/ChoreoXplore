@@ -17,6 +17,7 @@ import DancerSegmentation from "../components/DancerSegmentation";
 import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
+import ShaderStage from "../shader/ShaderStage";
 import IrinaSystem from "../components/IrinaSystem";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
@@ -151,6 +152,8 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
     >
       {!backgroundImage && <color attach="background" args={["#0A0A0C"]} />}
       <SceneRoot backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
+      {/* ShaderStage renders full-screen plane with use-shader-fx based effect */}
+      <ShaderStage />
     </Canvas>
   );
 }
