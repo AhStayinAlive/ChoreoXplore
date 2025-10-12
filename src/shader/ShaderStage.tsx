@@ -8,12 +8,31 @@ import { usePointerUniforms } from './usePointerUniforms';
 import { createEffect, creamEffect } from '@stage/shaders';
 
 export default function ShaderStage() {
-  const { size } = useThree();
-  usePointerUniforms();
+  const { gl, size } = useThree();
+  // Bypass store: live pointer from window events
+  const pointerRef = useRef({ x: 0.5, y: 0.5, vx: 0, vy: 0 });
+  useEffect(() => {
+    const el = gl.domElement;
+    let last = { x: 0.5, y: 0.5, t: performance.now() };
+    function onMove(e: PointerEvent) {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = 1 - (e.clientY - r.top) / r.height; // flip Y -> UV space
+      const now = performance.now();
+      const dt = Math.max((now - last.t) / 1000, 1e-3);
+      const vx = (x - last.x) / dt;
+      const vy = (y - last.y) / dt;
+      last = { x, y, t: now };
+      pointerRef.current = { x, y, vx, vy };
+    }
+    window.addEventListener('pointermove', onMove as any, { passive: true } as any);
+    return () => window.removeEventListener('pointermove', onMove as any);
+  }, [gl]);
+  // Optional debug surfacing
+  useEffect(() => { (window as any).__pointer = pointerRef; }, []);
   const fxMode = useVisStore(s => s.fxMode);
   const visParams = useVisStore(s => s.params);
   const poseData = useStore(s => s.poseData);
-  const pointerState = useStore(s => s.pointer);
 
   // Choose real effect (via alias). Our hook injects reactivity if needed
   const effect = useMemo(() => createEffect(creamEffect), []);
@@ -88,12 +107,12 @@ export default function ShaderStage() {
     if (dropRef.current >= 3) { skipRef.current = !skipRef.current; if (skipRef.current) return; }
 
     const alpha = 0.3;
-    const targetX = pointerState?.x ?? 0.5;
-    const targetY = pointerState?.y ?? 0.5;
+    const targetX = pointerRef.current.x;
+    const targetY = pointerRef.current.y;
     smoothRef.current.px += (targetX - smoothRef.current.px) * alpha;
     smoothRef.current.py += (targetY - smoothRef.current.py) * alpha;
-    const rawVx = (pointerState?.vx ?? 0) * qualityScale;
-    const rawVy = (pointerState?.vy ?? 0) * qualityScale;
+    const rawVx = (pointerRef.current.vx ?? 0) * qualityScale;
+    const rawVy = (pointerRef.current.vy ?? 0) * qualityScale;
     smoothRef.current.vx += (rawVx - smoothRef.current.vx) * alpha;
     smoothRef.current.vy += (rawVy - smoothRef.current.vy) * alpha;
 
