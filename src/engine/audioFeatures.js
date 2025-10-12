@@ -30,7 +30,6 @@ export async function attachAudio(el) {
     }
   });
   
-  src.connect(ctx.destination); 
   analyser.start();
   
   return () => { 
