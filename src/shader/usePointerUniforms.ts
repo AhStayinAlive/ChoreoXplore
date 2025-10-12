@@ -8,17 +8,19 @@ export function usePointerUniforms() {
     const el = gl.domElement;
     let last = { x: 0.5, y: 0.5, t: performance.now() };
     function onMove(e: PointerEvent) {
-      const r = el.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = 1 - (e.clientY - r.top) / r.height; // flip Y for shader UV
-      const t = performance.now();
-      const dt = Math.max((t - last.t) / 1000, 1e-3);
+      // normalize to the canvas rect even if pointer is over UI
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = 1 - (e.clientY - rect.top) / rect.height; // flip Y to UV
+      const now = performance.now();
+      const dt = Math.max((now - last.t) / 1000, 1e-3);
       const vx = (x - last.x) / dt;
       const vy = (y - last.y) / dt;
-      last = { x, y, t };
+      last = { x, y, t: now };
       useStore.getState().setPointer({ x, y, vx, vy });
     }
-    el.addEventListener("pointermove", onMove);
-    return () => el.removeEventListener("pointermove", onMove);
+    // listen on window so overlays can’t block the event
+    window.addEventListener("pointermove", onMove, { passive: true } as any);
+    return () => window.removeEventListener("pointermove", onMove as any);
   }, [gl]);
 }
