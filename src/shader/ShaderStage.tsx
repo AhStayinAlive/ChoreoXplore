@@ -6,6 +6,7 @@ import { useStageShader } from './useStageShader';
 import { normalizeJoints, computePoseFeatures } from './poseFeatures';
 import { usePointerUniforms } from './usePointerUniforms';
 import { createEffect, creamEffect } from '@stage/shaders';
+import { RingDebugEffect } from './effects/RingDebug';
 
 export default function ShaderStage() {
   const { gl, size } = useThree();
@@ -34,8 +35,8 @@ export default function ShaderStage() {
   const visParams = useVisStore(s => s.params);
   const poseData = useStore(s => s.poseData);
 
-  // Choose real effect (via alias). Our hook injects reactivity if needed
-  const effect = useMemo(() => createEffect(creamEffect), []);
+  // TEMP: use ring debug effect to visually confirm cursor mapping
+  const effect = useMemo(() => RingDebugEffect, []);
   const { material, setUniforms } = useStageShader(effect);
 
   // Expose debug handle for DevTools
