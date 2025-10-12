@@ -7,6 +7,9 @@ import Volumes3D_Bursts from './Volumes3D_Bursts';
 import QuandCestMode from './QuandCestMode';
 import PulsatingCircleMode from './PulsatingCircleMode';
 import PulsatingSphereMode from './PulsatingSphereMode';
+import RippleMode from './RippleMode';
+import FallingLeavesMode from './FallingLeavesMode';
+import NebulaMode from './NebulaMode';
 
 export default function IrinaSystem() {
   const motion = useVisStore(s => s.motion);
@@ -27,6 +30,9 @@ export default function IrinaSystem() {
   if (mode === 'quand_cest') return <QuandCestMode />;
   if (mode === 'pulsating_circle') return <PulsatingCircleMode />;
   if (mode === 'pulsating_sphere') return <PulsatingSphereMode />;
+  if (mode === 'ripple') return <RippleMode />;
+  if (mode === 'falling_leaves') return <FallingLeavesMode />;
+  if (mode === 'nebula') return <NebulaMode />;
   
   // Default to IrinaAngles for auto mode
   return <IrinaAngles />;

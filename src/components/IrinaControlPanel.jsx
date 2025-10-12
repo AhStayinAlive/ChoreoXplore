@@ -79,6 +79,9 @@ export default function IrinaControlPanel() {
               <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
               <option value="pulsating_circle" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Circle</option>
               <option value="pulsating_sphere" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Sphere</option>
+              <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Mode</option>
+              <option value="falling_leaves" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Falling Leaves</option>
+              <option value="nebula" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Nebula</option>
             </select>
           </div>
         </div>
