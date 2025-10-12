@@ -24,16 +24,10 @@ export const localCreamEffect = {
 
     void main(){
       vec2 uv = vUv;
-      vec2 center = mix(vec2(0.5), uPointer, 0.85);
-      vec2 d = uv - center; float r = max(1e-3, length(d)); vec2 dir = normalize(d);
-      float turb = noise(uv * 4.0 + uTime * (1.0 + 2.0*length(uPointerVel))) + noise(uv * 9.0 + uTime * 0.5);
-      turb *= (0.6 + 0.8 * clamp(length(uPointerVel), 0.0, 1.5) + 0.6 * uAccent);
-      float widen = 0.4 + 0.8 * uExpand; float speed = 0.2 + 0.9 * uBodySpeed;
-      vec2 flow = dir * (widen / (1.0 + 6.0*r)) + (turb - 0.5) * 0.15;
-      flow *= mix(1.0, 1.6, uMotionReactivity);
-      vec3 col = mix(vec3(0.96,0.96,0.94), vec3(1.0), 0.2) + vec3(flow.x, flow.y, turb) * 0.25;
-      col *= 0.9 + 0.2 * uMusicReactivity;
-      gl_FragColor = vec4(col, 1.0);
+      vec2 center = uPointer; // direct follow
+      float d = distance(uv, center);
+      float ring = 1.0 - smoothstep(0.145, 0.155, d);
+      gl_FragColor = vec4(vec3(0.05, 0.10, 0.60) + ring, 1.0);
     }
   `
 };
