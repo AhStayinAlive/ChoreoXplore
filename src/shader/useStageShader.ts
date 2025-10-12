@@ -49,7 +49,7 @@ export function useStageShader(effect: StageEffect) {
     mat.depthWrite = false;
     mat.fog = false;
 
-    // Robust injector: bright ring overlay driven by cursor/pose
+    // Cursor overlay injector (no duplicate uniforms, uses vUv, GLSL1/3 safe)
     mat.onBeforeCompile = (shader) => {
       const is300 = /#\s*version\s+300\s+es/.test(shader.fragmentShader);
       let outVar = 'gl_FragColor';
@@ -59,27 +59,34 @@ export function useStageShader(effect: StageEffect) {
         if (!m) {
           shader.fragmentShader = shader.fragmentShader.replace(
             /precision.*?;\s*/s,
-            (s) => s + '\nout vec4 fragColor;\n'
+            s => s + '\nout vec4 fragColor;\n'
           );
         }
       }
       const WR = is300 ? outVar : 'gl_FragColor';
 
-      const header = `\nuniform vec2 uPointer;\nuniform vec2 uPointerVel;\nuniform float uBodySpeed, uExpand, uAccent, uMotionReactivity;\nuniform vec2 u_resolution;`;
-      shader.fragmentShader = header + '\n' + shader.fragmentShader;
+      // Only add uniforms if missing
+      const needsUPointer = !/uniform\s+vec2\s+uPointer\s*;/.test(shader.fragmentShader);
+      const needsUPointerVel = !/uniform\s+vec2\s+uPointerVel\s*;/.test(shader.fragmentShader);
+      const needsUMotion = !/uniform\s+float\s+uMotionReactivity\s*;/.test(shader.fragmentShader);
+      let header = '';
+      if (needsUPointer) header += 'uniform vec2 uPointer;\n';
+      if (needsUPointerVel) header += 'uniform vec2 uPointerVel;\n';
+      if (needsUMotion) header += 'uniform float uMotionReactivity;\n';
+      if (header) shader.fragmentShader = header + shader.fragmentShader;
 
+      // Append bright ring overlay at end of main(), using vUv
       shader.fragmentShader = shader.fragmentShader.replace(
         /void\s+main\s*\(\s*\)\s*{([\s\S]*?)}/,
-        (_full, body) => `void main(){${body}
-      vec2 __uv = gl_FragCoord.xy / u_resolution;
-      float __cursor = 1.0 - smoothstep(0.145, 0.155, distance(__uv, uPointer));
-      float __vel    = clamp(length(uPointerVel) * 0.05, 0.0, 1.0);
-      ${WR}.rgb += __cursor * 0.85;                // strong visible ring
-      ${WR}.rgb += vec3(__vel) * 0.25;             // flick with velocity
-      ${WR}.rgb += vec3(0.2) * uBodySpeed;         // pose speed
-      ${WR}.rgb += vec3(0.25) * uAccent;           // pose accents
+        (_, body) => `void main(){${body}
+      vec2 cUv = vUv;
+      float cRing = 1.0 - smoothstep(0.145, 0.155, distance(cUv, uPointer));
+      float cVel  = clamp(length(uPointerVel) * 0.05, 0.0, 1.0);
+      ${WR}.rgb += cRing * 0.85;
+      ${WR}.rgb += vec3(cVel) * 0.25;
     }`
       );
+
       mat.needsUpdate = true;
     };
 
