@@ -4,6 +4,7 @@ import { useVisStore } from '../state/useVisStore';
 import useStore from '../core/store';
 import { useStageShader } from './useStageShader';
 import { localCreamEffect } from './effects/localCream';
+import { normalizeJoints, computePoseFeatures } from './poseFeatures';
 
 export default function ShaderStage() {
   const { gl, size } = useThree();
@@ -101,6 +102,7 @@ export default function ShaderStage() {
   // rAF update
   const timeRef = useRef(0);
   const smoothRef = useRef({ px: 0.5, py: 0.5, vx: 0, vy: 0 });
+  const poseFeatRef = useRef<any>(null);
   const dropRef = useRef(0);
   const skipRef = useRef(false);
   useFrame((_, dt) => {
@@ -125,7 +127,20 @@ export default function ShaderStage() {
     const uPointer: [number, number] = [smoothRef.current.px, smoothRef.current.py];
     const uPointerVel: [number, number] = [pvx, pvy];
 
-    const poseU = fxMode === 'pose' ? getPoseUniforms(dt) : { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
+    let poseU = { joints: new Float32Array(66), bodySpeed: 0, expand: 0, accent: 0 };
+    if (fxMode === 'pose' && (poseData as any)?.landmarks?.length) {
+      const lm: any[] = (poseData as any).landmarks;
+      const w = (poseData as any).width || size.width;
+      const h = (poseData as any).height || size.height;
+      const feats = computePoseFeatures(poseFeatRef.current, lm, Math.max(dt, 1 / 120));
+      poseFeatRef.current = feats;
+      poseU = {
+        joints: normalizeJoints(lm, w, h),
+        bodySpeed: feats.bodySpeed,
+        expand: feats.expand,
+        accent: feats.accent,
+      };
+    }
 
     setUniforms({
       uTime: timeRef.current,
