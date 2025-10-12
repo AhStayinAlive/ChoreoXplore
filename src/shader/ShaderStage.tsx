@@ -8,7 +8,7 @@ import { normalizeJoints, computePoseFeatures } from './poseFeatures';
 import { usePointerUniforms } from './usePointerUniforms';
 
 export default function ShaderStage() {
-  const { gl, size } = useThree();
+  const { size } = useThree();
   usePointerUniforms();
   const fxMode = useVisStore(s => s.fxMode);
   const visParams = useVisStore(s => s.params);
@@ -31,32 +31,13 @@ export default function ShaderStage() {
 
   const { material, setUniforms } = useStageShader(effect);
 
-  // Pointer tracking on the window -> update store.pointer normalized and velocity
+  // Expose debug handle for DevTools
   useEffect(() => {
-    const target: EventTarget = window;
-    function handleMove(clientX: number, clientY: number) {
-      const rect = gl.domElement.getBoundingClientRect();
-      const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
-      const y = Math.min(Math.max(clientY - rect.top, 0), rect.height);
-      const nx = rect.width > 0 ? x / rect.width : 0.5;
-      const ny = rect.height > 0 ? 1 - (y / rect.height) : 0.5;
-      const prev = useStore.getState().pointer;
-      const now = performance.now();
-      const dt = Math.max(1e-3, (now - (handleMove as any)._last || 0) / 1000);
-      (handleMove as any)._last = now;
-      const vx = (nx - prev.x) / dt;
-      const vy = (ny - prev.y) / dt;
-      useStore.getState().setPointer({ x: nx, y: ny, vx, vy });
-    }
-    function onMove(e: PointerEvent) { handleMove(e.clientX, e.clientY); }
-    function onMouseMove(e: MouseEvent) { handleMove(e.clientX, e.clientY); }
-    target.addEventListener('pointermove', onMove as any, { passive: true } as any);
-    target.addEventListener('mousemove', onMouseMove as any, { passive: true } as any);
-    return () => {
-      target.removeEventListener('pointermove', onMove as any);
-      target.removeEventListener('mousemove', onMouseMove as any);
-    };
-  }, [gl]);
+    (window as any).__shaderStage = { material, setUniforms, effect };
+    return () => { delete (window as any).__shaderStage; };
+  }, [material, setUniforms, effect]);
+
+  // Pointer tracking handled by usePointerUniforms()
 
   // Convert current poseData to uniform bundle with smoothing and accent decay
   const lastRef = useRef<{ cx: number; cy: number; vx: number; vy: number; accent: number } | null>(null);
