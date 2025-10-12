@@ -49,7 +49,7 @@ export function useStageShader(effect: StageEffect) {
     mat.depthWrite = false;
     mat.fog = false;
 
-    // Robust injector to force visible reaction even if shader ignores uniforms
+    // Robust injector: bright ring overlay driven by cursor/pose
     mat.onBeforeCompile = (shader) => {
       const is300 = /#\s*version\s+300\s+es/.test(shader.fragmentShader);
       let outVar = 'gl_FragColor';
@@ -63,21 +63,24 @@ export function useStageShader(effect: StageEffect) {
           );
         }
       }
+      const WR = is300 ? outVar : 'gl_FragColor';
 
-      const header = `uniform vec2 uPointer;\n` +
-        `uniform vec2 uPointerVel;\n` +
-        `uniform float uBodySpeed, uExpand, uAccent, uMotionReactivity;\n` +
-        `uniform vec2 u_resolution;\n`;
-
+      const header = `\nuniform vec2 uPointer;\nuniform vec2 uPointerVel;\nuniform float uBodySpeed, uExpand, uAccent, uMotionReactivity;\nuniform vec2 u_resolution;`;
       shader.fragmentShader = header + '\n' + shader.fragmentShader;
 
       shader.fragmentShader = shader.fragmentShader.replace(
         /void\s+main\s*\(\s*\)\s*{([\s\S]*?)}/,
-        (full, body) => {
-          const bump = `${is300 ? outVar : 'gl_FragColor'}.rgb += (1.0 - smoothstep(0.0, 0.55, distance(gl_FragCoord.xy / u_resolution, uPointer))) * 0.25 * (1.0 - uMotionReactivity);\n${is300 ? outVar : 'gl_FragColor'}.rgb += vec3(0.2) * uBodySpeed * uMotionReactivity;\n${is300 ? outVar : 'gl_FragColor'}.rgb += vec3(0.25) * uAccent * uMotionReactivity;`;
-          return `void main(){${body}\n${bump}\n}`;
-        }
+        (_full, body) => `void main(){${body}
+      vec2 __uv = gl_FragCoord.xy / u_resolution;
+      float __cursor = 1.0 - smoothstep(0.145, 0.155, distance(__uv, uPointer));
+      float __vel    = clamp(length(uPointerVel) * 0.05, 0.0, 1.0);
+      ${WR}.rgb += __cursor * 0.85;                // strong visible ring
+      ${WR}.rgb += vec3(__vel) * 0.25;             // flick with velocity
+      ${WR}.rgb += vec3(0.2) * uBodySpeed;         // pose speed
+      ${WR}.rgb += vec3(0.25) * uAccent;           // pose accents
+    }`
       );
+      mat.needsUpdate = true;
     };
 
     materialRef.current = mat;
