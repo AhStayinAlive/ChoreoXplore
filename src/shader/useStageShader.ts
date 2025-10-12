@@ -41,20 +41,50 @@ export function useStageShader(effect: StageEffect) {
       vertexShader: effect.vertexShader,
       fragmentShader: effect.fragmentShader,
       uniforms,
-      transparent: false,
-      depthWrite: false,
-      depthTest: false,
+      transparent: true,
+      side: THREE.DoubleSide,
+      toneMapped: false,
     });
-
-    mat.side = THREE.DoubleSide;
-    mat.toneMapped = false;
+    mat.depthTest = false;
+    mat.depthWrite = false;
     mat.fog = false;
+
+    // Robust injector to force visible reaction even if shader ignores uniforms
+    mat.onBeforeCompile = (shader) => {
+      const is300 = /#\s*version\s+300\s+es/.test(shader.fragmentShader);
+      let outVar = 'gl_FragColor';
+      if (is300) {
+        const m = shader.fragmentShader.match(/out\s+vec4\s+(\w+)\s*;/);
+        outVar = (m && m[1]) ? m[1] : 'fragColor';
+        if (!m) {
+          shader.fragmentShader = shader.fragmentShader.replace(
+            /precision.*?;\s*/s,
+            (s) => s + '\nout vec4 fragColor;\n'
+          );
+        }
+      }
+
+      const header = `uniform vec2 uPointer;\n` +
+        `uniform vec2 uPointerVel;\n` +
+        `uniform float uBodySpeed, uExpand, uAccent, uMotionReactivity;\n` +
+        `uniform vec2 u_resolution;\n`;
+
+      shader.fragmentShader = header + '\n' + shader.fragmentShader;
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        /void\s+main\s*\(\s*\)\s*{([\s\S]*?)}/,
+        (full, body) => {
+          const bump = `${is300 ? outVar : 'gl_FragColor'}.rgb += (1.0 - smoothstep(0.0, 0.55, distance(gl_FragCoord.xy / u_resolution, uPointer))) * 0.25 * (1.0 - uMotionReactivity);\n${is300 ? outVar : 'gl_FragColor'}.rgb += vec3(0.2) * uBodySpeed * uMotionReactivity;\n${is300 ? outVar : 'gl_FragColor'}.rgb += vec3(0.25) * uAccent * uMotionReactivity;`;
+          return `void main(){${body}\n${bump}\n}`;
+        }
+      );
+    };
 
     materialRef.current = mat;
     return mat;
   }, [effect]);
 
-  function setUniforms(u: Partial<CommonUniforms>) {
+  function setUniforms(u: Partial<CommonUniforms> & Record<string, any>) {
     const mat = materialRef.current; if (!mat) return;
     const uni = mat.uniforms as any;
     for (const k in u) {
@@ -66,6 +96,19 @@ export function useStageShader(effect: StageEffect) {
         uni[k].value.set(next);
       } else {
         uni[k].value = next;
+      }
+    }
+    // broadcast canonical → aliases
+    const aliasMap: Record<string, string[]> = {
+      uPointer: ['u_mouse', 'iMouse', 'mouse', 'uMouse'],
+      uTime: ['iTime', 'time', 'u_time'],
+      u_resolution: ['iResolution', 'resolution', 'uResolution'],
+    };
+    for (const [src, aliases] of Object.entries(aliasMap)) {
+      if (!uni[src]) continue;
+      for (const a of aliases) if (uni[a]) {
+        const v = uni[src].value;
+        if (uni[a].value?.set && v?.set) uni[a].value.set(v); else uni[a].value = v;
       }
     }
   }
