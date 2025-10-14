@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import useStore from "../core/store";
 import { useVisStore } from "../state/useVisStore";
@@ -18,9 +18,11 @@ import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
 import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
+import HandFluidEffect from "../components/HandFluidEffect";
+import HandFluidCanvas from "../components/HandFluidCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
-function SceneRoot({ backgroundImage, ambientAnimationParams }) {
+function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
@@ -117,6 +119,8 @@ function SceneRoot({ backgroundImage, ambientAnimationParams }) {
               <ChoreoXploreSystem />
             </>
           )}
+          {/* Hand-driven fluid ripple effect */}
+          <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />
         </>
       );
 }
@@ -125,6 +129,22 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const mode = useStore(s => s.mode);
   const userColors = useStore(s => s.userColors);
   const choreoxploreIsActive = useVisStore(s => s.isActive);
+  const [fluidTexture, setFluidTexture] = useState(null);
+  const [fluidCanvas, setFluidCanvas] = useState(null);
+
+  const handleFluidTextureReady = useCallback((canvas) => {
+    // Prevent multiple calls with the same canvas
+    if (fluidCanvas === canvas) return;
+    
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.needsUpdate = true;
+    
+    setFluidTexture(texture);
+    setFluidCanvas(canvas);
+  }, [fluidCanvas]);
   
   // Different camera settings for different modes
   const getCameraSettings = () => {
@@ -141,21 +161,35 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   };
   
   return (
-    <Canvas 
-      orthographic 
-      camera={{ 
-        zoom: choreoxploreIsActive ? 0.1 : (mode === "choreoxplore" || mode === "performance") ? 0.1 : 0.1, 
-        position: choreoxploreIsActive ? [0, 0, 5] : (mode === "choreoxplore" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
-      }}
-      dpr={[1, 2]}
-      style={{ 
-        background: backgroundImage ? "transparent" : userColors.bgColor,
-        pointerEvents: 'none'
-      }}
-    >
-      {!backgroundImage && <color attach="background" args={[userColors.bgColor]} />}
-      <SceneRoot backgroundImage={backgroundImage} ambientAnimationParams={ambientAnimationParams} />
-    </Canvas>
+    <>
+      {/* Fluid canvas - rendered outside Three.js scene */}
+      <HandFluidCanvas 
+        width={512} 
+        height={512} 
+        onCanvasReady={handleFluidTextureReady}
+      />
+      
+      <Canvas 
+        orthographic 
+        camera={{ 
+          zoom: choreoxploreIsActive ? 0.1 : (mode === "choreoxplore" || mode === "performance") ? 0.1 : 0.1, 
+          position: choreoxploreIsActive ? [0, 0, 5] : (mode === "choreoxplore" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
+        }}
+        dpr={[1, 2]}
+        style={{ 
+          background: backgroundImage ? "transparent" : userColors.bgColor,
+          pointerEvents: 'none'
+        }}
+      >
+        {!backgroundImage && <color attach="background" args={[userColors.bgColor]} />}
+        <SceneRoot 
+          backgroundImage={backgroundImage} 
+          ambientAnimationParams={ambientAnimationParams}
+          fluidTexture={fluidTexture}
+          fluidCanvas={fluidCanvas}
+        />
+      </Canvas>
+    </>
   );
 }
 
