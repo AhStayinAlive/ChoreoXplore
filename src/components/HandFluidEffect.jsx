@@ -93,6 +93,25 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
     return new THREE.PlaneGeometry(20000, 20000, 100, 100); // Much larger to fill viewport with 0.1 zoom
   }, []);
 
+  // Update shader uniforms when settings change
+  useEffect(() => {
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [
+        parseInt(result[1], 16) / 255,
+        parseInt(result[2], 16) / 255,
+        parseInt(result[3], 16) / 255
+      ] : [0, 0, 0];
+    };
+
+    // Update both materials with new settings
+    shaderMaterials.left.uniforms.uBaseColor.value.set(...hexToRgb(handRippleSettings.baseColor));
+    shaderMaterials.left.uniforms.uRippleColor.value.set(...hexToRgb(handRippleSettings.rippleColor));
+    
+    shaderMaterials.right.uniforms.uBaseColor.value.set(...hexToRgb(handRippleSettings.baseColor));
+    shaderMaterials.right.uniforms.uRippleColor.value.set(...hexToRgb(handRippleSettings.rippleColor));
+  }, [handRippleSettings, shaderMaterials]);
+
   // Set texture when available
   useEffect(() => {
     if (fluidTexture) {
@@ -115,19 +134,23 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       // Calculate ripple parameters
       const rippleParams = calculateRippleParams(smoothedPos, velocity, currentHandPos.visibility);
       
-      // Convert MediaPipe coordinates to visualizer coordinates
-      const scale = 22;
-      const x = (smoothedPos.x - 0.5) * 200 * scale;
-      const y = (0.5 - smoothedPos.y) * 200 * scale;
+          // Use SimpleSkeleton's coordinate system
+          const scale = 22; // Match SimpleSkeleton default
+          const x = (smoothedPos.x - 0.5) * 200 * scale;
+          const y = (0.5 - smoothedPos.y) * 200 * scale;
+
+          // Convert to UV coordinates (0-1 range) for the 20000x20000 plane
+          const shaderX = (x / 20000) + 0.5;
+          const shaderY = (y / 20000) + 0.5;
       
-      // Convert to UV coordinates for the shader
-      const shaderX = (x / 20000) + 0.5;
-      const shaderY = (y / 20000) + 0.5;
-      
+      // Use slider values directly, modulated by velocity and visibility
+      const velocityMultiplier = 1.0 + velocity * 0.5; // 1.0 to 1.5x based on movement
+      const visibilityMultiplier = Math.max(currentHandPos.visibility, 0.5);
+
       // Update shader uniforms
       material.uniforms.uHandPosition.value.set(shaderX, shaderY);
-      material.uniforms.uRippleStrength.value = Math.max(rippleParams.strength * handRippleSettings.intensity, 0.3);
-      material.uniforms.uRippleRadius.value = Math.max(rippleParams.radius * handRippleSettings.radius, 0.2);
+      material.uniforms.uRippleStrength.value = handRippleSettings.intensity * visibilityMultiplier;
+      material.uniforms.uRippleRadius.value = handRippleSettings.radius * velocityMultiplier;
       
       // Store current position for next frame
       handRefs.lastPosition.current = smoothedPos;

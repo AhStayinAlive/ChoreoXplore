@@ -54,22 +54,23 @@ export const handRippleFragmentShader = `
   void main() {
     // Calculate distance from hand for ripple effect
     float dist = distance(vUv, uHandPosition);
-    float falloff = 1.0 - smoothstep(0.0, uRippleRadius, dist);
+    float falloff = 1.0 - smoothstep(0.0, uRippleRadius, dist); // Remove * 2.0
     
-    // Create multiple ripple rings for more visible effect
-    float ripple1 = sin(dist * 20.0 - uTime * 3.0) * 0.5 + 0.5;
-    float ripple2 = sin(dist * 30.0 - uTime * 4.0) * 0.3 + 0.7;
-    float ripple3 = sin(dist * 40.0 - uTime * 5.0) * 0.2 + 0.8;
+    // Create animated ripple rings
+    float frequency = 20.0;
+    float rippleWave = sin(dist * frequency - uTime * 3.0);
     
-    // Combine ripples
-    float combinedRipple = ripple1 * ripple2 * ripple3;
+    // Normalize ripple wave to 0-1 range for better color mixing
+    float rippleIntensity = (rippleWave * 0.5 + 0.5) * falloff * uRippleStrength;
     
-    // Calculate ripple intensity
-    float rippleIntensity = falloff * uRippleStrength * combinedRipple;
+    // Create sharper ripple rings by using step or smoothstep
+    float rippleRings = smoothstep(0.3, 0.7, rippleIntensity);
     
-    // Mix between base and ripple colors
-    vec3 finalColor = mix(uBaseColor, uRippleColor, rippleIntensity);
-    float alpha = rippleIntensity;
+    // Mix colors: base color in valleys, ripple color in peaks
+    vec3 finalColor = mix(uBaseColor, uRippleColor, rippleRings);
+    
+    // Alpha based on overall presence of effect
+    float alpha = falloff * uRippleStrength;
     
     gl_FragColor = vec4(finalColor, alpha);
   }
