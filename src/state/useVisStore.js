@@ -11,7 +11,17 @@ const useVisStore = create((set, get) => ({
     hue: 210, 
     musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
-    mode: "auto" 
+    mode: "auto",
+    // New hand ripple settings
+    handRipple: {
+      enabled: false,        // Keep for backward compatibility (global enable)
+      leftHandEnabled: false,
+      rightHandEnabled: false,
+      baseColor: '#00ccff', // Cyan
+      rippleColor: '#ff00cc', // Magenta
+      radius: 0.4,
+      intensity: 0.8
+    }
   },
   setMusic: (music) => set({ music }),
   setMotion: (motion) => set({ motion }),

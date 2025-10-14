@@ -1,6 +1,29 @@
 // Hand tracking utilities for fluid ripple effect
 
 /**
+ * Extract left hand position from MediaPipe landmarks
+ * @param {Array} landmarks - MediaPipe pose landmarks array
+ * @returns {Object|null} - Hand position {x, y, z, visibility} or null if not found
+ */
+export const getLeftHandPosition = (landmarks) => {
+  if (!landmarks || landmarks.length < 33) {
+    return null;
+  }
+  
+  const leftWrist = landmarks[15]; // Left wrist landmark (index 15)
+  if (!leftWrist || leftWrist.visibility < 0.3) {
+    return null;
+  }
+  
+  return {
+    x: leftWrist.x,
+    y: leftWrist.y,
+    z: leftWrist.z,
+    visibility: leftWrist.visibility
+  };
+};
+
+/**
  * Extract right hand position from MediaPipe landmarks
  * @param {Array} landmarks - MediaPipe pose landmarks array
  * @returns {Object|null} - Hand position {x, y, visibility} or null if not found

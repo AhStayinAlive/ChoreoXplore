@@ -3,6 +3,7 @@ import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
+import HandRippleControlPanel from "./components/HandRippleControlPanel";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -166,22 +167,43 @@ function AppContent({
       )}
 
       {mode === "choreoxplore" && (
-        <div className="glass-scrollbar" style={{ 
-          position: "absolute", 
-          left: 12, 
-          top: 12, 
-          width: 360, 
-          height: "auto", 
-          maxHeight: "60vh", 
-          background: "rgba(0,0,0,.4)", 
-          backdropFilter: "blur(10px)", 
-          padding: 12, 
-          borderRadius: 12, 
-          overflow: "hidden",
-          zIndex: 10
-        }}>
-          <ChoreoXploreControlPanel />
-        </div>
+        <>
+          {/* ChoreoXplore Panel - Left side, top */}
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            left: 12, 
+            top: 12, 
+            width: 360, 
+            height: "auto", 
+            maxHeight: "60vh",  // Back to original height
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden",
+            zIndex: 10
+          }}>
+            <ChoreoXploreControlPanel />
+          </div>
+
+          {/* Hand Ripple Panel - Left side, below ChoreoXplore */}
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            left: 12, 
+            bottom: 12, 
+            width: 360, 
+            height: "auto", 
+            maxHeight: "35vh", 
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden",
+            zIndex: 10
+          }}>
+            <HandRippleControlPanel />
+          </div>
+        </>
       )}
 
       <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 12, zIndex: 10 }}>

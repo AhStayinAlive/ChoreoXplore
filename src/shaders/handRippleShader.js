@@ -45,6 +45,8 @@ export const handRippleFragmentShader = `
   uniform float uRippleStrength;
   uniform float uTime;
   uniform float uRippleRadius;
+  uniform vec3 uBaseColor;
+  uniform vec3 uRippleColor;
   
   varying vec2 vUv;
   varying vec3 vPosition;
@@ -62,17 +64,14 @@ export const handRippleFragmentShader = `
     // Combine ripples
     float combinedRipple = ripple1 * ripple2 * ripple3;
     
-    // Simple color scheme for visibility testing
-    vec3 baseColor = vec3(0.0, 0.8, 1.0); // Bright cyan
-    vec3 rippleColor = vec3(1.0, 0.0, 0.8); // Magenta
+    // Calculate ripple intensity
+    float rippleIntensity = falloff * uRippleStrength * combinedRipple;
     
-    // Mix colors based on ripple strength and distance
-    vec3 finalColor = mix(baseColor, rippleColor, falloff * uRippleStrength * combinedRipple);
+    // Mix between base and ripple colors
+    vec3 finalColor = mix(uBaseColor, uRippleColor, rippleIntensity);
+    float alpha = rippleIntensity;
     
-    // Add some brightness variation
-    finalColor += vec3(falloff * uRippleStrength * 0.8);
-    
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
@@ -82,5 +81,7 @@ export const handRippleUniforms = {
   uHandPosition: { value: { x: 0.5, y: 0.5 } },
   uRippleStrength: { value: 0.0 },
   uTime: { value: 0.0 },
-  uRippleRadius: { value: 0.3 }
+  uRippleRadius: { value: 0.3 },
+  uBaseColor: { value: [0.0, 0.8, 1.0] }, // Cyan RGB
+  uRippleColor: { value: [1.0, 0.0, 0.8] } // Magenta RGB
 };

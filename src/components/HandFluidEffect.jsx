@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import usePoseDetection from '../hooks/usePoseDetection';
+import { useVisStore } from '../state/useVisStore';
 import * as THREE from 'three';
 import { 
   handRippleVertexShader, 
@@ -8,41 +9,84 @@ import {
   handRippleUniforms 
 } from '../shaders/handRippleShader';
 import { 
-  getRightHandPosition, 
+  getRightHandPosition,
+  getLeftHandPosition,
   calculateHandVelocity, 
   smoothHandPosition,
   calculateRippleParams 
 } from '../utils/handTracking';
 
 const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
-  const meshRef = useRef();
+  const leftMeshRef = useRef();
+  const rightMeshRef = useRef();
   const { poseData } = usePoseDetection();
+  const params = useVisStore(s => s.params);
+  const isActive = useVisStore(s => s.isActive);
   
-  // Hand tracking state
-  const lastHandPositionRef = useRef({ x: 0.5, y: 0.5 });
-  const smoothedHandPositionRef = useRef({ x: 0.5, y: 0.5 });
-  const handVelocityRef = useRef(0);
+  // Separate tracking state for each hand
+  const leftHandRefs = {
+    lastPosition: useRef({ x: 0.5, y: 0.5 }),
+    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    velocity: useRef(0)
+  };
+
+  const rightHandRefs = {
+    lastPosition: useRef({ x: 0.5, y: 0.5 }),
+    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    velocity: useRef(0)
+  };
+
   const timeRef = useRef(0);
 
-  // Create shader material
-  const shaderMaterial = useMemo(() => {
+  // Get hand ripple settings
+  const handRippleSettings = params.handRipple || {
+    enabled: false,
+    leftHandEnabled: false,
+    rightHandEnabled: false,
+    baseColor: '#00ccff',
+    rippleColor: '#ff00cc',
+    radius: 0.4,
+    intensity: 0.8
+  };
+
+  // Create shader materials for each hand
+  const createShaderMaterial = useCallback((settings) => {
+    // Convert hex colors to RGB
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [
+        parseInt(result[1], 16) / 255,
+        parseInt(result[2], 16) / 255,
+        parseInt(result[3], 16) / 255
+      ] : [0, 0, 0];
+    };
+
     const uniforms = {
       ...handRippleUniforms,
       uTexture: { value: null },
       uHandPosition: { value: new THREE.Vector2(0.5, 0.5) },
-      uRippleStrength: { value: 0.5 }, // Start with visible strength
+      uRippleStrength: { value: 0.5 },
       uTime: { value: 0.0 },
-      uRippleRadius: { value: 0.3 }
+      uRippleRadius: { value: settings.radius },
+      uBaseColor: { value: new THREE.Vector3(...hexToRgb(settings.baseColor)) },
+      uRippleColor: { value: new THREE.Vector3(...hexToRgb(settings.rippleColor)) }
     };
 
     return new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader: handRippleVertexShader,
       fragmentShader: handRippleFragmentShader,
-      transparent: false, // Make opaque for testing
+      transparent: true,
+      blending: THREE.NormalBlending,
+      depthWrite: false,
       side: THREE.DoubleSide
     });
   }, []);
+
+  const shaderMaterials = {
+    left: useMemo(() => createShaderMaterial(handRippleSettings), [handRippleSettings, createShaderMaterial]),
+    right: useMemo(() => createShaderMaterial(handRippleSettings), [handRippleSettings, createShaderMaterial])
+  };
 
   // Create plane geometry with high vertex density for smooth distortion
   const planeGeometry = useMemo(() => {
@@ -52,118 +96,101 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   // Set texture when available
   useEffect(() => {
     if (fluidTexture) {
-      shaderMaterial.uniforms.uTexture.value = fluidTexture;
+      shaderMaterials.left.uniforms.uTexture.value = fluidTexture;
+      shaderMaterials.right.uniforms.uTexture.value = fluidTexture;
     }
-  }, [fluidTexture, shaderMaterial]);
+  }, [fluidTexture, shaderMaterials]);
+
+  // Helper function to update hand ripple
+  const updateHandRipple = useCallback((currentHandPos, handRefs, material, delta) => {
+    if (currentHandPos) {
+      // Smooth hand position to reduce jitter
+      const smoothedPos = smoothHandPosition(currentHandPos, handRefs.smoothedPosition.current, 0.15);
+      handRefs.smoothedPosition.current = smoothedPos;
+      
+      // Calculate hand velocity for ripple strength
+      const velocity = calculateHandVelocity(smoothedPos, handRefs.lastPosition.current, delta);
+      handRefs.velocity.current = velocity;
+      
+      // Calculate ripple parameters
+      const rippleParams = calculateRippleParams(smoothedPos, velocity, currentHandPos.visibility);
+      
+      // Convert MediaPipe coordinates to visualizer coordinates
+      const scale = 22;
+      const x = (smoothedPos.x - 0.5) * 200 * scale;
+      const y = (0.5 - smoothedPos.y) * 200 * scale;
+      
+      // Convert to UV coordinates for the shader
+      const shaderX = (x / 20000) + 0.5;
+      const shaderY = (y / 20000) + 0.5;
+      
+      // Update shader uniforms
+      material.uniforms.uHandPosition.value.set(shaderX, shaderY);
+      material.uniforms.uRippleStrength.value = Math.max(rippleParams.strength * handRippleSettings.intensity, 0.3);
+      material.uniforms.uRippleRadius.value = Math.max(rippleParams.radius * handRippleSettings.radius, 0.2);
+      
+      // Store current position for next frame
+      handRefs.lastPosition.current = smoothedPos;
+    } else {
+      // No hand detected - set ripple strength to 0 to hide the effect
+      material.uniforms.uRippleStrength.value = 0;
+    }
+  }, [handRippleSettings]);
 
   // Update shader uniforms each frame
   useFrame((state, delta) => {
-    timeRef.current += delta * 1000; // Convert to milliseconds
+    timeRef.current += delta * 1000;
     
-    // Update time uniform
-    shaderMaterial.uniforms.uTime.value = timeRef.current * 0.001;
+    // Update time uniform for both materials
+    shaderMaterials.left.uniforms.uTime.value = timeRef.current * 0.001;
+    shaderMaterials.right.uniforms.uTime.value = timeRef.current * 0.001;
     
     // Update texture if canvas is available
     if (fluidTexture && fluidCanvas) {
       fluidTexture.needsUpdate = true;
     }
     
-    // Get current hand position using utility function
-    const currentHandPos = poseData?.landmarks ? getRightHandPosition(poseData.landmarks) : null;
-    
-    // Debug: Log pose data occasionally
-    if (poseData && Math.random() < 0.01) {
-      console.log('Pose data received:', poseData.landmarks?.length, 'landmarks');
+    // Update left hand if enabled
+    if (handRippleSettings.leftHandEnabled) {
+      const leftHandPos = getLeftHandPosition(poseData?.landmarks);
+      updateHandRipple(leftHandPos, leftHandRefs, shaderMaterials.left, delta);
     }
     
-    // Debug: Log hand position occasionally
-    if (currentHandPos && Math.random() < 0.01) {
-      console.log('Hand position detected:', currentHandPos);
-    }
-    
-    if (currentHandPos) {
-      // Smooth hand position to reduce jitter
-      const smoothedPos = smoothHandPosition(currentHandPos, smoothedHandPositionRef.current, 0.15);
-      smoothedHandPositionRef.current = smoothedPos;
-      
-      // Calculate hand velocity for ripple strength
-      const velocity = calculateHandVelocity(smoothedPos, lastHandPositionRef.current, delta);
-      handVelocityRef.current = velocity;
-      
-      // Calculate ripple parameters
-      const rippleParams = calculateRippleParams(smoothedPos, velocity, currentHandPos.visibility);
-      
-      // Convert MediaPipe coordinates to visualizer coordinates
-      // Use the same transformation as SimpleSkeleton and other components
-      const scale = 22; // Same scale as SimpleSkeleton
-      const x = (smoothedPos.x - 0.5) * 200 * scale;
-      const y = (0.5 - smoothedPos.y) * 200 * scale;
-      
-      // Convert to UV coordinates for the shader (same as other components)
-      // The plane is 20000x20000, so convert to UV space
-      const shaderX = (x / 20000) + 0.5; // Convert to UV and center
-      const shaderY = (y / 20000) + 0.5; // Convert to UV and center
-      
-      // Update shader uniforms with corrected coordinates
-      shaderMaterial.uniforms.uHandPosition.value.set(shaderX, shaderY);
-      shaderMaterial.uniforms.uRippleStrength.value = Math.max(rippleParams.strength, 0.8); // Much higher minimum for visibility
-      shaderMaterial.uniforms.uRippleRadius.value = Math.max(rippleParams.radius, 0.4); // Larger radius
-      
-      // Debug: Log hand position and shader coordinates
-      if (Math.random() < 0.01) {
-        console.log('MediaPipe pos:', smoothedPos.x.toFixed(2), smoothedPos.y.toFixed(2));
-        console.log('Transformed pos:', x.toFixed(0), y.toFixed(0));
-        console.log('Shader UV pos:', shaderX.toFixed(2), shaderY.toFixed(2));
-        console.log('Ripple strength:', shaderMaterial.uniforms.uRippleStrength.value.toFixed(2));
-      }
-      
-      // Store current position for next frame
-      lastHandPositionRef.current = smoothedPos;
-    } else {
-      // Test mode: Create a moving ripple pattern when no hand is detected
-      const testX = 0.5 + Math.sin(timeRef.current * 0.001) * 0.3;
-      const testY = 0.5 + Math.cos(timeRef.current * 0.0015) * 0.3;
-      
-      shaderMaterial.uniforms.uHandPosition.value.set(testX, testY);
-      shaderMaterial.uniforms.uRippleStrength.value = 0.8; // High strength for testing
-      shaderMaterial.uniforms.uRippleRadius.value = 0.4; // Large radius
-      
-      // Debug: Log test position
-      if (Math.random() < 0.01) {
-        console.log('Test mode - no hand detected, using moving pattern');
-        console.log('Test pos:', testX.toFixed(2), testY.toFixed(2));
-      }
+    // Update right hand if enabled
+    if (handRippleSettings.rightHandEnabled) {
+      const rightHandPos = getRightHandPosition(poseData?.landmarks);
+      updateHandRipple(rightHandPos, rightHandRefs, shaderMaterials.right, delta);
     }
   });
 
+  // Don't render if no hands are enabled or ChoreoXplore is not active
+  if ((!handRippleSettings.leftHandEnabled && !handRippleSettings.rightHandEnabled) || !isActive) {
+    return null;
+  }
+
   return (
     <>
-      <mesh 
-        ref={meshRef}
-        geometry={planeGeometry}
-        material={shaderMaterial}
-        position={[0, 0, 0]} // Same plane as skeleton
-        rotation={[0, 0, 0]}
-        renderOrder={-1} // Render behind other elements
-      />
+      {handRippleSettings.leftHandEnabled && (
+        <mesh 
+          ref={leftMeshRef}
+          geometry={planeGeometry}
+          material={shaderMaterials.left}
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+          renderOrder={-1}
+        />
+      )}
       
-      {/* Debug: Visual hand position indicator */}
-      {poseData?.landmarks && (() => {
-        const currentHandPos = getRightHandPosition(poseData.landmarks);
-        if (currentHandPos) {
-          const scale = 22;
-          const x = (currentHandPos.x - 0.5) * 200 * scale;
-          const y = (0.5 - currentHandPos.y) * 200 * scale;
-          
-          return (
-            <mesh position={[x, y, 1]} renderOrder={10}>
-              <sphereGeometry args={[50, 8, 8]} />
-              <meshBasicMaterial color="red" transparent opacity={0.8} />
-            </mesh>
-          );
-        }
-        return null;
-      })()}
+      {handRippleSettings.rightHandEnabled && (
+        <mesh 
+          ref={rightMeshRef}
+          geometry={planeGeometry}
+          material={shaderMaterials.right}
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+          renderOrder={-1}
+        />
+      )}
     </>
   );
 };
