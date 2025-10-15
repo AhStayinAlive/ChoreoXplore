@@ -86,10 +86,14 @@ export function CreamSmoke() {
   const w = Math.max(64, Math.floor(size.width  * (cream.resolutionScale ?? 0.5)));
   const h = Math.max(64, Math.floor(size.height * (cream.resolutionScale ?? 0.5)));
 
-  const rtA = useFBO(w, h, { type: THREE.HalfFloatType as any, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
-  const rtB = useFBO(w, h, { type: THREE.HalfFloatType as any, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
+  // Fallback to UnsignedByte if HalfFloat not supported
+  const fboType = (gl.capabilities.isWebGL2 || gl.getExtension('OES_texture_half_float')) ? (THREE.HalfFloatType as any) : THREE.UnsignedByteType;
+  const rtA = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
+  const rtB = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
 
-  const quad = useMemo(()=> new THREE.PlaneGeometry(2,2), []);
+  // Separate fullscreen quad for SIM (NDC -1..1) and a large display quad for the main scene
+  const simQuad = useMemo(()=> new THREE.PlaneGeometry(2,2), []);
+  const displayQuad = useMemo(()=> new THREE.PlaneGeometry(20000, 20000, 1, 1), []);
   const ortho = useMemo(()=> new THREE.OrthographicCamera(-1,1,1,-1,0,1), []);
   const sceneSim = useMemo(()=> new THREE.Scene(), []);
   const simMeshRef = useRef<THREE.Mesh | null>(null);
@@ -116,7 +120,7 @@ export function CreamSmoke() {
       uIntensity:{ value: 1.0 },
       uBase:{ value: new THREE.Color(cream.baseColor ?? '#cccccc') },
       uAccent:{ value: new THREE.Color(cream.accentColor ?? '#ffffff') },
-      uResolution:{ value:new THREE.Vector2(size.width, size.height) }
+      uResolution:{ value:new THREE.Vector2(w, h) }
     },
     fragmentShader: DISPLAY_FS,
     vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
@@ -125,15 +129,17 @@ export function CreamSmoke() {
 
   useMemo(()=> {
     if (!simMeshRef.current) {
-      const m = new THREE.Mesh(quad, simMat);
+      const m = new THREE.Mesh(simQuad, simMat);
       simMeshRef.current = m;
       sceneSim.add(m);
     }
-  }, [sceneSim, quad, simMat]);
+  }, [sceneSim, simQuad, simMat]);
 
   const flipRef = useRef(false);
 
   useFrame((state, dt) => {
+    // Keep display resolution in sync (handles DPR/resize)
+    displayMat.uniforms.uResolution.value.set(w, h);
     // Update sim uniforms
     simMat.uniforms.uPrev.value = (flipRef.current ? rtB : rtA).texture;
     simMat.uniforms.uTime.value += dt;
@@ -199,7 +205,7 @@ export function CreamSmoke() {
   });
 
   // Fullscreen compositing quad (z=0 so it stays under z=1/2 meshes)
-  return <mesh geometry={quad} material={displayMat} position={[0,0,0]} renderOrder={-1} />;
+  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,0]} renderOrder={-1} />;
 }
 
 export default CreamSmoke;
