@@ -83,8 +83,10 @@ export function CreamSmoke() {
   const cream = params.cream ?? {} as any;
   if (cream.enabled === false) return null;
 
-  const w = Math.max(64, Math.floor(size.width  * (cream.resolutionScale ?? 0.5)));
-  const h = Math.max(64, Math.floor(size.height * (cream.resolutionScale ?? 0.5)));
+  // Base buffer size on drawingbuffer to account for DPR
+  const pr = gl.getPixelRatio?.() ?? 1;
+  const w = Math.max(64, Math.floor(size.width  * pr * (cream.resolutionScale ?? 0.5)));
+  const h = Math.max(64, Math.floor(size.height * pr * (cream.resolutionScale ?? 0.5)));
 
   // Fallback to UnsignedByte if HalfFloat not supported
   const fboType = (gl.capabilities.isWebGL2 || gl.getExtension('OES_texture_half_float')) ? (THREE.HalfFloatType as any) : THREE.UnsignedByteType;
@@ -175,15 +177,21 @@ export function CreamSmoke() {
       if (!p || p.v < visGate || count >= 12) return;
       const s = strength(speedOf(name, p)) * mult;
       if (s <= 1e-4) return;
-      e[count++].set(p.x, 1.0 - p.y, s);
+      // Clamp UVs to safe range
+      const ux = Math.min(0.99, Math.max(0.01, p.x));
+      const uy = Math.min(0.99, Math.max(0.01, 1.0 - p.y));
+      e[count++].set(ux, uy, s);
     };
 
     const J:any = motion?.joints2D;
     const show = (useVisStore.getState().params as any).bodyPoints || {};
     if (J){
+      // If no joints are enabled, default to hands
+      const anyEnabled = show.head || show.shoulders || show.hands || show.elbows || show.hips || show.knees || show.ankles;
+      const useHands = anyEnabled ? show.hands : true;
       if (show.head)       add("head", J.head, 1.0);
       if (show.shoulders){ add("lSh", J.shoulders.l,0.7); add("rSh", J.shoulders.r,0.7); }
-      if (show.hands){     add("lWr", J.hands.l, 1.0);    add("rWr", J.hands.r, 1.0); }
+      if (useHands){       add("lWr", J.hands.l, 1.0);    add("rWr", J.hands.r, 1.0); }
       if (show.elbows){    add("lEl", J.elbows.l,0.85);   add("rEl", J.elbows.r,0.85); }
       if (show.hips){      add("lHp", J.hips.l,0.6);      add("rHp", J.hips.r,0.6); }
       if (show.knees){     add("lKn", J.knees.l,0.9);     add("rKn", J.knees.r,0.9); }

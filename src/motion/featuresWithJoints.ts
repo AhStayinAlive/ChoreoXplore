@@ -3,7 +3,8 @@ export type MPPoint = { x: number; y: number; visibility?: number };
 const IDX = { nose:0, lSh:11, rSh:12, lEl:13, rEl:14, lWr:15, rWr:16, lHip:23, rHip:24, lKn:25, rKn:26, lAn:27, rAn:28 } as const;
 
 type Picked2D = { x: number; y: number; v: number };
-const pick2D = (p?: MPPoint): Picked2D => ({ x: p?.x ?? 0.5, y: p?.y ?? 0.5, v: p?.visibility ?? 0 });
+// Default visibility to 1 if missing to avoid unintended gating
+const pick2D = (p?: MPPoint): Picked2D => ({ x: p?.x ?? 0.5, y: p?.y ?? 0.5, v: p?.visibility ?? 1 });
 
 export function featuresWithJoints(
   pose: { landmarks: MPPoint[] },
