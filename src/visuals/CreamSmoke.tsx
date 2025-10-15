@@ -126,7 +126,15 @@ export function CreamSmoke() {
       uResolution:{ value:new THREE.Vector2(w, h) }
     },
     fragmentShader: DISPLAY_FS,
-    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`,
+    vertexShader: `
+      varying vec2 vUv;
+      void main(){
+        vUv = uv;
+        // Position quad just behind other content
+        vec4 pos = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+        gl_Position = pos;
+      }
+    `,
     transparent:true, depthWrite:false
   }), [size.width, size.height]);
 
@@ -215,8 +223,8 @@ export function CreamSmoke() {
     displayMat.uniforms.uIntensity.value = (useVisStore.getState().params as any).intensity ?? 1.0;
   });
 
-  // Fullscreen compositing quad (z=0 so it stays under z=1/2 meshes)
-  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,0]} renderOrder={-1} />;
+  // Large quad placed slightly behind in Z so it's visible as background layer
+  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,-1]} renderOrder={-1} />;
 }
 
 export default CreamSmoke;

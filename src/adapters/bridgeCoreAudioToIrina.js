@@ -1,6 +1,7 @@
 import { audio$, attachAudio } from '../engine/audioFeatures';
 import { computeMotionFeatures } from '../engine/poseFeatures';
 import { featuresWithJoints } from '../motion/featuresWithJoints';
+import useStore from '../core/store';
 import { useVisStore } from '../state/useVisStore';
 import { pose$ } from '../core/pose';
 
@@ -45,8 +46,28 @@ export function startIrinaAudioBridge() {
 export function startIrinaPoseBridge() {
   let stop;
   let lastTs = 0;
+  let unsubPoseData;
 
-  // Connect to existing pose system
+  // Prefer MotionInputPanel poseData from global store (MediaPipe tasks-vision)
+  try {
+    unsubPoseData = useStore.subscribe(
+      (s) => s.poseData,
+      (poseData) => {
+        try {
+          if (poseData && Array.isArray(poseData.landmarks)) {
+            const timestamp = (poseData.timestamp ?? performance.now()) * (poseData.timestamp < 1e6 ? 1000 : 1);
+            const dt = Math.max(1 / 120, (timestamp - (lastTs || timestamp)) / 1000);
+            lastTs = timestamp;
+            const feat = featuresWithJoints({ landmarks: poseData.landmarks }, dt, computeMotionFeatures);
+            useVisStore.getState().setMotion(feat);
+            return; // handled
+          }
+        } catch (_) { /* ignore */ }
+      }
+    );
+  } catch (_) { /* ignore subscribe failures */ }
+
+  // Fallback: connect to existing pose$ system
   stop = pose$.subscribe((poseData) => {
     try {
       let landmarks = poseData?.landmarks;
@@ -87,5 +108,6 @@ export function startIrinaPoseBridge() {
 
   return () => {
     try { stop?.unsubscribe?.(); } catch {}
+    try { unsubPoseData?.(); } catch {}
   };
 }
