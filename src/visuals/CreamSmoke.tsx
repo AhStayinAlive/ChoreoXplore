@@ -8,7 +8,7 @@ const SIM_FS = `
 precision highp float;
 uniform sampler2D uPrev;
 uniform vec2  uResolution;
-uniform float uTime, uDt, uDissipation, uFlow, uNoiseScale, uInject, uEnergy, uMotion;
+uniform float uTime, uDt, uDissipation, uFlow, uNoiseScale, uInject, uEnergy, uMotion, uRadius;
 uniform int   uEmitterCount;
 uniform vec3  uEmitters[12]; // xy in 0..1, z=strength
 
@@ -49,7 +49,7 @@ void main(){
     if (i >= uEmitterCount) break;
     vec2 p = uEmitters[i].xy;
     float s = uEmitters[i].z;        // 0..1 from joint speed
-    float r = mix(0.02, 0.12, s);
+    float r = mix(0.02, 0.12, s) * uRadius;
     float falloff = exp(-dot(uv - p, uv - p) / (r*r));
     accum += falloff * s;
   }
@@ -109,6 +109,7 @@ export function CreamSmoke() {
       uNoiseScale:{ value: cream.noiseScale ?? 2.0 },
       uInject:{ value: cream.inject ?? 1.0 },
       uEnergy:{ value: 0 }, uMotion:{ value: 0 },
+      uRadius:{ value: cream.radius ?? 1.0 },
       uEmitters:{ value: Array.from({length:12},()=> new THREE.Vector3()) },
       uEmitterCount:{ value:0 },
     },
@@ -149,6 +150,7 @@ export function CreamSmoke() {
     simMat.uniforms.uDt.value = Math.min(0.033, Math.max(0.001, dt));
     simMat.uniforms.uEnergy.value = music?.energy ?? 0;
     simMat.uniforms.uMotion.value = motion?.sharpness ?? 0;
+    simMat.uniforms.uRadius.value = (useVisStore.getState().params as any).cream?.radius ?? 1.0;
 
     // Gate emission by movement and visibility; compute strength from joint speed
     const creamParams = (useVisStore.getState().params as any).cream || {};
