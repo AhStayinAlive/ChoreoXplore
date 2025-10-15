@@ -37,13 +37,13 @@ async function loop() {
     // fallback mock to keep stream alive
     const t = performance.now() * 0.001;
     const bbox = videoEl ? 0.25 : 0.1;
-    pose$.next({ conf: videoEl ? 0.6 : 0.2, shoulderAxisDeg: Math.sin(t) * 15, bboxArea: bbox + 0.02 * Math.cos(t), wrists: { x: 0.5, y: 0.5 + 0.1 * Math.sin(t * 0.5) } });
+    pose$.next({ conf: videoEl ? 0.6 : 0.2, shoulderAxisDeg: Math.sin(t) * 15, bboxArea: bbox + 0.02 * Math.cos(t), wrists: { x: 0.5, y: 0.5 + 0.1 * Math.sin(t * 0.5) }, landmarks: null, timestamp: performance.now() });
   }
   requestAnimationFrame(loop);
 }
 
 function parse(res) {
-  if (!res || !res.landmarks?.length) return { conf: 0 };
+  if (!res || !res.landmarks?.length) return { conf: 0, landmarks: null, timestamp: performance.now() };
   const lm = res.landmarks[0];
 
   const sL = lm[11], sR = lm[12];
@@ -56,6 +56,6 @@ function parse(res) {
   const conf = Math.min(...lm.map(p => p.visibility ?? 0.8));
   const wrists = lm[16] || { x: 0.5, y: 0.5 };
 
-  return { conf, shoulderAxisDeg: deg, bboxArea, wrists };
+  return { conf, shoulderAxisDeg: deg, bboxArea, wrists, landmarks: lm, worldLandmarks: res.worldLandmarks?.[0], timestamp: performance.now() };
 }
 

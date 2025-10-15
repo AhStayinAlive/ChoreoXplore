@@ -1,5 +1,7 @@
 import { audio$, attachAudio } from '../engine/audioFeatures';
 import { computeMotionFeatures } from '../engine/poseFeatures';
+import { featuresWithJoints } from '../motion/featuresWithJoints';
+import useStore from '../core/store';
 import { useVisStore } from '../state/useVisStore';
 import { pose$ } from '../core/pose';
 
@@ -43,39 +45,69 @@ export function startIrinaAudioBridge() {
 
 export function startIrinaPoseBridge() {
   let stop;
+  let lastTs = 0;
+  let unsubPoseData;
 
-  // Connect to existing pose system
+  // Prefer MotionInputPanel poseData from global store (MediaPipe tasks-vision)
+  try {
+    unsubPoseData = useStore.subscribe(
+      (s) => s.poseData,
+      (poseData) => {
+        try {
+          if (poseData && Array.isArray(poseData.landmarks)) {
+            const timestamp = (poseData.timestamp ?? performance.now()) * (poseData.timestamp < 1e6 ? 1000 : 1);
+            const dt = Math.max(1 / 120, (timestamp - (lastTs || timestamp)) / 1000);
+            lastTs = timestamp;
+            const feat = featuresWithJoints({ landmarks: poseData.landmarks }, dt, computeMotionFeatures);
+            useVisStore.getState().setMotion(feat);
+            return; // handled
+          }
+        } catch (_) { /* ignore */ }
+      }
+    );
+  } catch (_) { /* ignore subscribe failures */ }
+
+  // Fallback: connect to existing pose$ system
   stop = pose$.subscribe((poseData) => {
-    // Convert existing pose format to Irina format
-    // The existing system provides { conf, shoulderAxisDeg, bboxArea, wrists }
-    // We need to create a mock landmarks array for Irina
-    const mockLandmarks = [
-      // Create some basic landmarks based on existing data
-      { x: 0.5, y: 0.3, visibility: poseData.conf }, // head
-      { x: 0.4, y: 0.4, visibility: poseData.conf }, // left shoulder
-      { x: 0.6, y: 0.4, visibility: poseData.conf }, // right shoulder
-      { x: 0.3, y: 0.5, visibility: poseData.conf }, // left elbow
-      { x: 0.7, y: 0.5, visibility: poseData.conf }, // right elbow
-      { x: 0.2, y: 0.6, visibility: poseData.conf }, // left wrist
-      { x: 0.8, y: 0.6, visibility: poseData.conf }, // right wrist
-      { x: 0.5, y: 0.7, visibility: poseData.conf }, // hip center
-      { x: 0.4, y: 0.8, visibility: poseData.conf }, // left hip
-      { x: 0.6, y: 0.8, visibility: poseData.conf }, // right hip
-      { x: 0.3, y: 0.9, visibility: poseData.conf }, // left knee
-      { x: 0.7, y: 0.9, visibility: poseData.conf }, // right knee
-      { x: 0.2, y: 1.0, visibility: poseData.conf }, // left ankle
-      { x: 0.8, y: 1.0, visibility: poseData.conf }, // right ankle
-    ];
+    try {
+      let landmarks = poseData?.landmarks;
+      let timestamp = poseData?.timestamp ?? performance.now();
 
-    const motion = computeMotionFeatures({
-      landmarks: mockLandmarks,
-      timestamp: performance.now()
-    });
-    
-    useVisStore.getState().setMotion(motion);
+      // Fallback: synthesize minimal landmark set with required indices (use pose$ wrist signal if available)
+      if (!landmarks || !Array.isArray(landmarks) || landmarks.length < 29) {
+        // Fallback landmarks: static with low visibility so cream won't emit spontaneously
+        const vis = 0.1;
+        const makePoint = (x, y) => ({ x, y, visibility: vis });
+        const arr = new Array(33).fill(0).map(() => makePoint(0.5, 0.5));
+        // indices needed: 0, 11-16, 23-28
+        arr[0]  = makePoint(0.5, 0.3); // nose
+        arr[11] = makePoint(0.4, 0.4); // L shoulder
+        arr[12] = makePoint(0.6, 0.4); // R shoulder
+        arr[13] = makePoint(0.35, 0.5); // L elbow
+        arr[14] = makePoint(0.65, 0.5); // R elbow
+        arr[15] = makePoint(0.30, 0.6); // L wrist
+        arr[16] = makePoint(0.70, 0.6); // R wrist
+        arr[23] = makePoint(0.45, 0.75); // L hip
+        arr[24] = makePoint(0.55, 0.75); // R hip
+        arr[25] = makePoint(0.45, 0.90); // L knee
+        arr[26] = makePoint(0.55, 0.90); // R knee
+        arr[27] = makePoint(0.45, 1.00); // L ankle
+        arr[28] = makePoint(0.55, 1.00); // R ankle
+        landmarks = arr;
+      }
+
+      const dt = Math.max(1 / 120, (timestamp - (lastTs || timestamp)) / 1000);
+      lastTs = timestamp;
+
+      const feat = featuresWithJoints({ landmarks }, dt, computeMotionFeatures);
+      useVisStore.getState().setMotion(feat);
+    } catch (_) {
+      // ignore errors to keep realtime stable
+    }
   });
 
   return () => {
     try { stop?.unsubscribe?.(); } catch {}
+    try { unsubPoseData?.(); } catch {}
   };
 }

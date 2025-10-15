@@ -4,6 +4,7 @@ import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
 import HandRippleControlPanel from "./components/HandRippleControlPanel";
+import JointsPanel from "./controls/JointsPanel";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -184,8 +185,11 @@ function AppContent({
             zIndex: 10
           }}>
             <ChoreoXploreControlPanel />
+            {/* Joints panel always visible */}
+            <div style={{ marginTop: 12 }}>
+              <JointsPanel />
+            </div>
           </div>
-
           {/* Hand Ripple Panel - Left side, below ChoreoXplore */}
           <div className="glass-scrollbar" style={{ 
             position: "absolute", 

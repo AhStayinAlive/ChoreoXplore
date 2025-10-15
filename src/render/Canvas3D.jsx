@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import useStore from "../core/store";
 import { useVisStore } from "../state/useVisStore";
@@ -21,6 +21,7 @@ import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
 import HandFluidEffect from "../components/HandFluidEffect";
 import HandFluidCanvas from "../components/HandFluidCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
+import CreamSmoke from "../visuals/CreamSmoke";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
   const group = useRef();
@@ -29,6 +30,7 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const mode = useStore(s => s.mode);
   const choreoxploreIsActive = useVisStore(s => s.isActive);
+  const effectType = useVisStore(s => s.params.effectType);
   const apiRef = useRef({ root: null });
   const mixerRef = useRef(null);
   const lastTRef = useRef(performance.now());
@@ -93,6 +95,10 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
 
       return (
         <>
+          {/* Background effect selection - reactive to store */}
+          {effectType === "cream" && <CreamSmoke />}
+          {/* Ripple renders via HandFluidEffect; we keep that component but it should be mutually exclusive visually.
+              HandFluidEffect self-gates by its own enable flags; we preserve existing behavior. */}
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
@@ -119,8 +125,10 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
               <ChoreoXploreSystem />
             </>
           )}
-          {/* Hand-driven fluid ripple effect */}
-          <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />
+          {/* Hand-driven fluid ripple effect - only when Ripple selected */}
+          {effectType === "ripple" && (
+            <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />
+          )}
         </>
       );
 }

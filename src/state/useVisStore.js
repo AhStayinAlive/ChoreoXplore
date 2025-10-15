@@ -12,6 +12,32 @@ const useVisStore = create((set, get) => ({
     musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
     mode: "auto",
+    effectType: "ripple", // ripple | cream
+    // Cream smoke effect defaults
+    cream: {
+      enabled: true,
+      resolutionScale: 0.5,
+      dissipation: 0.985,
+      flow: 0.65,
+      noiseScale: 2.0,
+      inject: 1.0,
+      movementGate: 0.02, // min joint speed to emit (screen frac / sec)
+      visGate: 0.25,      // min landmark visibility to consider
+      radius: 1.0,        // emission radius scale
+      intensity: 1.0,     // display intensity
+      baseColor: '#cccccc',
+      accentColor: '#ffffff',
+    },
+    // Body joint emitters toggle
+    bodyPoints: {
+      head: false,
+      shoulders: false,
+      hands: true,
+      elbows: true,
+      hips: false,
+      knees: true,
+      ankles: false,
+    },
     // New hand ripple settings
     handRipple: {
       enabled: false,        // Keep for backward compatibility (global enable)
