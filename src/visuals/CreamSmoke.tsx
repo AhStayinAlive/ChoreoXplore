@@ -138,8 +138,9 @@ export function CreamSmoke() {
   const flipRef = useRef(false);
 
   useFrame((state, dt) => {
-    // Keep display resolution in sync (handles DPR/resize)
-    displayMat.uniforms.uResolution.value.set(w, h);
+    // Keep display resolution in sync with actual drawing buffer (handles DPR/resize)
+    const pr = state.gl.getPixelRatio();
+    displayMat.uniforms.uResolution.value.set(state.size.width * pr, state.size.height * pr);
     // Update sim uniforms
     simMat.uniforms.uPrev.value = (flipRef.current ? rtB : rtA).texture;
     simMat.uniforms.uTime.value += dt;

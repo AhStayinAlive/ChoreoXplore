@@ -45,6 +45,13 @@ export default function JointsPanel() {
             <span>{(cream.movementGate ?? 0).toFixed(3)}</span>
           </div>
           <div className="row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <label style={{ minWidth: 120 }}>Visibility Gate</label>
+            <input type="range" min={0.0} max={1.0} step={0.01}
+                   value={cream.visGate}
+                   onChange={e=>setCream("visGate", parseFloat(e.target.value))}/>
+            <span>{(cream.visGate ?? 0).toFixed(2)}</span>
+          </div>
+          <div className="row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <label style={{ minWidth: 120 }}>Dissipation</label>
             <input type="range" min={0.960} max={0.999} step={0.001}
                    value={cream.dissipation}
