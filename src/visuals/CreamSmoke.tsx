@@ -89,9 +89,13 @@ export function CreamSmoke() {
   const h = Math.max(64, Math.floor(size.height * pr * (cream.resolutionScale ?? 0.5)));
 
   // Fallback to UnsignedByte if HalfFloat not supported
-  const fboType = (gl.capabilities.isWebGL2 || gl.getExtension('OES_texture_half_float')) ? (THREE.HalfFloatType as any) : THREE.UnsignedByteType;
-  const rtA = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
-  const rtB = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
+  const extHalf = gl.getExtension('OES_texture_half_float');
+  const extLinear = gl.getExtension('OES_texture_half_float_linear');
+  const isWebGL2 = (gl.capabilities && (gl.capabilities as any).isWebGL2) || !!(gl as any).isWebGL2;
+  const fboType = (isWebGL2 || extHalf) ? (THREE.HalfFloatType as any) : THREE.UnsignedByteType;
+  const minFilter = (isWebGL2 || extLinear) ? THREE.LinearFilter : THREE.NearestFilter;
+  const rtA = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter });
+  const rtB = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter });
 
   // Separate fullscreen quad for SIM (NDC -1..1) and a large display quad for the main scene
   const simQuad = useMemo(()=> new THREE.PlaneGeometry(2,2), []);
@@ -135,7 +139,7 @@ export function CreamSmoke() {
         gl_Position = pos;
       }
     `,
-    transparent:true, depthWrite:false
+    transparent:true, depthWrite:false, depthTest:false
   }), [size.width, size.height]);
 
   useMemo(()=> {
@@ -209,7 +213,7 @@ export function CreamSmoke() {
     }
     simMat.uniforms.uEmitterCount.value = count;
 
-    // SIM: read -> write
+    // SIM: if no emitters, still advect previous density slightly to keep alive. Ensure at least tiny accum when moving.
     const readRT  = flipRef.current ? rtB : rtA;
     const writeRT = flipRef.current ? rtA : rtB;
     gl.setRenderTarget(writeRT);
@@ -224,7 +228,7 @@ export function CreamSmoke() {
   });
 
   // Large quad placed slightly behind in Z so it's visible as background layer
-  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,-1]} renderOrder={-1} />;
+  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,0]} renderOrder={999} />;
 }
 
 export default CreamSmoke;
