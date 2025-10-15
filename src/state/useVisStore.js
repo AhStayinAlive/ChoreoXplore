@@ -23,6 +23,8 @@ const useVisStore = create((set, get) => ({
       inject: 1.0,
       movementGate: 0.02, // min joint speed to emit (screen frac / sec)
       visGate: 0.25,      // min landmark visibility to consider
+      radius: 1.0,        // emission radius scale
+      intensity: 1.0,     // display intensity
       baseColor: '#cccccc',
       accentColor: '#ffffff',
     },

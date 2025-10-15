@@ -117,7 +117,7 @@ export function CreamSmoke() {
   const displayMat = useMemo(()=> new THREE.ShaderMaterial({
     uniforms:{
       uTex:{ value: rtA.texture },
-      uIntensity:{ value: 1.0 },
+      uIntensity:{ value: cream.intensity ?? 1.0 },
       uBase:{ value: new THREE.Color(cream.baseColor ?? '#cccccc') },
       uAccent:{ value: new THREE.Color(cream.accentColor ?? '#ffffff') },
       uResolution:{ value:new THREE.Vector2(w, h) }

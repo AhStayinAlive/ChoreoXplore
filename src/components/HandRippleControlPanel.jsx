@@ -2,6 +2,7 @@ import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
 import EffectTypeSwitch from "../controls/EffectTypeSwitch";
+import CreamPanel from "../controls/CreamPanel";
 
 export default function HandRippleControlPanel() {
   const params = useVisStore(s => s.params);
@@ -31,7 +32,7 @@ export default function HandRippleControlPanel() {
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         
-        {/* Hand Enable Toggles */}
+        {/* Hand Enable Toggles (Ripple-specific) */}
         <div style={{ marginBottom: 16, display: 'flex', gap: '12px' }}>
           <div style={{ flex: 1 }}>
             <ToggleButton
@@ -49,8 +50,8 @@ export default function HandRippleControlPanel() {
           </div>
         </div>
 
-        {/* Show settings only when at least one hand is enabled */}
-        {(handRippleSettings.leftHandEnabled || handRippleSettings.rightHandEnabled) && (
+        {/* Show ripple settings only when ripple is selected and at least one hand is enabled */}
+        {useVisStore.getState().params.effectType === 'ripple' && (handRippleSettings.leftHandEnabled || handRippleSettings.rightHandEnabled) && (
           <>
             {/* Color Pickers */}
             <div style={{ 
@@ -138,6 +139,11 @@ export default function HandRippleControlPanel() {
               />
             </div>
           </>
+        )}
+
+        {/* Cream Smoke panel shows when Cream is selected */}
+        {useVisStore.getState().params.effectType === 'cream' && (
+          <CreamPanel />
         )}
       </div>
     </div>
