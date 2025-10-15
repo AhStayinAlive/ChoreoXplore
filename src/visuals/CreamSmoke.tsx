@@ -224,7 +224,8 @@ export function CreamSmoke() {
     const currentRT = flipRef.current ? rtB : rtA; // after flip, read is the freshly written one
     simMat.uniforms.uPrev.value = currentRT.texture;
     displayMat.uniforms.uTex.value = currentRT.texture;
-    displayMat.uniforms.uIntensity.value = (useVisStore.getState().params as any).intensity ?? 1.0;
+    // Use cream-specific intensity, not the global params.intensity
+    displayMat.uniforms.uIntensity.value = (useVisStore.getState().params as any).cream?.intensity ?? 1.0;
   });
 
   // Large quad placed slightly behind in Z so it's visible as background layer
