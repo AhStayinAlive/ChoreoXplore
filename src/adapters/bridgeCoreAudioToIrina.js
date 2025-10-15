@@ -54,8 +54,8 @@ export function startIrinaPoseBridge() {
 
       // Fallback: synthesize minimal landmark set with required indices
       if (!landmarks || !Array.isArray(landmarks) || landmarks.length < 29) {
-        const conf = poseData?.conf ?? 0.0;
-        const vis = Math.max(0, Math.min(1, conf));
+        const conf = poseData?.conf ?? 1.0;
+        const vis = 1.0; // ensure visibility for fallback emitters
         const makePoint = (x, y) => ({ x, y, visibility: vis });
         const arr = new Array(33).fill(0).map(() => makePoint(0.5, 0.5));
         // indices needed: 0, 11-16, 23-28

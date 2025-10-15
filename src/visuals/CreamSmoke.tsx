@@ -43,15 +43,17 @@ void main(){
   vec2 back = uv - v * uDt;
   float d = texture2D(uPrev, clamp(back, 0.0, 1.0)).r;
 
-  // Inject density from emitters
+  // Inject density from emitters gated by strength (movement)
+  float accum = 0.0;
   for (int i=0; i<12; i++){
     if (i >= uEmitterCount) break;
     vec2 p = uEmitters[i].xy;
-    float s = uEmitters[i].z;
+    float s = uEmitters[i].z;        // 0..1 from joint speed
     float r = mix(0.02, 0.12, s);
     float falloff = exp(-dot(uv - p, uv - p) / (r*r));
-    d += falloff * uInject * (0.4 + 0.6*uEnergy);
+    accum += falloff * s;
   }
+  d += accum * uInject * (0.3 + 0.7*uEnergy); // audio scales only existing emission
 
   d *= uDissipation;
   gl_FragColor = vec4(d,0.0,0.0,1.0);
@@ -139,20 +141,46 @@ export function CreamSmoke() {
     simMat.uniforms.uEnergy.value = music?.energy ?? 0;
     simMat.uniforms.uMotion.value = motion?.sharpness ?? 0;
 
-    // Build emitter list from joints2D with visibility gating (v>0.4). Flip Y.
+    // Gate emission by movement and visibility; compute strength from joint speed
+    const creamParams = (useVisStore.getState().params as any).cream || {};
+    const visGate = creamParams.visGate ?? 0.25;
+    const gate = creamParams.movementGate ?? 0.02;
+
+    const prevRef = (CreamSmoke as any)._prev || ((CreamSmoke as any)._prev = {});
+    const prev = prevRef as Record<string, {x:number,y:number}>;
+
+    const speedOf = (name: string, p:{x:number;y:number;v:number}) => {
+      const pr = prev[name];
+      const s = pr ? Math.hypot((p.x - pr.x)/Math.max(dt,1e-4), (p.y - pr.y)/Math.max(dt,1e-4)) : 0;
+      prev[name] = { x: p.x, y: p.y };
+      return s;
+    };
+
+    const strength = (spd:number) => {
+      const a = gate, b = gate * 2.0;
+      const t = Math.min(1, Math.max(0, (spd - a) / (b - a)));
+      return t*t*(3.0 - 2.0*t);
+    };
+
     const e = simMat.uniforms.uEmitters.value as THREE.Vector3[];
     let count = 0;
-    const add = (p?:{x:number;y:number;v:number}, s=1)=>{ if (!p || p.v < 0.4 || count>=12) return; e[count++].set(p.x, 1.0 - p.y, s); };
+    const add = (name: string, p?:{x:number;y:number;v:number}, mult=1) => {
+      if (!p || p.v < visGate || count >= 12) return;
+      const s = strength(speedOf(name, p)) * mult;
+      if (s <= 1e-4) return;
+      e[count++].set(p.x, 1.0 - p.y, s);
+    };
+
     const J:any = motion?.joints2D;
     const show = (useVisStore.getState().params as any).bodyPoints || {};
     if (J){
-      if (show.head)       add(J.head, 1.0);
-      if (show.shoulders){ add(J.shoulders.l,0.6); add(J.shoulders.r,0.6); }
-      if (show.hands){     add(J.hands.l, 1.0);    add(J.hands.r, 1.0); }
-      if (show.elbows){    add(J.elbows.l,0.8);    add(J.elbows.r,0.8); }
-      if (show.hips){      add(J.hips.l,0.6);      add(J.hips.r,0.6); }
-      if (show.knees){     add(J.knees.l,0.9);     add(J.knees.r,0.9); }
-      if (show.ankles){    add(J.ankles.l,0.9);    add(J.ankles.r,0.9); }
+      if (show.head)       add("head", J.head, 1.0);
+      if (show.shoulders){ add("lSh", J.shoulders.l,0.7); add("rSh", J.shoulders.r,0.7); }
+      if (show.hands){     add("lWr", J.hands.l, 1.0);    add("rWr", J.hands.r, 1.0); }
+      if (show.elbows){    add("lEl", J.elbows.l,0.85);   add("rEl", J.elbows.r,0.85); }
+      if (show.hips){      add("lHp", J.hips.l,0.6);      add("rHp", J.hips.r,0.6); }
+      if (show.knees){     add("lKn", J.knees.l,0.9);     add("rKn", J.knees.r,0.9); }
+      if (show.ankles){    add("lAn", J.ankles.l,0.9);    add("rAn", J.ankles.r,0.9); }
     }
     simMat.uniforms.uEmitterCount.value = count;
 

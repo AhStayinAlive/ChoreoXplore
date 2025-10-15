@@ -22,6 +22,8 @@ import HandFluidEffect from "../components/HandFluidEffect";
 import HandFluidCanvas from "../components/HandFluidCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 import CreamSmoke from "../visuals/CreamSmoke";
+import { useMemo } from "react";
+import { useVisStore } from "../state/useVisStore";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
   const group = useRef();
@@ -94,8 +96,10 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
 
       return (
         <>
-          {/* Background cream smoke effect - renders under other content */}
-          <CreamSmoke />
+          {/* Background effect selection */}
+          {useVisStore.getState().params.effectType === "cream" && <CreamSmoke />}
+          {/* Ripple renders via HandFluidEffect; we keep that component but it should be mutually exclusive visually.
+              HandFluidEffect self-gates by its own enable flags; we preserve existing behavior. */}
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
