@@ -21,6 +21,7 @@ import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
 import HandFluidEffect from "../components/HandFluidEffect";
 import HandFluidCanvas from "../components/HandFluidCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
+import CreamSmoke from "../visuals/CreamSmoke";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
   const group = useRef();
@@ -93,6 +94,8 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
 
       return (
         <>
+          {/* Background cream smoke effect - renders under other content */}
+          <CreamSmoke />
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
