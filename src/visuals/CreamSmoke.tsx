@@ -85,17 +85,17 @@ export function CreamSmoke() {
 
   // Base buffer size on drawingbuffer to account for DPR
   const pr = gl.getPixelRatio?.() ?? 1;
-  const w = Math.max(64, Math.floor(size.width  * pr * (cream.resolutionScale ?? 0.5)));
-  const h = Math.max(64, Math.floor(size.height * pr * (cream.resolutionScale ?? 0.5)));
+  const maxDim = 2048;
+  const w = Math.min(maxDim, Math.max(64, Math.floor(size.width  * pr * (cream.resolutionScale ?? 0.5))));
+  const h = Math.min(maxDim, Math.max(64, Math.floor(size.height * pr * (cream.resolutionScale ?? 0.5))));
 
   // Fallback to UnsignedByte if HalfFloat not supported
-  const extHalf = gl.getExtension('OES_texture_half_float');
-  const extLinear = gl.getExtension('OES_texture_half_float_linear');
   const isWebGL2 = (gl.capabilities && (gl.capabilities as any).isWebGL2) || !!(gl as any).isWebGL2;
-  const fboType = (isWebGL2 || extHalf) ? (THREE.HalfFloatType as any) : THREE.UnsignedByteType;
-  const minFilter = (isWebGL2 || extLinear) ? THREE.LinearFilter : THREE.NearestFilter;
-  const rtA = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter });
-  const rtB = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter });
+  // Avoid half-float on flakey contexts; default to UnsignedByte for stability
+  const fboType = THREE.UnsignedByteType as any;
+  const minFilter = THREE.LinearFilter;
+  const rtA = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter, depth: false, stencil: false });
+  const rtB = useFBO(w, h, { type: fboType, magFilter: THREE.LinearFilter, minFilter, depth: false, stencil: false });
 
   // Separate fullscreen quad for SIM (NDC -1..1) and a large display quad for the main scene
   const simQuad = useMemo(()=> new THREE.PlaneGeometry(2,2), []);
@@ -228,7 +228,7 @@ export function CreamSmoke() {
   });
 
   // Large quad placed slightly behind in Z so it's visible as background layer
-  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,0]} renderOrder={999} />;
+  return <mesh geometry={displayQuad} material={displayMat} position={[0,0,-0.5]} renderOrder={10} frustumCulled={false} />;
 }
 
 export default CreamSmoke;
