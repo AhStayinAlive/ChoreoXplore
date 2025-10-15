@@ -4,9 +4,7 @@ import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
 import HandRippleControlPanel from "./components/HandRippleControlPanel";
-import EffectTypeSwitch from "./controls/EffectTypeSwitch";
 import JointsPanel from "./controls/JointsPanel";
-import { useVisStore } from "./state/useVisStore";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -187,20 +185,27 @@ function AppContent({
             zIndex: 10
           }}>
             <ChoreoXploreControlPanel />
-            {/* Effect Type switch directly under Visual Settings */}
-            <div style={{ marginTop: 12 }}>
-              <EffectTypeSwitch />
-            </div>
-            {/* Effect-specific panel */}
-            {useVisStore(s => s.params.effectType) === "ripple" && (
-              <div style={{ marginTop: 12 }}>
-                <HandRippleControlPanel />
-              </div>
-            )}
             {/* Joints panel always visible */}
             <div style={{ marginTop: 12 }}>
               <JointsPanel />
             </div>
+          </div>
+          {/* Hand Ripple Panel - Left side, below ChoreoXplore */}
+          <div className="glass-scrollbar" style={{ 
+            position: "absolute", 
+            left: 12, 
+            bottom: 12, 
+            width: 360, 
+            height: "auto", 
+            maxHeight: "35vh", 
+            background: "rgba(0,0,0,.4)", 
+            backdropFilter: "blur(10px)", 
+            padding: 12, 
+            borderRadius: 12, 
+            overflow: "hidden",
+            zIndex: 10
+          }}>
+            <HandRippleControlPanel />
           </div>
         </>
       )}
