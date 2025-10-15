@@ -187,31 +187,20 @@ function AppContent({
             zIndex: 10
           }}>
             <ChoreoXploreControlPanel />
-            {/* Effect switch and joints panel */}
+            {/* Effect Type switch directly under Visual Settings */}
             <div style={{ marginTop: 12 }}>
               <EffectTypeSwitch />
             </div>
+            {/* Effect-specific panel */}
+            {useVisStore(s => s.params.effectType) === "ripple" && (
+              <div style={{ marginTop: 12 }}>
+                <HandRippleControlPanel />
+              </div>
+            )}
+            {/* Joints panel always visible */}
             <div style={{ marginTop: 12 }}>
               <JointsPanel />
             </div>
-          </div>
-
-          {/* Hand Ripple Panel - Left side, below ChoreoXplore */}
-          <div className="glass-scrollbar" style={{ 
-            position: "absolute", 
-            left: 12, 
-            bottom: 12, 
-            width: 360, 
-            height: "auto", 
-            maxHeight: "35vh", 
-            background: "rgba(0,0,0,.4)", 
-            backdropFilter: "blur(10px)", 
-            padding: 12, 
-            borderRadius: 12, 
-            overflow: "hidden",
-            zIndex: 10
-          }}>
-            <HandRippleControlPanel />
           </div>
         </>
       )}
