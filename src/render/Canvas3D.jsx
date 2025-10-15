@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import useStore from "../core/store";
 import { useVisStore } from "../state/useVisStore";
@@ -22,8 +22,6 @@ import HandFluidEffect from "../components/HandFluidEffect";
 import HandFluidCanvas from "../components/HandFluidCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 import CreamSmoke from "../visuals/CreamSmoke";
-import { useMemo } from "react";
-import { useVisStore } from "../state/useVisStore";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
   const group = useRef();
