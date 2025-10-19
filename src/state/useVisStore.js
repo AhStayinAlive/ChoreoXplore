@@ -40,7 +40,7 @@ const useVisStore = create((set, get) => ({
         intensity: 5,
         force: 1.5,
         distortion: 1.2,
-        radius: 0.2,
+        radius: 0.5,
         curl: 5,
         swirl: 8,
         velocityDissipation: 0.99,

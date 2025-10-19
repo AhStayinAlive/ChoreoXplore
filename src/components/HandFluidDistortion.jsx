@@ -4,10 +4,10 @@ import { EffectComposer } from '@react-three/postprocessing';
 import { Fluid } from '@whatisjery/react-fluid-distortion';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { useVisStore } from '../state/useVisStore';
-import { 
+import {
   getRightHandPosition,
   getLeftHandPosition,
-  calculateHandVelocity, 
+  calculateHandVelocity,
   smoothHandPosition
 } from '../utils/handTracking';
 
@@ -15,7 +15,7 @@ const HandFluidDistortion = () => {
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
   const isActive = useVisStore(s => s.isActive);
-  const { gl, size } = useThree(); // Get canvas DOM element and size
+  const { gl, size, camera } = useThree(); // Get canvas DOM element, size, and camera
   
   // Separate tracking state for each hand
   const leftHandRefs = {

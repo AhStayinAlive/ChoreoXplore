@@ -97,9 +97,6 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
           <Motion3DController>
             <group ref={group} />
           </Motion3DController>
-          {skeletonVisible && (
-            <SimpleSkeleton scale={mode === "irina" ? 1.0 : 1.0} />
-          )}
           {backgroundImage && (
             <>
               {/* Unified ambient animation with pose-based distortion */}
@@ -136,6 +133,7 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const userColors = useStore(s => s.userColors);
   const choreoxploreIsActive = useVisStore(s => s.isActive);
   const handEffect = useVisStore(s => s.params.handEffect);
+  const skeletonVisible = useStore(s => s.skeletonVisible);
   const [fluidTexture, setFluidTexture] = useState(null);
   const [fluidCanvas, setFluidCanvas] = useState(null);
   const [smokeTexture, setSmokeTexture] = useState(null);
@@ -259,6 +257,29 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
           smokeTextureInstance={smokeTextureInstance}
         />
       </Canvas>
+      
+      {/* Render skeleton AFTER EffectComposer - outside of post-processing */}
+      {skeletonVisible && (
+        <Canvas 
+          orthographic 
+          camera={{ 
+            zoom: choreoxploreIsActive ? 0.1 : (mode === "choreoxplore" || mode === "performance") ? 0.1 : 0.1, 
+            position: choreoxploreIsActive ? [0, 0, 5] : (mode === "choreoxplore" || mode === "performance") ? [0, 0, 5] : [0, 0, 10] 
+          }}
+          dpr={[1, 2]}
+          style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'transparent',
+            pointerEvents: 'none'
+          }}
+        >
+          <SimpleSkeleton scale={mode === "irina" ? 1.0 : 1.0} />
+        </Canvas>
+      )}
     </>
   );
 }
