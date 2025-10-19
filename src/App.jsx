@@ -3,7 +3,7 @@ import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
-import HandRippleControlPanel from "./components/HandRippleControlPanel";
+import HandEffectsPanel from "./components/HandEffectsPanel";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -175,7 +175,7 @@ function AppContent({
             top: 12, 
             width: 360, 
             height: "auto", 
-            maxHeight: "60vh",  // Back to original height
+            maxHeight: "60vh",  // Reduced slightly to give more space to Hand Effects
             background: "rgba(0,0,0,.4)", 
             backdropFilter: "blur(10px)", 
             padding: 12, 
@@ -187,21 +187,22 @@ function AppContent({
           </div>
 
           {/* Hand Ripple Panel - Left side, below ChoreoXplore */}
-          <div className="glass-scrollbar" style={{ 
+          <div style={{ 
             position: "absolute", 
             left: 12, 
             bottom: 12, 
             width: 360, 
-            height: "auto", 
-            maxHeight: "35vh", 
+            maxHeight: "35vh",
             background: "rgba(0,0,0,.4)", 
             backdropFilter: "blur(10px)", 
             padding: 12, 
             borderRadius: 12, 
             overflow: "hidden",
-            zIndex: 10
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column"
           }}>
-            <HandRippleControlPanel />
+            <HandEffectsPanel />
           </div>
         </>
       )}

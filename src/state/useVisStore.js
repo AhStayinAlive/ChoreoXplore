@@ -12,15 +12,27 @@ const useVisStore = create((set, get) => ({
     musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
     mode: "auto",
-    // New hand ripple settings
-    handRipple: {
-      enabled: false,        // Keep for backward compatibility (global enable)
-      leftHandEnabled: false,
-      rightHandEnabled: false,
-      baseColor: '#00ccff', // Cyan
-      rippleColor: '#ff00cc', // Magenta
-      radius: 0.4,
-      intensity: 0.8
+    // New hand effect settings
+    handEffect: {
+      type: 'none',           // 'none' | 'ripple' | 'smoke'
+      handSelection: 'none',  // 'none' | 'left' | 'right' | 'both'
+      
+      // Ripple effect settings
+      ripple: {
+        baseColor: '#00ccff',
+        rippleColor: '#ff00cc',
+        radius: 0.4,
+        intensity: 0.8
+      },
+      
+      // Smoke effect settings
+      smoke: {
+        color: '#ffffff',
+        intensity: 0.7,
+        radius: 0.8,
+        velocitySensitivity: 1.0,
+        trailLength: 0.5
+      }
     }
   },
   setMusic: (music) => set({ music }),

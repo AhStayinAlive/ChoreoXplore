@@ -180,18 +180,6 @@ export default function ChoreoXploreControlPanel() {
           />
         </div>
 
-        {/* Motion Reactivity */}
-        <div style={{ marginBottom: 16 }}>
-          <Slider
-            label="Motion Reactivity"
-            value={params.motionReact}
-            min={0.0}
-            max={1.0}
-            step={0.05}
-            onChange={(value) => handleParamChange('motionReact', value)}
-          />
-        </div>
-
       </div>
     </div>
   );

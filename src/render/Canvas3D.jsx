@@ -18,11 +18,12 @@ import SilhouetteEffect from "../components/SilhouetteEffect";
 import SimpleSkeleton from "../components/SimpleSkeleton";
 import AmbientBackgroundAnimation from "../components/AmbientBackgroundAnimation";
 import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
-import HandFluidEffect from "../components/HandFluidEffect";
+import HandEffectRouter from '../components/HandEffectRouter';
 import HandFluidCanvas from "../components/HandFluidCanvas";
+import HandSmokeCanvas from "../components/HandSmokeCanvas";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
-function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas }) {
+function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas, smokeTexture, smokeTextureInstance }) {
   const group = useRef();
   const setFPS = useStore(s => s.setFPS);
   const setSceneNodes = useStore((s) => s.setSceneNodes);
@@ -119,8 +120,13 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
               <ChoreoXploreSystem />
             </>
           )}
-          {/* Hand-driven fluid ripple effect */}
-          <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />
+          {/* Hand-driven effects */}
+          <HandEffectRouter 
+            fluidTexture={fluidTexture} 
+            fluidCanvas={fluidCanvas}
+            smokeTexture={smokeTexture}
+            smokeTextureInstance={smokeTextureInstance}
+          />
         </>
       );
 }
@@ -131,6 +137,8 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const choreoxploreIsActive = useVisStore(s => s.isActive);
   const [fluidTexture, setFluidTexture] = useState(null);
   const [fluidCanvas, setFluidCanvas] = useState(null);
+  const [smokeTexture, setSmokeTexture] = useState(null);
+  const [smokeTextureInstance, setSmokeTextureInstance] = useState(null);
 
   const handleFluidTextureReady = useCallback((canvas) => {
     // Prevent multiple calls with the same canvas
@@ -145,6 +153,20 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
     setFluidTexture(texture);
     setFluidCanvas(canvas);
   }, [fluidCanvas]);
+
+  const handleSmokeTextureReady = useCallback((canvas, smokeInstance) => {
+    // Prevent multiple calls
+    if (smokeTextureInstance === smokeInstance) return;
+    
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    
+    setSmokeTexture(texture);
+    setSmokeTextureInstance(smokeInstance);
+  }, [smokeTextureInstance]);
   
   // Different camera settings for different modes
   const getCameraSettings = () => {
@@ -169,6 +191,13 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
         onCanvasReady={handleFluidTextureReady}
       />
       
+      {/* Smoke canvas - rendered outside Three.js scene */}
+      <HandSmokeCanvas 
+        width={512} 
+        height={512} 
+        onCanvasReady={handleSmokeTextureReady}
+      />
+      
       <Canvas 
         orthographic 
         camera={{ 
@@ -187,6 +216,8 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
           ambientAnimationParams={ambientAnimationParams}
           fluidTexture={fluidTexture}
           fluidCanvas={fluidCanvas}
+          smokeTexture={smokeTexture}
+          smokeTextureInstance={smokeTextureInstance}
         />
       </Canvas>
     </>

@@ -1,0 +1,290 @@
+import { useVisStore } from "../state/useVisStore";
+import Slider from "./reusables/Slider";
+
+export default function HandEffectsPanel() {
+  const params = useVisStore(s => s.params);
+  const setParams = useVisStore(s => s.setParams);
+
+  const handEffect = params.handEffect || {
+    type: 'none',
+    handSelection: 'none',
+    ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.4, intensity: 0.8 },
+    smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 }
+  };
+
+  const handleEffectChange = (updates) => {
+    setParams({ handEffect: { ...handEffect, ...updates } });
+  };
+
+  const handleRippleChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        ripple: { ...handEffect.ripple, ...updates } 
+      } 
+    });
+  };
+
+  const handleSmokeChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        smoke: { ...handEffect.smoke, ...updates } 
+      } 
+    });
+  };
+
+  const dropdownStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    fontSize: "13px",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    border: "1px solid rgba(0,150,255,0.3)",
+    borderRadius: "8px",
+    color: "#ffffff",
+    cursor: "pointer",
+    outline: "none",
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+    transition: "all 0.2s ease",
+    fontWeight: "500",
+    appearance: "none",
+    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 12px center",
+    backgroundSize: "16px",
+    paddingRight: "40px"
+  };
+
+  const colorPickerStyle = {
+    width: '100%',
+    height: '32px',
+    border: '1px solid rgba(0, 150, 255, 0.3)',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    background: 'transparent',
+    outline: 'none'
+  };
+
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>Hand Effects</h3>
+      
+      <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
+        
+        {/* Effect Type Dropdown */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', color: 'white', fontSize: '12px', marginBottom: '8px', fontWeight: '500' }}>
+            Effect Type
+          </label>
+          <select
+            value={handEffect.type}
+            onChange={(e) => handleEffectChange({ type: e.target.value })}
+            style={dropdownStyle}
+            onFocus={(e) => {
+              e.target.style.borderColor = "rgba(0,150,255,0.6)";
+              e.target.style.backgroundColor = "rgba(0,0,0,0.6)";
+              e.target.style.boxShadow = "0 4px 12px rgba(0,150,255,0.2)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "rgba(0,150,255,0.3)";
+              e.target.style.backgroundColor = "rgba(0,0,0,0.4)";
+              e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+            }}
+          >
+            <option value="none" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Off</option>
+            <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
+            <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
+          </select>
+        </div>
+
+        {/* Hand Selection Dropdown - only show when effect is active */}
+        {handEffect.type !== 'none' && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', color: 'white', fontSize: '12px', marginBottom: '8px', fontWeight: '500' }}>
+              Hand Selection
+            </label>
+            <select
+              value={handEffect.handSelection}
+              onChange={(e) => handleEffectChange({ handSelection: e.target.value })}
+              style={dropdownStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = "rgba(0,150,255,0.6)";
+                e.target.style.backgroundColor = "rgba(0,0,0,0.6)";
+                e.target.style.boxShadow = "0 4px 12px rgba(0,150,255,0.2)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "rgba(0,150,255,0.3)";
+                e.target.style.backgroundColor = "rgba(0,0,0,0.4)";
+                e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+              }}
+            >
+              <option value="none" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Off</option>
+              <option value="left" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Left Hand</option>
+              <option value="right" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Right Hand</option>
+              <option value="both" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Both Hands</option>
+            </select>
+          </div>
+        )}
+
+        {/* Separator line */}
+        {handEffect.type !== 'none' && handEffect.handSelection !== 'none' && (
+          <div style={{ 
+            height: '1px', 
+            background: 'rgba(0, 150, 255, 0.3)', 
+            margin: '16px 0' 
+          }} />
+        )}
+
+        {/* Ripple Effect Settings */}
+        {handEffect.type === 'ripple' && handEffect.handSelection !== 'none' && (
+          <>
+            <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
+              Ripple Settings
+            </h4>
+            
+            {/* Color Pickers */}
+            <div style={{ 
+              marginBottom: 16, 
+              display: 'flex', 
+              gap: '12px',
+              alignItems: 'flex-start' 
+            }}>
+              {/* Base Color Picker */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Base Color
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.ripple.baseColor}
+                  onChange={(e) => handleRippleChange({ baseColor: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+
+              {/* Ripple Color Picker */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Ripple Color
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.ripple.rippleColor}
+                  onChange={(e) => handleRippleChange({ rippleColor: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+            </div>
+
+            {/* Radius Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Ripple Radius"
+                value={handEffect.ripple.radius}
+                min={0.1}
+                max={0.8}
+                step={0.05}
+                onChange={(value) => handleRippleChange({ radius: value })}
+              />
+            </div>
+
+            {/* Intensity Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Ripple Intensity"
+                value={handEffect.ripple.intensity}
+                min={0.1}
+                max={1.5}
+                step={0.1}
+                onChange={(value) => handleRippleChange({ intensity: value })}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Smoke Effect Settings */}
+        {handEffect.type === 'smoke' && handEffect.handSelection !== 'none' && (
+          <>
+            <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
+              Smoke Settings
+            </h4>
+            
+            {/* Smoke Color */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', color: 'white', fontSize: '10px', marginBottom: '4px', fontWeight: '500' }}>
+                Smoke Color
+              </label>
+              <input
+                type="color"
+                value={handEffect.smoke.color}
+                onChange={(e) => handleSmokeChange({ color: e.target.value })}
+                style={colorPickerStyle}
+              />
+            </div>
+
+            {/* Trail Intensity Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Trail Intensity"
+                value={handEffect.smoke.intensity}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                onChange={(value) => handleSmokeChange({ intensity: value })}
+              />
+            </div>
+
+            {/* Trail Radius Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Trail Radius"
+                value={handEffect.smoke.radius}
+                min={0.5}
+                max={3.0}
+                step={0.1}
+                onChange={(value) => handleSmokeChange({ radius: value })}
+              />
+            </div>
+
+            {/* Motion Sensitivity Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Motion Sensitivity"
+                value={handEffect.smoke.velocitySensitivity}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+                onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
+              />
+            </div>
+
+            {/* Trail Length Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Trail Length"
+                value={handEffect.smoke.trailLength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                onChange={(value) => handleSmokeChange({ trailLength: value })}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -20,7 +20,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const leftMeshRef = useRef();
   const rightMeshRef = useRef();
   const { poseData } = usePoseDetection();
-  const params = useVisStore(s => s.params);
+  const handEffect = useVisStore(s => s.params.handEffect);
   const isActive = useVisStore(s => s.isActive);
   
   // Separate tracking state for each hand
@@ -39,15 +39,16 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const timeRef = useRef(0);
 
   // Get hand ripple settings
-  const handRippleSettings = params.handRipple || {
-    enabled: false,
-    leftHandEnabled: false,
-    rightHandEnabled: false,
+  const rippleSettings = handEffect?.ripple || {
     baseColor: '#00ccff',
     rippleColor: '#ff00cc',
     radius: 0.4,
     intensity: 0.8
   };
+
+  const handSelection = handEffect?.handSelection || 'none';
+  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
 
   // Create shader materials for each hand
   const createShaderMaterial = useCallback((settings) => {
@@ -84,8 +85,8 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   }, []);
 
   const shaderMaterials = {
-    left: useMemo(() => createShaderMaterial(handRippleSettings), [handRippleSettings, createShaderMaterial]),
-    right: useMemo(() => createShaderMaterial(handRippleSettings), [handRippleSettings, createShaderMaterial])
+    left: useMemo(() => createShaderMaterial(rippleSettings), [rippleSettings, createShaderMaterial]),
+    right: useMemo(() => createShaderMaterial(rippleSettings), [rippleSettings, createShaderMaterial])
   };
 
   // Create plane geometry with high vertex density for smooth distortion
@@ -105,12 +106,12 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
     };
 
     // Update both materials with new settings
-    shaderMaterials.left.uniforms.uBaseColor.value.set(...hexToRgb(handRippleSettings.baseColor));
-    shaderMaterials.left.uniforms.uRippleColor.value.set(...hexToRgb(handRippleSettings.rippleColor));
+    shaderMaterials.left.uniforms.uBaseColor.value.set(...hexToRgb(rippleSettings.baseColor));
+    shaderMaterials.left.uniforms.uRippleColor.value.set(...hexToRgb(rippleSettings.rippleColor));
     
-    shaderMaterials.right.uniforms.uBaseColor.value.set(...hexToRgb(handRippleSettings.baseColor));
-    shaderMaterials.right.uniforms.uRippleColor.value.set(...hexToRgb(handRippleSettings.rippleColor));
-  }, [handRippleSettings, shaderMaterials]);
+    shaderMaterials.right.uniforms.uBaseColor.value.set(...hexToRgb(rippleSettings.baseColor));
+    shaderMaterials.right.uniforms.uRippleColor.value.set(...hexToRgb(rippleSettings.rippleColor));
+  }, [rippleSettings, shaderMaterials]);
 
   // Set texture when available
   useEffect(() => {
@@ -149,8 +150,8 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
 
       // Update shader uniforms
       material.uniforms.uHandPosition.value.set(shaderX, shaderY);
-      material.uniforms.uRippleStrength.value = handRippleSettings.intensity * visibilityMultiplier;
-      material.uniforms.uRippleRadius.value = handRippleSettings.radius * velocityMultiplier;
+      material.uniforms.uRippleStrength.value = rippleSettings.intensity * visibilityMultiplier;
+      material.uniforms.uRippleRadius.value = rippleSettings.radius * velocityMultiplier;
       
       // Store current position for next frame
       handRefs.lastPosition.current = smoothedPos;
@@ -158,7 +159,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       // No hand detected - set ripple strength to 0 to hide the effect
       material.uniforms.uRippleStrength.value = 0;
     }
-  }, [handRippleSettings]);
+  }, [rippleSettings]);
 
   // Update shader uniforms each frame
   useFrame((state, delta) => {
@@ -174,26 +175,26 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
     }
     
     // Update left hand if enabled
-    if (handRippleSettings.leftHandEnabled) {
+    if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
       updateHandRipple(leftHandPos, leftHandRefs, shaderMaterials.left, delta);
     }
     
     // Update right hand if enabled
-    if (handRippleSettings.rightHandEnabled) {
+    if (rightHandEnabled) {
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
       updateHandRipple(rightHandPos, rightHandRefs, shaderMaterials.right, delta);
     }
   });
 
   // Don't render if no hands are enabled or ChoreoXplore is not active
-  if ((!handRippleSettings.leftHandEnabled && !handRippleSettings.rightHandEnabled) || !isActive) {
+  if ((!leftHandEnabled && !rightHandEnabled) || !isActive) {
     return null;
   }
 
   return (
     <>
-      {handRippleSettings.leftHandEnabled && (
+      {leftHandEnabled && (
         <mesh 
           ref={leftMeshRef}
           geometry={planeGeometry}
@@ -204,7 +205,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
         />
       )}
       
-      {handRippleSettings.rightHandEnabled && (
+      {rightHandEnabled && (
         <mesh 
           ref={rightMeshRef}
           geometry={planeGeometry}
