@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
@@ -10,6 +10,7 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
   const handSelection = handEffect?.handSelection || 'none';
+  const [hasParticles, setHasParticles] = useState(false);
 
   // Create plane geometry (same size as ripple effect)
   const planeGeometry = useMemo(() => {
@@ -46,30 +47,49 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
     const leftHandPos = leftHandEnabled ? getLeftHandPosition(poseData?.landmarks) : null;
     const rightHandPos = rightHandEnabled ? getRightHandPosition(poseData?.landmarks) : null;
 
+    // Helper to convert MediaPipe coords to match SimpleSkeleton coordinate system
+    const transformHandCoords = (handPos) => {
+      // Use SimpleSkeleton's coordinate system (scale 22, plane 20000x20000)
+      const scale = 22;
+      const x = (handPos.x - 0.5) * 200 * scale;
+      const y = (0.5 - handPos.y) * 200 * scale;
+      
+      // Convert to UV coordinates (0-1 range) for the canvas
+      const uvX = (x / 20000) + 0.5;
+      const uvY = (y / 20000) + 0.5;
+      
+      return { x: uvX, y: uvY };
+    };
+
     // Add left hand point
     if (leftHandPos && leftHandPos.visibility > 0.3) {
-      smokeTextureInstance.addPoint(
-        { x: leftHandPos.x, y: leftHandPos.y },
-        'left'
-      );
+      const transformedPos = transformHandCoords(leftHandPos);
+      smokeTextureInstance.addPoint(transformedPos, 'left');
     }
 
     // Add right hand point
     if (rightHandPos && rightHandPos.visibility > 0.3) {
-      smokeTextureInstance.addPoint(
-        { x: rightHandPos.x, y: rightHandPos.y },
-        'right'
-      );
+      const transformedPos = transformHandCoords(rightHandPos);
+      smokeTextureInstance.addPoint(transformedPos, 'right');
     }
 
     // Update texture
     smokeTextureInstance.update();
+    
+    // Update particle state - check if there are any active particles
+    const particleCount = smokeTextureInstance.points.length;
+    setHasParticles(particleCount > 0);
     
     // Mark texture as needing update
     if (smokeTexture) {
       smokeTexture.needsUpdate = true;
     }
   });
+
+  // Don't render the mesh if there are no particles
+  if (!hasParticles) {
+    return null;
+  }
 
   return (
     <mesh

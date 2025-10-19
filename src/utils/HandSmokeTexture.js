@@ -32,15 +32,22 @@ export class HandSmokeTexture {
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.ctx = this.canvas.getContext('2d');
+    this.ctx.globalCompositeOperation = 'source-over';
+    
+    // Initialize as fully transparent
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
     this.texture = new THREE.Texture(this.canvas);
     this.texture.minFilter = THREE.LinearFilter;
     this.texture.magFilter = THREE.LinearFilter;
-    this.clear();
   }
 
   clear() {
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Faster fade for proper trail disappearance
+    // Very aggressive fade to completely eliminate residue buildup
+    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Very fast fade to eliminate all residue
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.globalCompositeOperation = 'source-over';
   }
 
   hexToRgb(hex) {
@@ -83,6 +90,13 @@ export class HandSmokeTexture {
   }
 
   update() {
+    // If no points, fully clear the canvas
+    if (this.points.length === 0) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.texture.needsUpdate = true;
+      return;
+    }
+    
     this.clear();
     
     const agePart = 1 / this.maxAge;
@@ -94,7 +108,7 @@ export class HandSmokeTexture {
       const force = point.force * agePart * slowAsOlder;
       
       point.x += point.vx * force * 0.01;
-      point.y += point.vy * force * 0.01;
+      point.y -= point.vy * force * 0.01;  // Invert vy direction for canvas Y-axis
       point.age += 1;
       
       if (point.age > this.maxAge) {
@@ -113,7 +127,7 @@ export class HandSmokeTexture {
   drawPoint(point) {
     const pos = {
       x: point.x * this.width,
-      y: point.y * this.height
+      y: (1 - point.y) * this.height  // Invert Y for canvas coordinate system
     };
     
     const radius = this.radius * this.radiusMultiplier;
