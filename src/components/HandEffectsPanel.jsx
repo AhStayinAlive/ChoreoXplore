@@ -9,7 +9,8 @@ export default function HandEffectsPanel() {
     type: 'none',
     handSelection: 'none',
     ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.4, intensity: 0.8 },
-    smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 }
+    smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
+    fluidDistortion: { fluidColor: '#005eff', intensity: 10, force: 2, distortion: 2, radius: 0.3, curl: 10, swirl: 20, velocityDissipation: 0.99, rainbow: true }
   };
 
   const handleEffectChange = (updates) => {
@@ -30,6 +31,15 @@ export default function HandEffectsPanel() {
       handEffect: { 
         ...handEffect, 
         smoke: { ...handEffect.smoke, ...updates } 
+      } 
+    });
+  };
+
+  const handleFluidDistortionChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        fluidDistortion: { ...handEffect.fluidDistortion, ...updates } 
       } 
     });
   };
@@ -95,6 +105,7 @@ export default function HandEffectsPanel() {
             <option value="none" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Off</option>
             <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
+            <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Distortion</option>
           </select>
         </div>
 
@@ -281,6 +292,123 @@ export default function HandEffectsPanel() {
                 step={0.05}
                 onChange={(value) => handleSmokeChange({ trailLength: value })}
               />
+            </div>
+          </>
+        )}
+
+        {/* Fluid Distortion Effect Settings */}
+        {handEffect.type === 'fluidDistortion' && handEffect.handSelection !== 'none' && (
+          <>
+            <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
+              Fluid Distortion Settings
+            </h4>
+            
+            {/* Fluid Color */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', color: 'white', fontSize: '10px', marginBottom: '4px', fontWeight: '500' }}>
+                Fluid Color
+              </label>
+              <input
+                type="color"
+                value={handEffect.fluidDistortion.fluidColor}
+                onChange={(e) => handleFluidDistortionChange({ fluidColor: e.target.value })}
+                style={colorPickerStyle}
+              />
+            </div>
+
+            {/* Intensity Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Intensity"
+                value={handEffect.fluidDistortion.intensity}
+                min={0}
+                max={10}
+                step={0.5}
+                onChange={(value) => handleFluidDistortionChange({ intensity: value })}
+              />
+            </div>
+
+            {/* Force Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Force"
+                value={handEffect.fluidDistortion.force}
+                min={0}
+                max={20}
+                step={0.5}
+                onChange={(value) => handleFluidDistortionChange({ force: value })}
+              />
+            </div>
+
+            {/* Distortion Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Distortion"
+                value={handEffect.fluidDistortion.distortion}
+                min={0}
+                max={2}
+                step={0.1}
+                onChange={(value) => handleFluidDistortionChange({ distortion: value })}
+              />
+            </div>
+
+            {/* Radius Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Radius"
+                value={handEffect.fluidDistortion.radius}
+                min={0.01}
+                max={1}
+                step={0.01}
+                onChange={(value) => handleFluidDistortionChange({ radius: value })}
+              />
+            </div>
+
+            {/* Curl Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Curl"
+                value={handEffect.fluidDistortion.curl}
+                min={0}
+                max={50}
+                step={1}
+                onChange={(value) => handleFluidDistortionChange({ curl: value })}
+              />
+            </div>
+
+            {/* Swirl Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Swirl"
+                value={handEffect.fluidDistortion.swirl}
+                min={0}
+                max={20}
+                step={1}
+                onChange={(value) => handleFluidDistortionChange({ swirl: value })}
+              />
+            </div>
+
+            {/* Rainbow Toggle */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'white', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={handEffect.fluidDistortion.rainbow}
+                  onChange={(e) => handleFluidDistortionChange({ rainbow: e.target.checked })}
+                  style={{
+                    marginRight: '8px',
+                    accentColor: '#0096ff'
+                  }}
+                />
+                Rainbow Mode
+              </label>
             </div>
           </>
         )}

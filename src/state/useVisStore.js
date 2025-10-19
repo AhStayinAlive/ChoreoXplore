@@ -32,6 +32,19 @@ const useVisStore = create((set, get) => ({
         radius: 0.8,
         velocitySensitivity: 1.0,
         trailLength: 0.5
+      },
+      
+      // Fluid distortion effect settings
+      fluidDistortion: {
+        fluidColor: '#005eff',
+        intensity: 5,
+        force: 1.5,
+        distortion: 1.2,
+        radius: 0.2,
+        curl: 5,
+        swirl: 8,
+        velocityDissipation: 0.99,
+        rainbow: false
       }
     }
   },

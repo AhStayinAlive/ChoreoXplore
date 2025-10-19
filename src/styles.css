@@ -9,6 +9,11 @@
   --accent-2: #7c7cff;
 }
 
+/* Nuclear option: Force disable pointer events on canvases */
+.pointer-events-none {
+  pointer-events: none !important;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

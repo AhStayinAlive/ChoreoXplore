@@ -2,6 +2,7 @@ import React from 'react';
 import { useVisStore } from '../state/useVisStore';
 import HandFluidEffect from './HandFluidEffect';
 import HandSmokeEffect from './HandSmokeEffect';
+import HandFluidDistortion from './HandFluidDistortion';
 
 export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTexture, smokeTextureInstance }) {
   const params = useVisStore(s => s.params);
@@ -19,6 +20,8 @@ export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTextu
       return <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />;
     case 'smoke':
       return <HandSmokeEffect smokeTexture={smokeTexture} smokeTextureInstance={smokeTextureInstance} />;
+    case 'fluidDistortion':
+      return <HandFluidDistortion />;
     default:
       return null;
   }

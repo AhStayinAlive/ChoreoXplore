@@ -135,10 +135,35 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   const mode = useStore(s => s.mode);
   const userColors = useStore(s => s.userColors);
   const choreoxploreIsActive = useVisStore(s => s.isActive);
+  const handEffect = useVisStore(s => s.params.handEffect);
   const [fluidTexture, setFluidTexture] = useState(null);
   const [fluidCanvas, setFluidCanvas] = useState(null);
   const [smokeTexture, setSmokeTexture] = useState(null);
   const [smokeTextureInstance, setSmokeTextureInstance] = useState(null);
+  
+  // Check if fluid distortion is active
+  const isFluidDistortionActive = handEffect?.type === 'fluidDistortion' && 
+                                   handEffect?.handSelection !== 'none' && 
+                                   choreoxploreIsActive;
+  
+  // Option 2: Force canvas pointer-events off when fluid distortion is active
+  useEffect(() => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      if (isFluidDistortionActive) {
+        canvas.style.pointerEvents = 'none';
+      } else {
+        canvas.style.pointerEvents = 'auto';
+      }
+    }
+    
+    return () => {
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.style.pointerEvents = 'auto';
+      }
+    };
+  }, [isFluidDistortionActive]);
 
   const handleFluidTextureReady = useCallback((canvas) => {
     // Prevent multiple calls with the same canvas
@@ -184,6 +209,20 @@ export default function Canvas3D({ backgroundImage, ambientAnimationParams }) {
   
   return (
     <>
+      {/* Option 1: Transparent blocking overlay when fluid distortion is active */}
+      {isFluidDistortionActive && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9999,
+          pointerEvents: 'auto', // Block mouse events
+          background: 'transparent'
+        }} />
+      )}
+      
       {/* Fluid canvas - rendered outside Three.js scene */}
       <HandFluidCanvas 
         width={512} 
