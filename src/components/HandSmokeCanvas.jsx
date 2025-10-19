@@ -12,6 +12,7 @@ const HandSmokeCanvas = ({ width = 512, height = 512, onCanvasReady }) => {
   // Initialize smoke texture
   useEffect(() => {
     if (!smokeTextureRef.current) {
+      console.log('[HandSmokeCanvas] Creating new HandSmokeTexture instance');
       smokeTextureRef.current = new HandSmokeTexture({
         size: width,
         intensity: smokeSettings.intensity || 0.7,
@@ -41,19 +42,6 @@ const HandSmokeCanvas = ({ width = 512, height = 512, onCanvasReady }) => {
       }
     };
   }, [width, height, onCanvasReady]);
-
-  // Update settings when they change
-  useEffect(() => {
-    if (smokeTextureRef.current) {
-      smokeTextureRef.current.updateSettings({
-        intensity: smokeSettings.intensity,
-        radiusMultiplier: smokeSettings.radius,
-        velocitySensitivity: smokeSettings.velocitySensitivity,
-        color: smokeSettings.color,
-        trailLength: smokeSettings.trailLength
-      });
-    }
-  }, [smokeSettings]);
 
   // Canvas is created by HandSmokeTexture, just return null
   // The canvas exists but is managed internally

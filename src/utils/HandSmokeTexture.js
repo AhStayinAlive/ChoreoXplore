@@ -11,6 +11,7 @@ const easeOutQuad = (t, b, c, d) => {
 
 export class HandSmokeTexture {
   constructor(options = {}) {
+    console.log('[HandSmokeTexture] Constructor called with color:', options.color);
     this.size = options.size || 512;
     this.points = [];
     this.radius = this.size * 0.05; // Base radius (smaller for better control)
@@ -23,6 +24,7 @@ export class HandSmokeTexture {
     this.radiusMultiplier = options.radiusMultiplier || 1.0;
     this.velocitySensitivity = options.velocitySensitivity || 1.0;
     this.color = options.color || '#ffffff';
+    console.log('[HandSmokeTexture] Constructor set color to:', this.color);
     
     this.initTexture();
   }
@@ -148,7 +150,10 @@ export class HandSmokeTexture {
     intensity *= point.force * this.intensity;
 
     // Get color
+    console.log('[HandSmokeTexture] Drawing with color:', this.color);
+    console.log('[HandSmokeTexture] this context:', this);
     const rgb = this.hexToRgb(this.color);
+    console.log('[HandSmokeTexture] RGB values:', rgb);
     const color = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
 
     // Draw smoke circle with gradient
@@ -164,10 +169,14 @@ export class HandSmokeTexture {
   }
 
   updateSettings(settings) {
+    console.log('[HandSmokeTexture] updateSettings called with:', settings);
     if (settings.intensity !== undefined) this.intensity = settings.intensity;
     if (settings.radiusMultiplier !== undefined) this.radiusMultiplier = settings.radiusMultiplier;
     if (settings.velocitySensitivity !== undefined) this.velocitySensitivity = settings.velocitySensitivity;
-    if (settings.color !== undefined) this.color = settings.color;
+    if (settings.color !== undefined) {
+      console.log('[HandSmokeTexture] Updating color from', this.color, 'to', settings.color);
+      this.color = settings.color;
+    }
     if (settings.trailLength !== undefined) {
       // Map trailLength (0.1-1.0) to maxAge (20-120)
       this.maxAge = Math.floor(20 + settings.trailLength * 100);

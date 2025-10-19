@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
@@ -10,7 +10,21 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
   const handSelection = handEffect?.handSelection || 'none';
+  const smokeSettings = handEffect?.smoke || {};
   const [hasParticles, setHasParticles] = useState(false);
+
+  // Update smoke texture settings when they change (like ripple effect does with uniforms)
+  useEffect(() => {
+    if (smokeTextureInstance) {
+      smokeTextureInstance.updateSettings({
+        intensity: smokeSettings.intensity,
+        radiusMultiplier: smokeSettings.radius,
+        velocitySensitivity: smokeSettings.velocitySensitivity,
+        color: smokeSettings.color,
+        trailLength: smokeSettings.trailLength
+      });
+    }
+  }, [smokeSettings, smokeTextureInstance]);
 
   // Create plane geometry (same size as ripple effect)
   const planeGeometry = useMemo(() => {
