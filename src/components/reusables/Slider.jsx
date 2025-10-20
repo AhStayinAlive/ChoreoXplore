@@ -68,7 +68,7 @@ export default function Slider({
   const pct = useMemo(() => ((value - min) / (max - min)) * 100, [value, min, max]);
 
   const setFromPointer = useCallback(
-    (clientX, clientY) => {
+    (clientX, clientY, shouldSnap = true) => {
       const track = trackRef.current;
       if (!track) return;
       const rect = track.getBoundingClientRect();
@@ -76,7 +76,8 @@ export default function Slider({
       if (isVertical) ratio = 1 - (clientY - rect.top) / rect.height;
       else ratio = (clientX - rect.left) / rect.width;
       const raw = min + ratio * (max - min);
-      const next = clamp(snap(raw));
+      // Only snap if explicitly requested (on release), otherwise allow smooth dragging
+      const next = shouldSnap ? clamp(snap(raw)) : clamp(raw);
       onChange?.(next);
     },
     [isVertical, min, max, snap, onChange]
@@ -84,16 +85,18 @@ export default function Slider({
 
   // pointer interactions
   useEffect(() => {
-    const move = (e) => setFromPointer(e.clientX, e.clientY);
-    const up = () => {
+    const move = (e) => setFromPointer(e.clientX, e.clientY, false); // No snap during drag
+    const up = (e) => {
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", up);
+      // Snap to step on release
+      setFromPointer(e.clientX, e.clientY, true);
       onChangeEnd?.(value);
     };
     const down = (e) => {
       if (disabled) return;
       e.preventDefault();
-      setFromPointer(e.clientX, e.clientY);
+      setFromPointer(e.clientX, e.clientY, true); // Snap on initial click
       document.addEventListener("pointermove", move);
       document.addEventListener("pointerup", up, { once: true });
     };

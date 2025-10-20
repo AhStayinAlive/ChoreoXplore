@@ -1,5 +1,6 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
+import ToggleButton from "./reusables/ToggleButton";
 
 export default function HandEffectsPanel() {
   const params = useVisStore(s => s.params);
@@ -78,7 +79,14 @@ export default function HandEffectsPanel() {
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <h3 style={{ fontWeight: 600, marginBottom: 12, flexShrink: 0 }}>Hand Effects</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h3 style={{ fontWeight: 600, margin: 0, flexShrink: 0 }}>Hand Effects</h3>
+        <ToggleButton
+          label="Motion Reactive"
+          selected={handEffect.motionReactive !== false}
+          onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
+        />
+      </div>
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         

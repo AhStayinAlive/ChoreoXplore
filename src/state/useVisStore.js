@@ -16,6 +16,7 @@ const useVisStore = create((set, get) => ({
     handEffect: {
       type: 'none',           // 'none' | 'ripple' | 'smoke'
       handSelection: 'none',  // 'none' | 'left' | 'right' | 'both'
+      motionReactive: true,   // when false, visual modes become static but hand effects still respond to motion
       
       // Ripple effect settings
       ripple: {
