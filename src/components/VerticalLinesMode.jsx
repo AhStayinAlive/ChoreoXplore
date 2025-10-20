@@ -13,31 +13,38 @@ const VerticalLinesMode = () => {
   const { poseData } = usePoseDetection();
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
-  const handEffect = useVisStore(s => s.params.handEffect);
   const userColors = useStore(s => s.userColors);
   
-  // Configuration
-  const columns = 30; // Number of columns
-  const rows = 15; // Number of rows
-  const lineWidth = 0.08; // Thickness of lines (increased for visibility)
-  const lineSegmentHeight = 800; // Height of each short line segment (increased)
-  const pushRadius = 0.12; // How far hand influence reaches (small - just around hands)
-  const pushStrength = 4.0; // How far lines move away (much more powerful)
-  const immediateSmoothing = 0.3; // Smoothing when being pushed
-  const fadeBackSpeed = 0.15; // Speed of return animation (immediate, smooth)
+  // Configuration (raindrop mode)
+  const numDrops = 650; // denser rain
+  const lineWidth = 0.08; // Thickness of lines
+  const baseLineSegmentHeight = 350; // Base height of each segment (shorter drops)
+  const baseFall = 400; // base fall multiplier (a bit faster)
+
+  // World bounds (same coordinate space used elsewhere ~ +/-10000)
+  const worldHalfSize = 10000;
+  const minX = -worldHalfSize;
+  const maxX = worldHalfSize;
+  const topY = worldHalfSize;
+  const bottomY = -worldHalfSize;
+
+  // Music reactivity knobs (simple)
+  const speedMulFromEnergy = 3.0; // up to 3x speed at high energy
+  
+  // Hand push parameters
+  const pushRadius = 0.12; // relative to 10000 space
+  const pushRadiusWorld = pushRadius * 10000;
+  const pushImpulse = 220; // impulse applied when near hand
+  const maxXSpeed = 2000;
+  const xFriction = 0.12; // per-frame fraction damped
+  const homeSpring = 0.05; // pull back toward homeX
   
   // Create refs for each line
   const linesRef = useRef([]);
   const lineStates = useRef([]); // Store state for each line
   const clockRef = useRef(0);
   
-  // Get hand selection
-  const handSelection = handEffect?.handSelection || 'none';
-  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
-  
-  // Get motion reactivity setting
-  const motionReactive = handEffect?.motionReactive !== false;
+  // Hand interaction enabled
   
   // Convert hex color to THREE.Color
   const lineColor = useMemo(() => {
@@ -46,143 +53,128 @@ const VerticalLinesMode = () => {
     return new THREE.Color(rgb.r, rgb.g, rgb.b);
   }, [userColors.assetColor]);
   
-  // Create line geometries and materials in a grid
+  // Create raindrop line geometries and materials (random spawn)
   const lines = useMemo(() => {
     const lineArray = [];
-    const totalWidth = 20000;
-    const totalHeight = 20000;
-    const spacingX = totalWidth / (columns + 1);
-    const spacingY = totalHeight / (rows + 1);
-    
-    let index = 0;
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < columns; col++) {
-        const x = -10000 + spacingX * (col + 1);
-        const y = 10000 - spacingY * (row + 1);
-        
-        const geometry = new THREE.PlaneGeometry(lineWidth * 200, lineSegmentHeight);
-        const material = new THREE.MeshBasicMaterial({ 
-          color: lineColor.clone(), // Clone to ensure each line gets its own color instance
-          transparent: true,
-          opacity: params.intensity || 0.8,
-          side: THREE.DoubleSide
-        });
-        
-        // Initialize state for this line
-        lineStates.current[index] = {
-          originalX: x,
-          originalY: y,
-          currentX: x,
-          lastPushTime: Infinity, // Never pushed yet - use Infinity so fade-back never triggers
-          targetOffset: 0
-        };
-        
-        lineArray.push({
-          geometry,
-          material,
-          originalX: x,
-          originalY: y,
-          index
-        });
-        
-        index++;
-      }
+    // geometry/material per drop for simplicity (could be instanced later)
+    for (let i = 0; i < numDrops; i++) {
+      const x = THREE.MathUtils.lerp(minX, maxX, Math.random());
+      // Seed across full vertical span for a filled, continuous field
+      const y = THREE.MathUtils.lerp(bottomY, topY, Math.random());
+      const speed = THREE.MathUtils.lerp(1.8, 3.6, Math.random()); // a little faster
+
+      const geometry = new THREE.PlaneGeometry(lineWidth * 200, baseLineSegmentHeight);
+      const material = new THREE.MeshBasicMaterial({ 
+        color: lineColor.clone(),
+        transparent: true,
+        opacity: params.intensity || 0.8,
+        side: THREE.DoubleSide
+      });
+
+      lineStates.current[i] = {
+        homeX: x,
+        x,
+        y,
+        speed,
+        vx: 0
+      };
+
+      lineArray.push({
+        geometry,
+        material,
+        index: i
+      });
     }
-    
+
     return lineArray;
-  }, [columns, rows, lineWidth, lineSegmentHeight, lineColor, params.intensity]);
+  }, [numDrops, lineWidth, baseLineSegmentHeight, lineColor, params.intensity]);
   
-  // Helper function to calculate line push based on hand proximity
-  // Returns a push increment (not absolute position)
-  const calculatePush = (lineCurrentX, lineY, handX, handY) => {
-    const dx = handX - lineCurrentX; // Use current position, not original
-    const dy = handY - lineY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (distance < pushRadius * 10000) {
-      const pushStrengthNormalized = 1 - (distance / (pushRadius * 10000));
-      const direction = handX > lineCurrentX ? -1 : 1; // Push away from hand in X direction
-      return direction * pushStrengthNormalized * pushStrength * 100; // Incremental push per frame
-    }
-    
-    return 0;
-  };
+  // Lerp helper
+  const lerp = (start, end, alpha) => start + (end - start) * alpha;
   
-  // Lerp helper for smooth animation
-  const lerp = (start, end, alpha) => {
-    return start + (end - start) * alpha;
-  };
-  
-  // Update line positions based on hand proximity
+  // Update line positions based on music energy with hand-reactive lateral push
   useFrame((state, delta) => {
     if (!linesRef.current || linesRef.current.length === 0) return;
     
     clockRef.current += delta;
-    const currentTime = clockRef.current;
     
-    // Get hand positions (only if motion reactive is enabled)
-    const leftHandPos = motionReactive && leftHandEnabled ? getLeftHandPosition(poseData?.landmarks) : null;
-    const rightHandPos = motionReactive && rightHandEnabled ? getRightHandPosition(poseData?.landmarks) : null;
-    
-    // Convert hand positions to coordinate system (same as SimpleSkeleton)
+    // Compute energy and derived multipliers
+    const energyRaw = (params.intensity || 0) * (1 + (music.energy || 0) * 0.3);
+    const energy = Math.min(1, Math.max(0, energyRaw));
+    const speedMul = 1 + energy * (speedMulFromEnergy - 1);
+    const lengthMul = 1; // fixed length for simple mode
+
+    // Hand positions (world coords)
     const scale = 22;
-    const getHandCoords = (handPos) => {
-      if (!handPos || handPos.visibility < 0.3) return null;
+    const toWorld = (handPos) => {
+      if (!handPos || handPos.visibility < 0.6) return null;
       const x = (handPos.x - 0.5) * 200 * scale;
       const y = (0.5 - handPos.y) * 200 * scale;
       return { x, y };
     };
-    
-    const leftHand = getHandCoords(leftHandPos);
-    const rightHand = getHandCoords(rightHandPos);
-    
+    const leftHand = toWorld(getLeftHandPosition(poseData?.landmarks));
+    const rightHand = toWorld(getRightHandPosition(poseData?.landmarks));
+
     // Update each line position
     linesRef.current.forEach((mesh, i) => {
       if (!mesh || !lineStates.current[i]) return;
       
       const state = lineStates.current[i];
-      const originalY = state.originalY;
       
-      let totalPush = 0;
-      let isBeingPushed = false;
-      
-      // Calculate push from left hand (based on current position)
-      if (leftHand !== null) {
-        const push = calculatePush(state.currentX, originalY, leftHand.x, leftHand.y);
-        if (push !== 0) {
-          totalPush += push;
-          isBeingPushed = true;
+      // Apply lateral impulse when near hands
+      if (leftHand) {
+        const dx = state.x - leftHand.x;
+        const dy = state.y - leftHand.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < pushRadiusWorld) {
+          const s = 1 - dist / pushRadiusWorld;
+          const dir = dx === 0 ? 1 : Math.sign(dx);
+          state.vx += dir * pushImpulse * s;
         }
       }
-      
-      // Calculate push from right hand (based on current position)
-      if (rightHand !== null) {
-        const push = calculatePush(state.currentX, originalY, rightHand.x, rightHand.y);
-        if (push !== 0) {
-          totalPush += push;
-          isBeingPushed = true;
+      if (rightHand) {
+        const dx = state.x - rightHand.x;
+        const dy = state.y - rightHand.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < pushRadiusWorld) {
+          const s = 1 - dist / pushRadiusWorld;
+          const dir = dx === 0 ? 1 : Math.sign(dx);
+          state.vx += dir * pushImpulse * s;
         }
       }
-      
-      // If being pushed, apply incremental push to current position
-      if (isBeingPushed) {
-        state.currentX += totalPush; // Add push increment to current position
-        state.lastPushTime = currentTime;
-      } else {
-        // Not being pushed - immediately start returning to original position
-        state.currentX = lerp(state.currentX, state.originalX, fadeBackSpeed);
+
+      // Clamp, decay, and softly home toward spawn X
+      if (state.vx > maxXSpeed) state.vx = maxXSpeed;
+      if (state.vx < -maxXSpeed) state.vx = -maxXSpeed;
+      state.vx *= (1 - xFriction);
+      state.vx += (state.homeX - state.x) * homeSpring;
+      state.x += state.vx * delta;
+      if (state.x < minX) state.x = minX;
+      if (state.x > maxX) state.x = maxX;
+
+      // Fall with music-influenced speed (straight down)
+      state.y -= state.speed * baseFall * speedMul * delta;
+      // Wrap to top when below bottom
+      if (state.y < bottomY) {
+        // Keep the same X and current vx; continue from the top
+        state.y += (topY - bottomY);
+        // Slightly vary speed to avoid visible syncing
+        state.speed = Math.max(0.1, state.speed * THREE.MathUtils.lerp(0.9, 1.1, Math.random()));
       }
-      
+
       // Apply position
-      mesh.position.x = state.currentX;
-      mesh.position.y = originalY;
+      mesh.position.x = state.x;
+      mesh.position.y = state.y;
+      // Fixed length
+      mesh.scale.y = lengthMul;
     });
     
     // Update material properties based on music energy and user color
-    const musicIntensity = params.intensity * (1 + music.energy * 0.3);
+    const musicIntensity = Math.min(1, Math.max(0, (params.intensity || 0) * (1 + (music.energy || 0) * 0.3)));
     linesRef.current.forEach((mesh) => {
       if (mesh && mesh.material) {
-        mesh.material.opacity = Math.min(musicIntensity, 1.0);
+        // Opacity scales with energy (0.6 → 1.0)
+        mesh.material.opacity = Math.min(1.0, Math.max(0.0, 0.6 + 0.4 * musicIntensity));
         mesh.material.color.copy(lineColor); // Update color dynamically
       }
     });
@@ -197,7 +189,8 @@ const VerticalLinesMode = () => {
             if (el) {
               linesRef.current[i] = el;
               // Initialize position
-              el.position.set(line.originalX, line.originalY, 0);
+              const s = lineStates.current[i];
+              el.position.set(s ? s.currentX : 0, s ? s.y : 0, 0);
             }
           }}
           geometry={line.geometry}

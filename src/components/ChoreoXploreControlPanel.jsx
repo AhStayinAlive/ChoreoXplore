@@ -136,7 +136,7 @@ export default function ChoreoXploreControlPanel() {
               <option value="lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lines</option>
               <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
               <option value="pulsating_circle" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Circle</option>
-              <option value="vertical_lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Vertical Lines</option>
+              <option value="vertical_lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Raindrop</option>
             </select>
           </div>
         </div>
