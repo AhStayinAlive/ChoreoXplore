@@ -11,7 +11,7 @@ const useVisStore = create((set, get) => ({
     hue: 210, 
     musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
-    mode: "auto",
+    mode: "quand_cest",
     // New hand effect settings
     handEffect: {
       type: 'none',           // 'none' | 'ripple' | 'smoke'

@@ -10,13 +10,7 @@ export default function ChoreoXploreSystem() {
   const music = useVisStore(s => s.music);
   const params = useVisStore(s => s.params);
 
-  let mode = params.mode;
-  if (mode === 'auto') {
-    const sharp = motion?.sharpness ?? 0;
-    const speed = motion?.speed ?? 0;
-    const energy = music.energy ?? 0;
-    mode = (speed > 0.001 && sharp < 0.35) ? 'quand_cest' : (speed < 0.0004 && energy > 0.02) ? 'pulsating_circle' : 'lines';
-  }
+  const mode = params.mode;
 
   switch (mode) {
     case 'lines':
