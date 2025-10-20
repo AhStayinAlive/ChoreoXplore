@@ -149,6 +149,7 @@ export default function ChoreoXploreControlPanel() {
             min={0.1}
             max={2.0}
             step={0.1}
+            format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('speed', value)}
           />
         </div>
@@ -161,6 +162,7 @@ export default function ChoreoXploreControlPanel() {
             min={0.0}
             max={1.0}
             step={0.05}
+            format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('intensity', value)}
           />
         </div>
@@ -174,6 +176,7 @@ export default function ChoreoXploreControlPanel() {
             min={0.0}
             max={1.0}
             step={0.05}
+            format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('musicReact', value)}
           />
         </div>

@@ -8,9 +8,9 @@ export default function HandEffectsPanel() {
   const handEffect = params.handEffect || {
     type: 'none',
     handSelection: 'none',
-    ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.4, intensity: 0.8 },
+    ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
-    fluidDistortion: { fluidColor: '#005eff', intensity: 10, force: 2, distortion: 2, radius: 0.3, curl: 10, swirl: 20, velocityDissipation: 0.99, rainbow: true }
+    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false }
   };
 
   const handleEffectChange = (updates) => {
@@ -105,7 +105,7 @@ export default function HandEffectsPanel() {
             <option value="none" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Off</option>
             <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
-            <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Distortion</option>
+            <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
           </select>
         </div>
 
@@ -208,6 +208,7 @@ export default function HandEffectsPanel() {
                 min={0.1}
                 max={0.8}
                 step={0.05}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleRippleChange({ radius: value })}
               />
             </div>
@@ -220,6 +221,7 @@ export default function HandEffectsPanel() {
                 min={0.1}
                 max={1.5}
                 step={0.1}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleRippleChange({ intensity: value })}
               />
             </div>
@@ -254,6 +256,7 @@ export default function HandEffectsPanel() {
                 min={0.1}
                 max={1.0}
                 step={0.05}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleSmokeChange({ intensity: value })}
               />
             </div>
@@ -266,6 +269,7 @@ export default function HandEffectsPanel() {
                 min={0.5}
                 max={3.0}
                 step={0.1}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleSmokeChange({ radius: value })}
               />
             </div>
@@ -278,6 +282,7 @@ export default function HandEffectsPanel() {
                 min={0.0}
                 max={2.0}
                 step={0.1}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
               />
             </div>
@@ -290,6 +295,7 @@ export default function HandEffectsPanel() {
                 min={0.1}
                 max={1.0}
                 step={0.05}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleSmokeChange({ trailLength: value })}
               />
             </div>
@@ -300,7 +306,7 @@ export default function HandEffectsPanel() {
         {handEffect.type === 'fluidDistortion' && handEffect.handSelection !== 'none' && (
           <>
             <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
-              Fluid Distortion Settings
+              Fluid Effect Settings
             </h4>
             
             {/* Fluid Color */}
@@ -324,6 +330,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={10}
                 step={0.5}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleFluidDistortionChange({ intensity: value })}
               />
             </div>
@@ -336,6 +343,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={20}
                 step={0.5}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleFluidDistortionChange({ force: value })}
               />
             </div>
@@ -348,6 +356,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={2}
                 step={0.1}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleFluidDistortionChange({ distortion: value })}
               />
             </div>
@@ -360,6 +369,7 @@ export default function HandEffectsPanel() {
                 min={0.01}
                 max={1}
                 step={0.01}
+                format={(v) => v.toFixed(2)}
                 onChange={(value) => handleFluidDistortionChange({ radius: value })}
               />
             </div>
@@ -372,6 +382,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={50}
                 step={1}
+                format={(v) => v.toFixed(0)}
                 onChange={(value) => handleFluidDistortionChange({ curl: value })}
               />
             </div>
@@ -384,6 +395,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={20}
                 step={1}
+                format={(v) => v.toFixed(0)}
                 onChange={(value) => handleFluidDistortionChange({ swirl: value })}
               />
             </div>

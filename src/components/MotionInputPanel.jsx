@@ -100,15 +100,41 @@ const MotionInputPanel = () => {
       
       console.log('MediaDevices API is available');
       
-      // Try the most basic approach - just get any camera (NO AUDIO)
-      console.log('Requesting camera access (video only)...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true,
-        audio: false  // Explicitly disable audio to prevent feedback
-      });
+      // Try exact 1080p first
+      console.log('Requesting camera access with 1920x1080...');
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: {
+            width: { exact: 1920 },
+            height: { exact: 1080 }
+          },
+          audio: false
+        });
+      } catch (exactError) {
+        console.log('1920x1080 not supported, trying with ideal constraints...', exactError.message);
+        // Fallback to ideal constraints if exact fails
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: {
+            width: { min: 640, ideal: 1920, max: 3840 },
+            height: { min: 480, ideal: 1080, max: 2160 },
+            facingMode: 'user'
+          },
+          audio: false
+        });
+      }
       
       console.log('✅ Camera access successful');
       console.log('Stream tracks:', stream.getTracks());
+
+      // Log actual stream settings
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        console.log('📹 Video track settings:', settings);
+        console.log('📐 Actual resolution:', settings.width, 'x', settings.height);
+        console.log('🎥 Frame rate:', settings.frameRate);
+      }
       
       // Check what devices are available after getting permission
       try {

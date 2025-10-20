@@ -21,7 +21,7 @@ const useVisStore = create((set, get) => ({
       ripple: {
         baseColor: '#00ccff',
         rippleColor: '#ff00cc',
-        radius: 0.4,
+        radius: 0.1,
         intensity: 0.8
       },
       
@@ -37,12 +37,12 @@ const useVisStore = create((set, get) => ({
       // Fluid distortion effect settings
       fluidDistortion: {
         fluidColor: '#005eff',
-        intensity: 5,
+        intensity: 1,
         force: 1.5,
-        distortion: 1.2,
-        radius: 0.5,
-        curl: 5,
-        swirl: 8,
+        distortion: 1,
+        radius: 0.1,
+        curl: 6,
+        swirl: 0,
         velocityDissipation: 0.99,
         rainbow: false
       }

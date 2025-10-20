@@ -11,7 +11,24 @@ export async function startPose() {
   }
   if (!detector) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: {
+            width: { exact: 1920 },
+            height: { exact: 1080 }
+          }
+        });
+        console.log('📹 pose.js: Got 1920x1080 camera stream');
+      } catch (exactError) {
+        console.log('📹 pose.js: 1920x1080 not supported, trying ideal constraints...');
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: {
+            width: { min: 640, ideal: 1920, max: 3840 },
+            height: { min: 480, ideal: 1080, max: 2160 }
+          }
+        });
+      }
       videoEl = document.createElement('video');
       videoEl.setAttribute('playsinline', '');
       videoEl.muted = true;
