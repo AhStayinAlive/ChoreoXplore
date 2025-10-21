@@ -16,9 +16,9 @@ const VerticalLinesMode = () => {
   const userColors = useStore(s => s.userColors);
   
   // Configuration (raindrop mode)
-  const numDrops = 650; // denser rain
+  const numDrops = 1000; // denser rain
   const lineWidth = 0.08; // Thickness of lines
-  const baseLineSegmentHeight = 350; // Base height of each segment (shorter drops)
+  const baseLineSegmentHeight = 250; // Base height of each segment (shorter drops)
   const baseFall = 400; // base fall multiplier (a bit faster)
 
   // World bounds (same coordinate space used elsewhere ~ +/-10000)
@@ -27,9 +27,6 @@ const VerticalLinesMode = () => {
   const maxX = worldHalfSize;
   const topY = worldHalfSize;
   const bottomY = -worldHalfSize;
-
-  // Music reactivity knobs (simple)
-  const speedMulFromEnergy = 3.0; // up to 3x speed at high energy
   
   // Hand push parameters
   const pushRadius = 0.12; // relative to 10000 space
@@ -39,10 +36,16 @@ const VerticalLinesMode = () => {
   const xFriction = 0.12; // per-frame fraction damped
   const homeSpring = 0.05; // pull back toward homeX
   
-  // Create refs for each line
-  const linesRef = useRef([]);
+  // Create refs for instanced mesh and state
+  const instancedMeshRef = useRef();
   const lineStates = useRef([]); // Store state for each line
   const clockRef = useRef(0);
+  const tempMatrix = useRef(new THREE.Matrix4());
+  
+  // Smoothed audio values
+  const smoothedEnergy = useRef(0);
+  const smoothedRms = useRef(0);
+  const smoothedBeat = useRef(0);
   
   // Hand interaction enabled
   
@@ -53,23 +56,23 @@ const VerticalLinesMode = () => {
     return new THREE.Color(rgb.r, rgb.g, rgb.b);
   }, [userColors.assetColor]);
   
-  // Create raindrop line geometries and materials (random spawn)
-  const lines = useMemo(() => {
-    const lineArray = [];
-    // geometry/material per drop for simplicity (could be instanced later)
+  // Create shared geometry and material for instanced mesh
+  const { geometry, material } = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(lineWidth * 200, baseLineSegmentHeight);
+    const mat = new THREE.MeshBasicMaterial({ 
+      color: lineColor.clone(),
+      transparent: true,
+      opacity: params.intensity || 0.8,
+      side: THREE.DoubleSide
+    });
+
+    // Initialize line states
+    lineStates.current = [];
     for (let i = 0; i < numDrops; i++) {
       const x = THREE.MathUtils.lerp(minX, maxX, Math.random());
       // Seed across full vertical span for a filled, continuous field
       const y = THREE.MathUtils.lerp(bottomY, topY, Math.random());
       const speed = THREE.MathUtils.lerp(1.8, 3.6, Math.random()); // a little faster
-
-      const geometry = new THREE.PlaneGeometry(lineWidth * 200, baseLineSegmentHeight);
-      const material = new THREE.MeshBasicMaterial({ 
-        color: lineColor.clone(),
-        transparent: true,
-        opacity: params.intensity || 0.8,
-        side: THREE.DoubleSide
-      });
 
       lineStates.current[i] = {
         homeX: x,
@@ -78,30 +81,37 @@ const VerticalLinesMode = () => {
         speed,
         vx: 0
       };
-
-      lineArray.push({
-        geometry,
-        material,
-        index: i
-      });
     }
 
-    return lineArray;
+    return { geometry: geo, material: mat };
   }, [numDrops, lineWidth, baseLineSegmentHeight, lineColor, params.intensity]);
-  
-  // Lerp helper
-  const lerp = (start, end, alpha) => start + (end - start) * alpha;
   
   // Update line positions based on music energy with hand-reactive lateral push
   useFrame((state, delta) => {
-    if (!linesRef.current || linesRef.current.length === 0) return;
+    if (!instancedMeshRef.current) return;
     
     clockRef.current += delta;
     
-    // Compute energy and derived multipliers
-    const energyRaw = (params.intensity || 0) * (1 + (music.energy || 0) * 0.3);
-    const energy = Math.min(1, Math.max(0, energyRaw));
-    const speedMul = 1 + energy * (speedMulFromEnergy - 1);
+    // Get raw audio features
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    const rms = (music?.rms ?? 0) * params.musicReact;
+    const beat = (music?.onset ?? false) ? 1.0 : 0.0;
+    
+    // Smooth audio values with lerp to prevent jarring changes
+    smoothedEnergy.current = THREE.MathUtils.lerp(smoothedEnergy.current, energy, 0.25);
+    smoothedRms.current = THREE.MathUtils.lerp(smoothedRms.current, rms, 0.3);
+    smoothedBeat.current = THREE.MathUtils.lerp(smoothedBeat.current, beat, 0.5);
+    
+    // Combine audio features for overall loudness
+    const audioLoudness = smoothedEnergy.current + smoothedRms.current + smoothedBeat.current * 0.3;
+    
+    // Map audio loudness to speed multiplier (1.5x to 15.0x)
+    // Quiet music = normal rain speed (1.5x)
+    // Loud music = dramatically fast rain (15.0x)
+    const minSpeed = 1.5;
+    const maxSpeed = 15.0;
+    const speedMul = minSpeed + audioLoudness * (maxSpeed - minSpeed);
+    
     const lengthMul = 1; // fixed length for simple mode
 
     // Hand positions (world coords)
@@ -116,10 +126,9 @@ const VerticalLinesMode = () => {
     const rightHand = toWorld(getRightHandPosition(poseData?.landmarks));
 
     // Update each line position
-    linesRef.current.forEach((mesh, i) => {
-      if (!mesh || !lineStates.current[i]) return;
-      
+    for (let i = 0; i < numDrops; i++) {
       const state = lineStates.current[i];
+      if (!state) continue;
       
       // Apply lateral impulse when near hands
       if (leftHand) {
@@ -162,41 +171,35 @@ const VerticalLinesMode = () => {
         state.speed = Math.max(0.1, state.speed * THREE.MathUtils.lerp(0.9, 1.1, Math.random()));
       }
 
-      // Apply position
-      mesh.position.x = state.x;
-      mesh.position.y = state.y;
-      // Fixed length
-      mesh.scale.y = lengthMul;
-    });
+      // Apply position and scale using matrix
+      tempMatrix.current.makeScale(1, lengthMul, 1);
+      tempMatrix.current.setPosition(state.x, state.y, 0);
+      instancedMeshRef.current.setMatrixAt(i, tempMatrix.current);
+    }
     
-    // Update material properties based on music energy and user color
-    const musicIntensity = Math.min(1, Math.max(0, (params.intensity || 0) * (1 + (music.energy || 0) * 0.3)));
-    linesRef.current.forEach((mesh) => {
-      if (mesh && mesh.material) {
-        // Opacity scales with energy (0.6 → 1.0)
-        mesh.material.opacity = Math.min(1.0, Math.max(0.0, 0.6 + 0.4 * musicIntensity));
-        mesh.material.color.copy(lineColor); // Update color dynamically
-      }
-    });
+    // Mark instance matrix as needing update
+    instancedMeshRef.current.instanceMatrix.needsUpdate = true;
+    
+    // Update material properties based on music loudness and user color
+    if (instancedMeshRef.current.material) {
+      // Opacity scales with audio loudness (0.5 → 1.0)
+      // More dramatic change based on combined audio features
+      const opacityBase = 0.5;
+      const opacityRange = 0.5;
+      const targetOpacity = opacityBase + audioLoudness * opacityRange;
+      instancedMeshRef.current.material.opacity = Math.min(1.0, Math.max(0.3, targetOpacity * params.intensity));
+      
+      // Update color dynamically
+      instancedMeshRef.current.material.color.copy(lineColor);
+    }
   });
   
   return (
     <group>
-      {lines.map((line, i) => (
-        <mesh
-          key={i}
-          ref={(el) => {
-            if (el) {
-              linesRef.current[i] = el;
-              // Initialize position
-              const s = lineStates.current[i];
-              el.position.set(s ? s.currentX : 0, s ? s.y : 0, 0);
-            }
-          }}
-          geometry={line.geometry}
-          material={line.material}
-        />
-      ))}
+      <instancedMesh
+        ref={instancedMeshRef}
+        args={[geometry, material, numDrops]}
+      />
     </group>
   );
 };
