@@ -72,7 +72,7 @@ const VerticalLinesMode = () => {
       const x = THREE.MathUtils.lerp(minX, maxX, Math.random());
       // Seed across full vertical span for a filled, continuous field
       const y = THREE.MathUtils.lerp(bottomY, topY, Math.random());
-      const speed = THREE.MathUtils.lerp(1.8, 3.6, Math.random()); // a little faster
+      const speed = 3.0; // Uniform speed for all raindrops
 
       lineStates.current[i] = {
         homeX: x,
@@ -105,11 +105,11 @@ const VerticalLinesMode = () => {
     // Combine audio features for overall loudness
     const audioLoudness = smoothedEnergy.current + smoothedRms.current + smoothedBeat.current * 0.3;
     
-    // Map audio loudness to speed multiplier (1.5x to 15.0x)
-    // Quiet music = normal rain speed (1.5x)
-    // Loud music = dramatically fast rain (15.0x)
-    const minSpeed = 1.5;
-    const maxSpeed = 15.0;
+    // Map audio loudness to speed multiplier (1.0x to 20.0x)
+    // Quiet music = slower rain speed (1.0x)
+    // Loud music = dramatically fast rain (20.0x)
+    const minSpeed = 1.0;
+    const maxSpeed = 20.0;
     const speedMul = minSpeed + audioLoudness * (maxSpeed - minSpeed);
     
     const lengthMul = 1; // fixed length for simple mode
@@ -167,8 +167,7 @@ const VerticalLinesMode = () => {
       if (state.y < bottomY) {
         // Keep the same X and current vx; continue from the top
         state.y += (topY - bottomY);
-        // Slightly vary speed to avoid visible syncing
-        state.speed = Math.max(0.1, state.speed * THREE.MathUtils.lerp(0.9, 1.1, Math.random()));
+        // Speed remains constant for synchronized movement
       }
 
       // Apply position and scale using matrix
