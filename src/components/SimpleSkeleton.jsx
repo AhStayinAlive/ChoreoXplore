@@ -47,28 +47,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     
     if (!landmarks || landmarks.length < 33) return;
 
-    // Calculate scale based on distance from camera (using hip width as reference - more stable)
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
-    let scale = 22; // 2x smaller default scale
-    
-    if (leftHip && rightHip && 
-        leftHip.visibility > 0.1 && rightHip.visibility > 0.1) {
-      // Calculate hip width (distance between hips) - more stable than shoulders
-      const hipWidth = Math.sqrt(
-        Math.pow(rightHip.x - leftHip.x, 2) + 
-        Math.pow(rightHip.y - leftHip.y, 2)
-      );
-      
-      // Normalize scale: closer = wider hips = bigger avatar
-      // Typical hip width ranges from 0.1 to 0.3 in normalized coordinates
-      const normalizedWidth = Math.max(0.05, Math.min(0.4, hipWidth));
-      scale = 4.4 / normalizedWidth; // Invert so closer = bigger, 2x smaller base scale
-      scale = Math.max(11.2, Math.min(44.4, scale)); // Clamp between 11.2x and 44.4x for 2x smaller skeleton
-    }
-    
-    // Apply mode-based scale override
-    scale *= modeScale;
+    // Use fixed scale instead of dynamic scaling based on distance
+    // This keeps the avatar size consistent regardless of distance from camera
+    let scale = 22 * modeScale; // Fixed scale, only modified by modeScale prop
 
     // Clear existing children
     while (groupRef.current.children.length > 0) {
