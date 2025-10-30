@@ -19,16 +19,16 @@ export const getLeftHandPosition = (landmarks) => {
   // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
   let handPoint = null;
   let useWrist = false;
-  if (leftPinky && leftPinky.visibility > 0.3) {
+  if (leftPinky && leftPinky.visibility > 0.1) {
     handPoint = leftPinky;
-  } else if (leftIndex && leftIndex.visibility > 0.3) {
+  } else if (leftIndex && leftIndex.visibility > 0.1) {
     handPoint = leftIndex;
   } else {
     handPoint = leftWrist;
     useWrist = true;
   }
   
-  if (!handPoint || handPoint.visibility < 0.3) {
+  if (!handPoint || handPoint.visibility < 0.1) {
     return null;
   }
   
@@ -78,16 +78,16 @@ export const getRightHandPosition = (landmarks) => {
   // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
   let handPoint = null;
   let useWrist = false;
-  if (rightPinky && rightPinky.visibility > 0.3) {
+  if (rightPinky && rightPinky.visibility > 0.1) {
     handPoint = rightPinky;
-  } else if (rightIndex && rightIndex.visibility > 0.3) {
+  } else if (rightIndex && rightIndex.visibility > 0.1) {
     handPoint = rightIndex;
   } else {
     handPoint = rightWrist;
     useWrist = true;
   }
   
-  if (!handPoint || handPoint.visibility < 0.3) {
+  if (!handPoint || handPoint.visibility < 0.1) {
     return null;
   }
   
@@ -132,11 +132,9 @@ export const calculateHandVelocity = (currentPos, lastPos, deltaTime = 0.016) =>
   const dy = currentPos.y - lastPos.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   
-  // Calculate velocity per second and normalize
+  // Calculate and return raw velocity with minimal scaling
   const velocity = distance / deltaTime;
-  
-  // Scale and clamp velocity for effect intensity
-  return Math.min(velocity * 0.1, 1.0);
+  return Math.min(velocity * 0.15, 1.0);
 };
 
 /**
@@ -161,10 +159,11 @@ export const landmarkToScreenCoords = (landmark, scale = 1) => {
  * @param {number} smoothingFactor - Smoothing factor (0-1, higher = more smoothing)
  * @returns {Object} - Smoothed position
  */
-export const smoothHandPosition = (currentPos, smoothedPos, smoothingFactor = 0.1) => {
+export const smoothHandPosition = (currentPos, smoothedPos, smoothingFactor = 0.6) => {
   if (!currentPos) return smoothedPos || { x: 0.5, y: 0.5 };
   if (!smoothedPos) return currentPos;
   
+  // Use higher smoothing factor for more immediate response
   return {
     x: smoothedPos.x + (currentPos.x - smoothedPos.x) * smoothingFactor,
     y: smoothedPos.y + (currentPos.y - smoothedPos.y) * smoothingFactor
