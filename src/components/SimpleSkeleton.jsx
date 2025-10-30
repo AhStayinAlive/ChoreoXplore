@@ -31,12 +31,73 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     [24, 26], [26, 28], [28, 30], [28, 32], [30, 32]
   ];
 
+  // Silhouette color (white pictogram by default)
+  const SILHOUETTE_COLOR = new THREE.Color(0xffffff);
+
+  // Reusable vectors
+  const vUp = new THREE.Vector3(0, 1, 0);
+  const tmpA = new THREE.Vector3();
+  const tmpB = new THREE.Vector3();
+
+  // Helpers
+  function toSceneXY(lm, scale) {
+    return new THREE.Vector3(
+      (lm.x - 0.5) * 200 * scale,
+      (0.5 - lm.y) * 200 * scale,
+      2 // keep in front
+    );
+  }
+
+  function addCapsule(start, end, radius, addCaps = true) {
+    const dir = tmpB.copy(end).sub(start);
+    const length = dir.length();
+    if (length <= 0.0001) return;
+
+    const forward = dir.clone().normalize();
+    const mat = new THREE.MeshBasicMaterial({
+      color: SILHOUETTE_COLOR,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: true,
+      wireframe: false,
+      transparent: false,
+      opacity: 1.0
+    });
+
+    // Cylinder body
+    const cylGeo = new THREE.CylinderGeometry(radius, radius, length, 24, 1, false);
+    const cyl = new THREE.Mesh(cylGeo, mat);
+    cyl.position.copy(start).addScaledVector(dir, 0.5);
+    cyl.quaternion.setFromUnitVectors(vUp, forward);
+    cyl.renderOrder = 10;
+    groupRef.current.add(cyl);
+  }
+
+  function addJointSphere(pos, radius) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: SILHOUETTE_COLOR,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: true,
+      wireframe: false,
+      transparent: false,
+      opacity: 1.0
+    });
+    const capGeo = new THREE.SphereGeometry(radius, 24, 16);
+    const cap = new THREE.Mesh(capGeo, mat);
+    cap.position.copy(pos);
+    cap.renderOrder = 10;
+    groupRef.current.add(cap);
+  }
+
   useFrame(() => {
     if (!groupRef.current || !poseDataRef.current || !skeletonVisible) {
       // Clear existing children if skeleton is not visible
       if (groupRef.current && !skeletonVisible) {
         while (groupRef.current.children.length > 0) {
-          groupRef.current.remove(groupRef.current.children[0]);
+          const child = groupRef.current.children.pop();
+          child.geometry?.dispose?.();
+          child.material?.dispose?.();
         }
       }
       return;
@@ -44,132 +105,124 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
 
     const currentPose = poseDataRef.current;
     const landmarks = currentPose.landmarks;
-    
     if (!landmarks || landmarks.length < 33) return;
 
-    // Use fixed scale instead of dynamic scaling based on distance
-    // This keeps the avatar size consistent regardless of distance from camera
-    let scale = 22 * modeScale; // Fixed scale, only modified by modeScale prop
+    // Fixed scale - no distance-based scaling
+    let scale = 22 * modeScale;
 
-    // Clear existing children
+    // Clear existing children and dispose to avoid leaks
     while (groupRef.current.children.length > 0) {
-      groupRef.current.remove(groupRef.current.children[0]);
+      const child = groupRef.current.children.pop();
+      child.geometry?.dispose?.();
+      child.material?.dispose?.();
     }
 
-    // Draw skeleton lines - direct 1:1 mapping from MediaPipe
-    poseConnections.forEach(([startIdx, endIdx]) => {
-      const start = landmarks[startIdx];
-      const end = landmarks[endIdx];
-      
-      // Use lower visibility threshold for leg connections since they're often partially cut off
-      const isLegConnection = startIdx >= 23 || endIdx >= 23;
-      const visibilityThreshold = isLegConnection ? 0.1 : 0.5;
-      
-      if (start && end && start.visibility > visibilityThreshold && end.visibility > visibilityThreshold) {
-        // Direct mapping - just scale and flip Y to match Three.js coordinate system
-        const startX = (start.x - 0.5) * 200 * scale; // Center and scale
-        const startY = (0.5 - start.y) * 200 * scale; // Flip Y and center
-        const endX = (end.x - 0.5) * 200 * scale;
-        const endY = (0.5 - end.y) * 200 * scale;
+    // Precompute key anchor points in scene space
+    const L_SHO = landmarks[11], R_SHO = landmarks[12];
+    const L_HIP = landmarks[23], R_HIP = landmarks[24];
+    const L_ELB = landmarks[13], R_ELB = landmarks[14];
+    const L_WRI = landmarks[15], R_WRI = landmarks[16];
+    const L_KNE = landmarks[25], R_KNE = landmarks[26];
+    const L_ANK = landmarks[27], R_ANK = landmarks[28];
+    const NOSE  = landmarks[0];
 
-        // Create line geometry
-        const geometry = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(startX, startY, 0),
-          new THREE.Vector3(endX, endY, 0)
-        ]);
+    if (!(L_SHO && R_SHO && L_HIP && R_HIP)) return;
+    const vLS = toSceneXY(L_SHO, scale);
+    const vRS = toSceneXY(R_SHO, scale);
+    const vLH = toSceneXY(L_HIP, scale);
+    const vRH = toSceneXY(R_HIP, scale);
+    const shouldersMid = tmpA.copy(vLS).add(vRS).multiplyScalar(0.5);
+    const hipsMid = tmpB.copy(vLH).add(vRH).multiplyScalar(0.5);
 
-        // Create green line material with bulkier appearance
-        const material = new THREE.LineBasicMaterial({ 
-          color: 0x00FF00, // Green
-          linewidth: 12  // Even thicker lines
-        });
+    const shoulderW = vLS.distanceTo(vRS);
+    const torsoLen = shouldersMid.distanceTo(hipsMid);
 
-        const line = new THREE.Line(geometry, material);
-        line.position.z = 2; // Render skeleton in front
-        groupRef.current.add(line);
+    // Radius presets (tuned to look like the pictogram)
+    const torsoR   = Math.max(shoulderW * 0.28, 10);
+    const shoulderBarR = Math.max(shoulderW * 0.18, torsoR * 0.6);
+    const pelvisBarR   = Math.max(shoulderW * 0.20, torsoR * 0.65);
+    const armUpperR = Math.max(shoulderW * 0.16, 8);
+    const armLowerR = Math.max(shoulderW * 0.14, 7);
+    const legUpperR = Math.max(shoulderW * 0.20, 10);
+    const legLowerR = Math.max(shoulderW * 0.18, 9);
+    const neckR     = Math.max(shoulderW * 0.12, 7);
+    const headR     = Math.max(shoulderW * 0.42, torsoLen * 0.28);
+
+    // Torso vertical
+    addCapsule(shouldersMid, hipsMid, torsoR);
+
+    // Shoulder bar and pelvis bar to broaden silhouette
+    addCapsule(vLS, vRS, shoulderBarR);
+    addCapsule(vLH, vRH, pelvisBarR);
+
+    // Neck (shoulder mid to just below head center)
+    if (NOSE && NOSE.visibility > 0.4) {
+      const headCenter = toSceneXY(NOSE, scale);
+      const neckEnd = headCenter.clone().add(new THREE.Vector3(0, -headR * 0.9, 0));
+      addCapsule(shouldersMid, neckEnd, neckR);
+      // Head - solid filled circle (flat, always faces camera)
+      const headGeo = new THREE.CircleGeometry(headR, 32);
+      const headMat = new THREE.MeshBasicMaterial({ 
+        color: SILHOUETTE_COLOR,
+        side: THREE.DoubleSide,
+        transparent: false,
+        opacity: 1.0,
+        wireframe: false,
+        depthTest: true,
+        depthWrite: true
+      });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.copy(headCenter);
+      head.renderOrder = 10; // Render on top
+      groupRef.current.add(head);
+    }
+
+    // Arms
+    if (L_ELB && L_WRI && L_SHO.visibility > 0.2 && L_ELB.visibility > 0.2) {
+      const elbowPos = toSceneXY(L_ELB, scale);
+      addCapsule(vLS, elbowPos, armUpperR);
+      addJointSphere(vLS, armUpperR); // shoulder
+      addJointSphere(elbowPos, armUpperR); // elbow
+      if (L_WRI.visibility > 0.2) {
+        const wristPos = toSceneXY(L_WRI, scale);
+        addCapsule(elbowPos, wristPos, armLowerR);
+        addJointSphere(wristPos, armLowerR); // wrist
       }
-    });
-
-    // Draw key points as small circles, but skip face and hand landmarks
-    landmarks.forEach((landmark, index) => {
-      // Use lower visibility threshold for leg landmarks since they're often partially cut off
-      const visibilityThreshold = (index >= 23 && index <= 32) ? 0.1 : 0.5;
-      
-      if (landmark.visibility > visibilityThreshold) {
-        // Skip face landmarks (0-10) and hand landmarks (15-21, 16-22) - we'll draw them separately
-        if ((index >= 0 && index <= 10) || 
-            (index >= 15 && index <= 21) || 
-            (index >= 16 && index <= 22)) return;
-        
-        // Direct mapping - just scale and flip Y to match Three.js coordinate system
-        const x = (landmark.x - 0.5) * 200 * scale; // Center and scale
-        const y = (0.5 - landmark.y) * 200 * scale; // Flip Y and center
-
-        const geometry = new THREE.CircleGeometry(10 * scale, 16); // Much larger circles
-        const material = new THREE.MeshBasicMaterial({ 
-          color: 0x00FF00, // Green to match the lines
-          transparent: true,
-          opacity: 1.0  // Solid, no transparency
-        });
-
-        const circle = new THREE.Mesh(geometry, material);
-        circle.position.set(x, y, 2); // Render skeleton in front
-        groupRef.current.add(circle);
+    }
+    if (R_ELB && R_WRI && R_SHO.visibility > 0.2 && R_ELB.visibility > 0.2) {
+      const elbowPos = toSceneXY(R_ELB, scale);
+      addCapsule(vRS, elbowPos, armUpperR);
+      addJointSphere(vRS, armUpperR); // shoulder
+      addJointSphere(elbowPos, armUpperR); // elbow
+      if (R_WRI.visibility > 0.2) {
+        const wristPos = toSceneXY(R_WRI, scale);
+        addCapsule(elbowPos, wristPos, armLowerR);
+        addJointSphere(wristPos, armLowerR); // wrist
       }
-    });
-
-    // Draw single big circle for head (using nose landmark as center)
-    const nose = landmarks[0]; // Nose landmark
-    if (nose && nose.visibility > 0.5) {
-      const x = (nose.x - 0.5) * 200 * scale;
-      const y = (0.5 - nose.y) * 200 * scale;
-
-      const headGeometry = new THREE.CircleGeometry(20 * scale, 16); // Much bigger head circle
-      const headMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00FF00,
-        transparent: true,
-        opacity: 1.0
-      });
-
-      const headCircle = new THREE.Mesh(headGeometry, headMaterial);
-      headCircle.position.set(x, y, 2); // Render skeleton in front
-      groupRef.current.add(headCircle);
     }
 
-    // Draw single circles for hands (using wrist landmarks as center)
-    const leftWrist = landmarks[15]; // Left wrist
-    const rightWrist = landmarks[16]; // Right wrist
-
-    if (leftWrist && leftWrist.visibility > 0.5) {
-      const x = (leftWrist.x - 0.5) * 200 * scale;
-      const y = (0.5 - leftWrist.y) * 200 * scale;
-
-      const handGeometry = new THREE.CircleGeometry(8 * scale, 16); // Medium-sized hand circle
-      const handMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00FF00,
-        transparent: true,
-        opacity: 1.0
-      });
-
-      const leftHandCircle = new THREE.Mesh(handGeometry, handMaterial);
-      leftHandCircle.position.set(x, y, 0);
-      groupRef.current.add(leftHandCircle);
+    // Legs
+    if (L_KNE && L_ANK && L_HIP.visibility > 0.1 && L_KNE.visibility > 0.1) {
+      const kneePos = toSceneXY(L_KNE, scale);
+      addCapsule(vLH, kneePos, legUpperR);
+      addJointSphere(vLH, legUpperR); // hip
+      addJointSphere(kneePos, legUpperR); // knee
+      if (L_ANK.visibility > 0.1) {
+        const anklePos = toSceneXY(L_ANK, scale);
+        addCapsule(kneePos, anklePos, legLowerR);
+        addJointSphere(anklePos, legLowerR); // ankle
+      }
     }
-
-    if (rightWrist && rightWrist.visibility > 0.5) {
-      const x = (rightWrist.x - 0.5) * 200 * scale;
-      const y = (0.5 - rightWrist.y) * 200 * scale;
-
-      const handGeometry = new THREE.CircleGeometry(8 * scale, 16); // Medium-sized hand circle
-      const handMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00FF00,
-        transparent: true,
-        opacity: 1.0
-      });
-
-      const rightHandCircle = new THREE.Mesh(handGeometry, handMaterial);
-      rightHandCircle.position.set(x, y, 0);
-      groupRef.current.add(rightHandCircle);
+    if (R_KNE && R_ANK && R_HIP.visibility > 0.1 && R_KNE.visibility > 0.1) {
+      const kneePos = toSceneXY(R_KNE, scale);
+      addCapsule(vRH, kneePos, legUpperR);
+      addJointSphere(vRH, legUpperR); // hip
+      addJointSphere(kneePos, legUpperR); // knee
+      if (R_ANK.visibility > 0.1) {
+        const anklePos = toSceneXY(R_ANK, scale);
+        addCapsule(kneePos, anklePos, legLowerR);
+        addJointSphere(anklePos, legLowerR); // ankle
+      }
     }
   });
 
