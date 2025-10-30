@@ -107,7 +107,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     const landmarks = currentPose.landmarks;
     if (!landmarks || landmarks.length < 33) return;
 
-    // Fixed scale - no distance-based scaling
+    // Fixed scale - larger base scale so avatar stays visible
     let scale = 22 * modeScale;
 
     // Clear existing children and dispose to avoid leaks

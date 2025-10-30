@@ -2,6 +2,7 @@
 
 /**
  * Extract left hand position from MediaPipe landmarks
+ * Uses pinky tip for most accurate end-of-hand tracking, with forward offset
  * @param {Array} landmarks - MediaPipe pose landmarks array
  * @returns {Object|null} - Hand position {x, y, z, visibility} or null if not found
  */
@@ -10,21 +11,57 @@ export const getLeftHandPosition = (landmarks) => {
     return null;
   }
   
-  const leftWrist = landmarks[15]; // Left wrist landmark (index 15)
-  if (!leftWrist || leftWrist.visibility < 0.3) {
+  // Try pinky tip (17), then index tip (19), fallback to wrist (15)
+  const leftPinky = landmarks[17]; // Left pinky tip
+  const leftIndex = landmarks[19]; // Left index finger tip
+  const leftWrist = landmarks[15]; // Left wrist (fallback)
+  
+  // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
+  let handPoint = null;
+  let useWrist = false;
+  if (leftPinky && leftPinky.visibility > 0.3) {
+    handPoint = leftPinky;
+  } else if (leftIndex && leftIndex.visibility > 0.3) {
+    handPoint = leftIndex;
+  } else {
+    handPoint = leftWrist;
+    useWrist = true;
+  }
+  
+  if (!handPoint || handPoint.visibility < 0.3) {
     return null;
   }
   
+  // Calculate direction vector from wrist to hand point for offset
+  const wrist = landmarks[15];
+  let offsetX = 0;
+  let offsetY = 0;
+  
+  if (wrist && !useWrist) {
+    // Calculate direction from wrist to hand point
+    const dx = handPoint.x - wrist.x;
+    const dy = handPoint.y - wrist.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length > 0.01) {
+      // Extend 30% beyond the hand point in the same direction
+      const extendFactor = 0.3;
+      offsetX = (dx / length) * length * extendFactor;
+      offsetY = (dy / length) * length * extendFactor;
+    }
+  }
+  
   return {
-    x: leftWrist.x,
-    y: leftWrist.y,
-    z: leftWrist.z,
-    visibility: leftWrist.visibility
+    x: handPoint.x + offsetX,
+    y: handPoint.y + offsetY,
+    z: handPoint.z,
+    visibility: handPoint.visibility
   };
 };
 
 /**
  * Extract right hand position from MediaPipe landmarks
+ * Uses pinky tip for most accurate end-of-hand tracking, with forward offset
  * @param {Array} landmarks - MediaPipe pose landmarks array
  * @returns {Object|null} - Hand position {x, y, visibility} or null if not found
  */
@@ -33,16 +70,51 @@ export const getRightHandPosition = (landmarks) => {
     return null;
   }
   
-  const rightWrist = landmarks[16]; // Right wrist landmark
-  if (!rightWrist || rightWrist.visibility < 0.3) {
+  // Try pinky tip (18), then index tip (20), fallback to wrist (16)
+  const rightPinky = landmarks[18]; // Right pinky tip
+  const rightIndex = landmarks[20]; // Right index finger tip
+  const rightWrist = landmarks[16]; // Right wrist (fallback)
+  
+  // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
+  let handPoint = null;
+  let useWrist = false;
+  if (rightPinky && rightPinky.visibility > 0.3) {
+    handPoint = rightPinky;
+  } else if (rightIndex && rightIndex.visibility > 0.3) {
+    handPoint = rightIndex;
+  } else {
+    handPoint = rightWrist;
+    useWrist = true;
+  }
+  
+  if (!handPoint || handPoint.visibility < 0.3) {
     return null;
   }
   
+  // Calculate direction vector from wrist to hand point for offset
+  const wrist = landmarks[16];
+  let offsetX = 0;
+  let offsetY = 0;
+  
+  if (wrist && !useWrist) {
+    // Calculate direction from wrist to hand point
+    const dx = handPoint.x - wrist.x;
+    const dy = handPoint.y - wrist.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    if (length > 0.01) {
+      // Extend 30% beyond the hand point in the same direction
+      const extendFactor = 0.3;
+      offsetX = (dx / length) * length * extendFactor;
+      offsetY = (dy / length) * length * extendFactor;
+    }
+  }
+  
   return {
-    x: rightWrist.x,
-    y: rightWrist.y,
-    z: rightWrist.z,
-    visibility: rightWrist.visibility
+    x: handPoint.x + offsetX,
+    y: handPoint.y + offsetY,
+    z: handPoint.z,
+    visibility: handPoint.visibility
   };
 };
 
