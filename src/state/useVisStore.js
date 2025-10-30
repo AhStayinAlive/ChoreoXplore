@@ -6,7 +6,7 @@ const useVisStore = create((set, get) => ({
   motion: null,
   isActive: false, // Global toggle for Irina visuals
   params: { 
-    speed: 0.6, 
+    speed: 1.2, 
     intensity: 0.8, 
     hue: 210, 
     musicReact: 0.9,  // Restored to original value

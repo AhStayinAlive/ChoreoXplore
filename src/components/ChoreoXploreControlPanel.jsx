@@ -146,10 +146,10 @@ export default function ChoreoXploreControlPanel() {
           <Slider
             label="Speed"
             value={params.speed}
-            min={0.1}
+            min={0}
             max={2.0}
-            step={0.1}
-            format={(v) => v.toFixed(2)}
+            step={0.01}
+            format={(v) => Math.round(v * 100).toString()}
             onChange={(value) => handleParamChange('speed', value)}
           />
         </div>
