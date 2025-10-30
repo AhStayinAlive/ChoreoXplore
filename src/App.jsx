@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import React from "react";
 import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
@@ -7,7 +8,9 @@ import HandEffectsPanel from "./components/HandEffectsPanel";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
+import SetupWizard from "./components/SetupWizard";
 import { SpotifyProvider } from "./contexts/SpotifyContext.jsx";
+import { useVisStore } from "./state/useVisStore";
 import useStore from "./core/store";
 
 export default function App() {
@@ -64,6 +67,44 @@ function AppContent({
   setAmbientAnimationParams, 
   handleBackgroundImageGenerated 
 }) {
+  const setupStep = useStore(s => s.setupStep);
+  const advanceToStep = useStore(s => s.advanceToStep);
+  const songSearched = useStore(s => s.songSearched);
+  const motionCaptureActive = useStore(s => s.motionCaptureActive);
+  const visualsEnabled = useVisStore(s => s.isActive);
+  const handEffectType = useVisStore(s => s.params.handEffect?.type);
+  const handSelection = useVisStore(s => s.params.handEffect?.handSelection);
+
+  // Auto-advance wizard based on user actions
+  React.useEffect(() => {
+    // Step 1 → 2: Song search button clicked
+    if (songSearched && setupStep === 1) {
+      advanceToStep(2);
+    }
+  }, [songSearched, setupStep, advanceToStep]);
+
+  React.useEffect(() => {
+    // Step 2 → 3: Visuals enabled (user toggled "Enable Visuals" to ON)
+    if (visualsEnabled && setupStep === 2) {
+      advanceToStep(3);
+    }
+  }, [visualsEnabled, setupStep, advanceToStep]);
+
+  React.useEffect(() => {
+    // Step 3 → 4: Motion capture started
+    if (motionCaptureActive && setupStep === 3) {
+      advanceToStep(4);
+    }
+  }, [motionCaptureActive, setupStep, advanceToStep]);
+
+  React.useEffect(() => {
+    // Step 4 → 5: Hand effect type chosen (not 'none') AND hand selected (not 'none')
+    if (handEffectType && handEffectType !== 'none' && 
+        handSelection && handSelection !== 'none' && 
+        setupStep === 4) {
+      advanceToStep(5);
+    }
+  }, [handEffectType, handSelection, setupStep, advanceToStep]);
 
   return (
     <>
@@ -229,6 +270,9 @@ function AppContent({
     
     {/* Spotify Playback Control */}
     <SpotifyPlaybackControl />
+    
+    {/* Setup Wizard - Show in choreoxplore mode */}
+    {mode === "choreoxplore" && <SetupWizard />}
     </>
   );
 }

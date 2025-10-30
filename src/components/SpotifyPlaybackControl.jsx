@@ -6,6 +6,7 @@ import useStore from '../core/store';
 const SpotifyPlaybackControl = () => {
   const { isAuthenticated, accessToken } = useSpotify();
   const mode = useStore(s => s.mode);
+  const setSongSearched = useStore(s => s.setSongSearched);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -148,6 +149,9 @@ const SpotifyPlaybackControl = () => {
 
   const handleSearch = async () => {
     if (!songName.trim() || !accessToken || isSearching) return;
+    
+    // Mark that user has searched for a song (for wizard progression)
+    setSongSearched(true);
     
     setIsSearching(true);
     try {
