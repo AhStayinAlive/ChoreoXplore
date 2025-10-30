@@ -125,7 +125,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const updateHandRipple = useCallback((currentHandPos, handRefs, material, delta) => {
     if (currentHandPos) {
       // Smooth hand position to reduce jitter
-      const smoothedPos = smoothHandPosition(currentHandPos, handRefs.smoothedPosition.current, 0.15);
+      const smoothedPos = smoothHandPosition(currentHandPos, handRefs.smoothedPosition.current, 0.6);
       handRefs.smoothedPosition.current = smoothedPos;
       
       // Calculate hand velocity for ripple strength
