@@ -106,7 +106,7 @@ const HandFluidDistortion = () => {
       clientY: screenPos.y,
       movementX: movementX,
       movementY: movementY,
-      pointerId: pointerId, // Use unique pointer ID for each hand
+      pointerId: pointerId, // Shared pointer ID to prevent multi-touch repulsion
       pointerType: 'touch', // Simulate touch input
       pressure: 0.5,
       width: 1,
