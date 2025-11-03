@@ -1,12 +1,11 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function HandEffectsPanel() {
   const params = useVisStore(s => s.params);
   const setParams = useVisStore(s => s.setParams);
-  const [showQuickView, setShowQuickView] = useState(true);
 
   const handEffect = params.handEffect || {
     type: 'none',
@@ -106,9 +105,8 @@ export default function HandEffectsPanel() {
         <div style={{ display: 'flex', gap: 8 }}>
           <ToggleButton
             label="Preview"
-            selected={showQuickView}
+            selected={handEffect.showQuickView !== false}
             onChange={(val) => {
-              setShowQuickView(!!val);
               setParams({ handEffect: { ...handEffect, showQuickView: !!val } });
             }}
           />

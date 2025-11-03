@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
 import * as THREE from 'three';
@@ -97,7 +97,6 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
 function FluidMarker({ handSide, color, intensity, radius }) {
   const meshRef = useRef();
   const timeRef = useRef(0);
-  const trailRef = useRef([]);
   const params = useVisStore(s => s.params);
   const speed = params.speed || 1.0;
   
@@ -135,7 +134,7 @@ function FluidMarker({ handSide, color, intensity, radius }) {
 /**
  * Simulates hand movement in a figure-8 pattern for preview
  */
-function SimulatedHandMovement({ handSide, effectType, settings }) {
+function SimulatedHandMovement({ handSide, effectType }) {
   const meshRef = useRef();
   const timeRef = useRef(0);
   const lastPositionRef = useRef({ x: 0.5, y: 0.5 });
@@ -332,14 +331,12 @@ export default function HandEffectQuickView() {
             <SimulatedHandMovement 
               handSide="left" 
               effectType={effectType}
-              settings={handEffect[effectType]}
             />
           )}
           {showRightHand && (
             <SimulatedHandMovement 
               handSide="right" 
               effectType={effectType}
-              settings={handEffect[effectType]}
             />
           )}
         </Canvas>
