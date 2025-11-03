@@ -12,7 +12,8 @@ export default function HandEffectsPanel() {
     handSelection: 'none',
     ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
-    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false }
+    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false },
+    showQuickView: true
   };
 
   // DEBUG: Log when component renders and what colors it receives
@@ -99,13 +100,22 @@ export default function HandEffectsPanel() {
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
         <h3 style={{ fontWeight: 600, margin: 0, flexShrink: 0 }}>Hand Effects</h3>
-        <ToggleButton
-          label="Motion Reactive"
-          selected={handEffect.motionReactive !== false}
-          onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
-        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ToggleButton
+            label="Preview"
+            selected={handEffect.showQuickView !== false}
+            onChange={(val) => {
+              setParams({ handEffect: { ...handEffect, showQuickView: !!val } });
+            }}
+          />
+          <ToggleButton
+            label="Motion Reactive"
+            selected={handEffect.motionReactive !== false}
+            onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
+          />
+        </div>
       </div>
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
@@ -134,6 +144,7 @@ export default function HandEffectsPanel() {
             <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
+            <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Particle Trail</option>
           </select>
         </div>
 
@@ -451,6 +462,90 @@ export default function HandEffectsPanel() {
               </label>
             </div>
           </>
+        )}
+        {/* Particle Trail Effect Settings */}
+        {handEffect.type === 'particleTrail' && handEffect.handSelection !== 'none' && (
+          <div style={{ marginBottom: 16 }}>
+            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Particle Trail Settings</h4>
+            
+            {/* Trail Color */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', color: 'white', fontSize: '11px', marginBottom: '6px', fontWeight: '400' }}>
+                Trail Color
+              </label>
+              <input
+                type="color"
+                value={handEffect.particleTrail?.color || '#00ffff'}
+                onChange={(e) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, color: e.target.value }
+                })}
+                style={{
+                  width: '100%',
+                  height: '32px',
+                  border: '1px solid rgba(0, 150, 255, 0.3)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: 'transparent'
+                }}
+              />
+            </div>
+
+            {/* Intensity */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Intensity"
+                value={handEffect.particleTrail?.intensity || 0.8}
+                min={0}
+                max={1}
+                step={0.05}
+                onChange={(val) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, intensity: val }
+                })}
+              />
+            </div>
+
+            {/* Particle Size */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Particle Size"
+                value={handEffect.particleTrail?.particleSize || 0.15}
+                min={0.05}
+                max={0.3}
+                step={0.01}
+                onChange={(val) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, particleSize: val }
+                })}
+              />
+            </div>
+
+            {/* Trail Length */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Trail Length"
+                value={handEffect.particleTrail?.trailLength || 50}
+                min={10}
+                max={100}
+                step={5}
+                onChange={(val) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, trailLength: val }
+                })}
+              />
+            </div>
+
+            {/* Fade Speed */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Fade Speed"
+                value={handEffect.particleTrail?.fadeSpeed || 0.95}
+                min={0.8}
+                max={0.99}
+                step={0.01}
+                onChange={(val) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, fadeSpeed: val }
+                })}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>

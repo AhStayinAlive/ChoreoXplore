@@ -14,9 +14,11 @@ const useVisStore = create((set, get) => ({
     mode: "quand_cest",
     // New hand effect settings
     handEffect: {
-      type: 'none',           // 'none' | 'ripple' | 'smoke'
+      type: 'none',           // 'none' | 'ripple' | 'smoke' | 'fluidDistortion' | 'particleTrail'
       handSelection: 'none',  // 'none' | 'left' | 'right' | 'both'
       motionReactive: true,   // when false, visual modes become static but hand effects still respond to motion
+      showQuickView: true,    // whether to show the quick preview of hand effects
+      previewPosition: null,  // {x, y} position of draggable preview window
       
       // Ripple effect settings
       ripple: {
@@ -46,6 +48,15 @@ const useVisStore = create((set, get) => ({
         swirl: 0,
         velocityDissipation: 0.99,
         rainbow: false
+      },
+      
+      // Particle trail effect settings
+      particleTrail: {
+        color: '#00ffff',
+        intensity: 0.8,
+        particleSize: 0.15,
+        trailLength: 50,
+        fadeSpeed: 0.95
       }
     }
   },
