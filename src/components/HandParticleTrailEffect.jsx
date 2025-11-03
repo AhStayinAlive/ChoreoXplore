@@ -46,7 +46,7 @@ const HandParticleTrailEffect = () => {
       positions[i * 3] = 0;
       positions[i * 3 + 1] = 0;
       positions[i * 3 + 2] = 0;
-      sizes[i] = particleSize * (1 - i / trailLength);
+      sizes[i] = particleSize * 150 * (1 - i / trailLength); // Scaled for SimpleSkeleton coordinate system
     }
     
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -59,7 +59,7 @@ const HandParticleTrailEffect = () => {
   const material = useMemo(() => {
     return new THREE.PointsMaterial({
       color: new THREE.Color(color),
-      size: particleSize * 1.5,
+      size: particleSize * 150, // Scale up significantly for SimpleSkeleton coordinate system (22 * 200 scale)
       transparent: true,
       opacity: intensity,
       blending: THREE.AdditiveBlending,
@@ -113,7 +113,8 @@ const HandParticleTrailEffect = () => {
       positions[i * 3 + 1] = pos.y;
       positions[i * 3 + 2] = -i * 0.5 + energy * 5;
       
-      sizes[i] = particleSize * (1 - i / trailLength) * fade * (1 + energy * 0.2);
+      // Adjust size with fade - scaled for SimpleSkeleton coordinate system
+      sizes[i] = particleSize * 150 * (1 - i / trailLength) * fade * (1 + energy * 0.2);
     }
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
