@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
+import useStore, { hexToRGB } from '../core/store';
 import * as THREE from 'three';
 import {
   handRippleVertexShader,
@@ -9,36 +10,113 @@ import {
 } from '../shaders/handRippleShader';
 
 // Constants for positioning and animation
-const PREVIEW_WIDTH = 300;
-const PREVIEW_HEIGHT = 225;
-const PREVIEW_BOTTOM = 12;
-const AMBIENT_PANEL_WIDTH = 320;
-const PANEL_GAP = 10;
-const PREVIEW_RIGHT = AMBIENT_PANEL_WIDTH + PANEL_GAP + PREVIEW_BOTTOM; // 342px
+const PREVIEW_WIDTH = 400;
+const PREVIEW_HEIGHT = 300;
+const DEFAULT_BOTTOM = 12;
+const DEFAULT_RIGHT = 342;
 
 // Animation constants
-const PARTICLE_TRAIL_LENGTH = 30;
-const PARTICLE_SIZE_MULTIPLIER = 0.1;
-const SMOKE_SPHERE_SIZE = 0.15;
-const FIGURE8_X_AMPLITUDE = 0.25;
-const FIGURE8_Y_AMPLITUDE = 0.2;
+const PARTICLE_TRAIL_LENGTH = 50;
+const PARTICLE_SIZE_MULTIPLIER = 0.15;
+const SMOKE_SPHERE_SIZE = 0.2;
+const FIGURE8_X_AMPLITUDE = 0.3;
+const FIGURE8_Y_AMPLITUDE = 0.25;
 const FIGURE8_Y_FREQUENCY = 2;
 const COORDINATE_SCALE_X = 4;
 const COORDINATE_SCALE_Y = 3;
 const PULSE_AMPLITUDE = 0.3;
 const PULSE_FREQUENCY = 3;
-const FLUID_MARKER_BASE_SIZE = 0.15;
-const FLUID_OPACITY_MULTIPLIER = 0.3;
-const FLUID_OPACITY_MAX = 0.8;
+const FLUID_MARKER_BASE_SIZE = 0.2;
+const FLUID_OPACITY_MULTIPLIER = 0.5;
+const FLUID_OPACITY_MAX = 0.9;
 
 /**
- * Simple particle trail for smoke effect visualization
+ * Background visual mode for preview (simplified version of actual visual modes)
+ */
+function PreviewBackgroundVisual() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const material = useMemo(() => {
+    // Simple shader for background visualization
+    const fragmentShader = `
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform float uEnergy;
+      uniform float uIntensity;
+      varying vec2 vUv;
+      
+      void main() {
+        vec2 uv = vUv;
+        float t = uTime;
+        
+        // Create animated grid pattern
+        float grid = 0.0;
+        float gridSize = 0.1;
+        
+        // Vertical lines
+        if(mod(uv.x, gridSize) < 0.005) grid = 0.3;
+        // Horizontal lines  
+        if(mod(uv.y, gridSize) < 0.005) grid = 0.3;
+        
+        // Pulsing based on music energy
+        float pulse = sin(t * 3.0 + uv.x * 5.0) * uEnergy * 0.5;
+        
+        vec3 color = uColor * (uIntensity * 0.3 + grid + pulse);
+        gl_FragColor = vec4(color, 0.4);
+      }
+    `;
+    
+    const vertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
+        uEnergy: { value: 0 },
+        uIntensity: { value: 0.8 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+  }, []);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    const rgb = hexToRGB(userColors?.assetColor || '#0096ff');
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
+    material.uniforms.uIntensity.value = params.intensity;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
+      material.uniforms.uEnergy.value, energy, 0.2
+    );
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Enhanced smoke trail with more particles and music reactivity
  */
 function SmokeTrail({ handSide, color, intensity, radius }) {
   const particlesRef = useRef();
   const timeRef = useRef(0);
   const trailPositions = useRef([]);
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   const speed = params.speed || 1.0;
   
   const particleCount = PARTICLE_TRAIL_LENGTH;
@@ -100,13 +178,14 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
     }
     trailPositions.current[0] = { x, y, age: 0 };
     
-    // Update geometry positions
+    // Update geometry positions with music reactivity
+    const energy = (music?.energy ?? 0) * params.musicReact;
     const positions = particlesRef.current.geometry.attributes.position.array;
     for (let i = 0; i < trailPositions.current.length; i++) {
       const pos = trailPositions.current[i];
       positions[i * 3] = (pos.x - 0.5) * COORDINATE_SCALE_X;
       positions[i * 3 + 1] = (0.5 - pos.y) * COORDINATE_SCALE_Y;
-      positions[i * 3 + 2] = -i * 0.01;
+      positions[i * 3 + 2] = -i * 0.01 + energy * 0.1; // Add depth based on music
     }
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
   });
@@ -155,13 +234,14 @@ function FluidMarker({ handSide, color, intensity, radius }) {
 }
 
 /**
- * Simulates hand movement in a figure-8 pattern for preview
+ * Simulates hand movement in a figure-8 pattern for preview with actual ripple effect rendering
  */
 function SimulatedHandMovement({ handSide, effectType }) {
   const meshRef = useRef();
   const timeRef = useRef(0);
   const lastPositionRef = useRef({ x: 0.5, y: 0.5 });
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   
   // Get effect settings based on type
   const getEffectSettings = () => {
@@ -192,7 +272,7 @@ function SimulatedHandMovement({ handSide, effectType }) {
     ] : [0, 0, 0];
   };
 
-  // Create shader material for ripple effect
+  // Create shader material for ripple effect with enhanced visuals
   const material = useMemo(() => {
     if (effectType !== 'ripple') return null;
     
@@ -237,12 +317,17 @@ function SimulatedHandMovement({ handSide, effectType }) {
     
     lastPositionRef.current = { x, y };
     
+    // Get music energy for reactivity
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    
     // Update material uniforms for ripple effect
     if (material && material.uniforms) {
       material.uniforms.uHandPosition.value.set(x, y);
       material.uniforms.uTime.value = t;
-      material.uniforms.uRippleStrength.value = Math.min(velocity * 0.5 * (effectSettings.intensity || 0.8), 1.0);
-      material.uniforms.uRippleRadius.value = effectSettings.radius || 0.1;
+      // Add music reactivity to ripple strength
+      const baseStrength = Math.min(velocity * 0.5 * (effectSettings.intensity || 0.8), 1.0);
+      material.uniforms.uRippleStrength.value = baseStrength + energy * 0.5;
+      material.uniforms.uRippleRadius.value = (effectSettings.radius || 0.1) * (1 + energy * 0.3);
       material.uniforms.uBaseColor.value.set(...hexToRgb(effectSettings.baseColor || '#00ccff'));
       material.uniforms.uRippleColor.value.set(...hexToRgb(effectSettings.rippleColor || '#ff00cc'));
     }
@@ -262,7 +347,7 @@ function SimulatedHandMovement({ handSide, effectType }) {
   if (effectType === 'ripple') {
     return (
       <mesh ref={meshRef} material={material}>
-        <planeGeometry args={[4, 3]} />
+        <planeGeometry args={[8, 6]} />
       </mesh>
     );
   }
@@ -290,14 +375,79 @@ function SimulatedHandMovement({ handSide, effectType }) {
 
 /**
  * Quick View component for previewing hand effects without user motion
+ * Now with draggable positioning, background visuals, and music reactivity
  */
 export default function HandEffectQuickView() {
   const params = useVisStore(s => s.params);
-  const handEffect = params.handEffect || {};
+  const setParams = useVisStore(s => s.setParams);
+  const handEffect = useMemo(() => params.handEffect || {}, [params.handEffect]);
   
   const effectType = handEffect.type || 'none';
   const handSelection = handEffect.handSelection || 'none';
   const showQuickView = handEffect.showQuickView !== false; // Default to true
+  
+  // Draggable state
+  const [position, setPosition] = useState({
+    x: handEffect.previewPosition?.x || DEFAULT_RIGHT,
+    y: handEffect.previewPosition?.y || DEFAULT_BOTTOM
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragRef = useRef(null);
+  
+  // Handle drag start
+  const handleMouseDown = useCallback((e) => {
+    if (e.target.closest('.preview-header')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  }, [position]);
+  
+  // Handle drag move
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging) {
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      
+      // Keep within window bounds
+      const maxX = window.innerWidth - PREVIEW_WIDTH - 10;
+      const maxY = window.innerHeight - PREVIEW_HEIGHT - 10;
+      
+      setPosition({
+        x: Math.max(10, Math.min(newX, maxX)),
+        y: Math.max(10, Math.min(newY, maxY))
+      });
+    }
+  }, [isDragging, dragStart]);
+  
+  // Handle drag end
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      // Save position to state
+      setParams({
+        handEffect: {
+          ...handEffect,
+          previewPosition: position
+        }
+      });
+    }
+  }, [isDragging, position, handEffect, setParams]);
+  
+  // Add/remove global mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
   
   // Don't render if no effect selected or preview is disabled
   if (effectType === 'none' || handSelection === 'none' || !showQuickView) {
@@ -308,26 +458,37 @@ export default function HandEffectQuickView() {
   const showRightHand = handSelection === 'right' || handSelection === 'both';
   
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: PREVIEW_BOTTOM,
-      right: PREVIEW_RIGHT, // Position to the left of AmbientAnimationControlPanel
-      width: PREVIEW_WIDTH,
-      height: PREVIEW_HEIGHT,
-      background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(0,150,255,0.3)',
-      borderRadius: 12,
-      overflow: 'hidden',
-      zIndex: 10
-    }}>
-      {/* Header */}
-      <div style={{
+    <div 
+      ref={dragRef}
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        width: PREVIEW_WIDTH,
+        height: PREVIEW_HEIGHT,
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(10px)',
+        border: '2px solid rgba(0,150,255,0.5)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        zIndex: 1000,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      {/* Header - Draggable */}
+      <div 
+        className="preview-header"
+        style={{
         padding: '8px 12px',
         borderBottom: '1px solid rgba(0,150,255,0.3)',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        cursor: 'grab',
+        userSelect: 'none',
+        background: 'rgba(0,0,0,0.3)'
       }}>
         <h4 style={{ 
           margin: 0, 
@@ -335,14 +496,17 @@ export default function HandEffectQuickView() {
           fontWeight: 600,
           color: 'white'
         }}>
-          Effect Preview
+          Effect Preview (Drag to Move)
         </h4>
+        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+          🎵 Music Reactive
+        </div>
       </div>
       
       {/* Canvas for preview */}
-      <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
+      <div style={{ width: '100%', height: 'calc(100% - 40px)', position: 'relative' }}>
         <Canvas
-          camera={{ position: [0, 0, 2], fov: 50 }}
+          camera={{ position: [0, 0, 2], fov: 60 }}
           gl={{ 
             alpha: true, 
             antialias: true,
@@ -350,6 +514,11 @@ export default function HandEffectQuickView() {
           }}
         >
           <color attach="background" args={['#000000']} />
+          
+          {/* Background visual mode */}
+          <PreviewBackgroundVisual />
+          
+          {/* Hand effects */}
           {showLeftHand && (
             <SimulatedHandMovement 
               handSide="left" 
@@ -374,7 +543,7 @@ export default function HandEffectQuickView() {
         color: 'rgba(255,255,255,0.6)',
         pointerEvents: 'none'
       }}>
-        Simulated hand movement
+        Simulated movement • Synced to audio
       </div>
     </div>
   );
