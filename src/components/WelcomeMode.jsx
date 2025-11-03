@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import useStore from '../core/store';
 import { useSpotify } from '../contexts/SpotifyContext.jsx';
-import { getAccessToken } from '../spotify/auth';
 import { 
   enableSpotifyTheme, 
   disableSpotifyTheme, 
-  forceUpdateTheme,
-  isSpotifyThemeEnabled 
+  forceUpdateTheme
 } from '../integrations/spotifyThemeBootstrap';
 
 export default function WelcomeMode() {
@@ -17,8 +15,7 @@ export default function WelcomeMode() {
   
   const setMode = useStore(s => s.setMode);
   const setUserColors = useStore(s => s.setUserColors);
-  const { isAuthenticated, authenticate } = useSpotify();
-  const hasSpotifyToken = !!getAccessToken();
+  const { isAuthenticated, authenticate, accessToken } = useSpotify();
 
   // Listen for theme updates
   useEffect(() => {
@@ -37,7 +34,7 @@ export default function WelcomeMode() {
 
   // Handle auto-from-Spotify toggle
   useEffect(() => {
-    if (autoFromSpotify && hasSpotifyToken) {
+    if (autoFromSpotify && accessToken) {
       enableSpotifyTheme();
       // Force immediate update
       forceUpdateTheme().then(theme => {
@@ -50,7 +47,7 @@ export default function WelcomeMode() {
     } else {
       disableSpotifyTheme();
     }
-  }, [autoFromSpotify, hasSpotifyToken]);
+  }, [autoFromSpotify, accessToken]);
 
   const handleContinue = () => {
     setUserColors({ bgColor, assetColor });
@@ -172,7 +169,7 @@ export default function WelcomeMode() {
         </div>
 
         {/* Auto from Spotify Toggle */}
-        {hasSpotifyToken && (
+        {accessToken && (
           <div style={{
             marginBottom: '16px',
             display: 'flex',

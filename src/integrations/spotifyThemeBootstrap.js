@@ -3,7 +3,6 @@
  * Polls currently playing track and generates theme
  */
 
-import { getAccessToken } from '../spotify/auth';
 import { getCurrentlyPlaying, getAudioFeatures } from '../spotify/api';
 import { buildMusicTheme } from '../theme/musicTheme';
 import { applyTheme } from '../theme/applyTheme';
@@ -11,6 +10,25 @@ import { applyTheme } from '../theme/applyTheme';
 let pollInterval = null;
 let currentTrackId = null;
 let isEnabled = false;
+
+/**
+ * Get access token from localStorage (compatible with SpotifyContext)
+ */
+function getAccessToken() {
+  const token = localStorage.getItem('spotify_access_token');
+  const expiry = localStorage.getItem('spotify_token_expiry');
+
+  if (!token || !expiry) {
+    return null;
+  }
+
+  if (Date.now() >= parseInt(expiry)) {
+    // Token expired
+    return null;
+  }
+
+  return token;
+}
 
 /**
  * Fetch and apply theme from current track
