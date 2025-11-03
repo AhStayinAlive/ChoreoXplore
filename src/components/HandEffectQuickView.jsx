@@ -431,13 +431,13 @@ function FluidVisualMarker({ handSide, settings }) {
   
   return (
     <group>
-      {/* Main sphere */}
+      {/* Main sphere - larger and more visible */}
       <mesh ref={meshRef}>
-        <sphereGeometry args={[0.15, 16, 16]} />
+        <sphereGeometry args={[0.25, 16, 16]} />
         <meshBasicMaterial 
           color={color} 
           transparent 
-          opacity={Math.min(intensity * 0.6, 0.9)}
+          opacity={Math.min(intensity * 0.8, 1.0)}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
@@ -445,14 +445,14 @@ function FluidVisualMarker({ handSide, settings }) {
       {/* Trail spheres */}
       {Array.from({ length: trailCount }).map((_, i) => (
         <mesh key={i} ref={el => trailMeshes.current[i] = el}>
-          <sphereGeometry args={[0.1, 12, 12]} />
+          <sphereGeometry args={[0.18, 12, 12]} />
           <meshBasicMaterial 
             color={settings.rainbow ? 
               `hsl(${(i / trailCount) * 360}, 70%, 60%)` : 
               color
             }
             transparent 
-            opacity={Math.min((intensity * 0.4 * (1 - i / trailCount)), 0.7)}
+            opacity={Math.min((intensity * 0.6 * (1 - i / trailCount)), 0.85)}
             blending={THREE.AdditiveBlending}
           />
         </mesh>
