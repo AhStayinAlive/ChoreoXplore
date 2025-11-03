@@ -8,6 +8,29 @@ import {
   handRippleUniforms
 } from '../shaders/handRippleShader';
 
+// Constants for positioning and animation
+const PREVIEW_WIDTH = 300;
+const PREVIEW_HEIGHT = 225;
+const PREVIEW_BOTTOM = 12;
+const AMBIENT_PANEL_WIDTH = 320;
+const PANEL_GAP = 10;
+const PREVIEW_RIGHT = AMBIENT_PANEL_WIDTH + PANEL_GAP + PREVIEW_BOTTOM; // 342px
+
+// Animation constants
+const PARTICLE_TRAIL_LENGTH = 30;
+const PARTICLE_SIZE_MULTIPLIER = 0.1;
+const SMOKE_SPHERE_SIZE = 0.15;
+const FIGURE8_X_AMPLITUDE = 0.25;
+const FIGURE8_Y_AMPLITUDE = 0.2;
+const FIGURE8_Y_FREQUENCY = 2;
+const COORDINATE_SCALE_X = 4;
+const COORDINATE_SCALE_Y = 3;
+const PULSE_AMPLITUDE = 0.3;
+const PULSE_FREQUENCY = 3;
+const FLUID_MARKER_BASE_SIZE = 0.15;
+const FLUID_OPACITY_MULTIPLIER = 0.3;
+const FLUID_OPACITY_MAX = 0.8;
+
 /**
  * Simple particle trail for smoke effect visualization
  */
@@ -18,7 +41,7 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
   const params = useVisStore(s => s.params);
   const speed = params.speed || 1.0;
   
-  const particleCount = 30;
+  const particleCount = PARTICLE_TRAIL_LENGTH;
   
   // Initialize trail positions
   useEffect(() => {
@@ -27,7 +50,7 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
       y: 0.5,
       age: 0
     }));
-  }, []);
+  }, [particleCount]);
   
   const geometry = useMemo(() => {
     const geom = new THREE.BufferGeometry();
@@ -38,19 +61,19 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
       positions[i * 3] = 0;
       positions[i * 3 + 1] = 0;
       positions[i * 3 + 2] = 0;
-      sizes[i] = radius * 0.1 * (1 - i / particleCount);
+      sizes[i] = radius * PARTICLE_SIZE_MULTIPLIER * (1 - i / particleCount);
     }
     
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     return geom;
-  }, [radius]);
+  }, [radius, particleCount]);
   
   const material = useMemo(() => {
     return new THREE.PointsMaterial({
       color: new THREE.Color(color),
-      size: 0.15,
+      size: SMOKE_SPHERE_SIZE,
       transparent: true,
       opacity: intensity,
       blending: THREE.AdditiveBlending,
@@ -67,8 +90,8 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
     
     // Calculate current hand position (figure-8)
     const offset = handSide === 'left' ? 0 : Math.PI;
-    const x = 0.5 + 0.25 * Math.sin(t + offset);
-    const y = 0.5 + 0.2 * Math.sin(2 * t + offset);
+    const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
+    const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
     
     // Shift trail positions
     for (let i = trailPositions.current.length - 1; i > 0; i--) {
@@ -81,8 +104,8 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
     const positions = particlesRef.current.geometry.attributes.position.array;
     for (let i = 0; i < trailPositions.current.length; i++) {
       const pos = trailPositions.current[i];
-      positions[i * 3] = (pos.x - 0.5) * 4;
-      positions[i * 3 + 1] = (0.5 - pos.y) * 3;
+      positions[i * 3] = (pos.x - 0.5) * COORDINATE_SCALE_X;
+      positions[i * 3 + 1] = (0.5 - pos.y) * COORDINATE_SCALE_Y;
       positions[i * 3 + 2] = -i * 0.01;
     }
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
@@ -108,23 +131,23 @@ function FluidMarker({ handSide, color, intensity, radius }) {
     
     // Figure-8 pattern
     const offset = handSide === 'left' ? 0 : Math.PI;
-    const x = 0.5 + 0.25 * Math.sin(t + offset);
-    const y = 0.5 + 0.2 * Math.sin(2 * t + offset);
+    const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
+    const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
     
-    meshRef.current.position.set((x - 0.5) * 4, (0.5 - y) * 3, 0);
+    meshRef.current.position.set((x - 0.5) * COORDINATE_SCALE_X, (0.5 - y) * COORDINATE_SCALE_Y, 0);
     
     // Add pulsing effect based on intensity
-    const scale = radius * (1 + 0.3 * Math.sin(t * 3));
+    const scale = radius * (1 + PULSE_AMPLITUDE * Math.sin(t * PULSE_FREQUENCY));
     meshRef.current.scale.set(scale, scale, scale);
   });
   
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[0.15, 16, 16]} />
+      <sphereGeometry args={[FLUID_MARKER_BASE_SIZE, 16, 16]} />
       <meshBasicMaterial 
         color={color} 
         transparent 
-        opacity={Math.min(intensity * 0.3, 0.8)}
+        opacity={Math.min(intensity * FLUID_OPACITY_MULTIPLIER, FLUID_OPACITY_MAX)}
         blending={THREE.AdditiveBlending}
       />
     </mesh>
@@ -204,8 +227,8 @@ function SimulatedHandMovement({ handSide, effectType }) {
     // Figure-8 pattern for hand movement
     // Offset pattern for left vs right hand
     const offset = handSide === 'left' ? 0 : Math.PI;
-    const x = 0.5 + 0.25 * Math.sin(t + offset);
-    const y = 0.5 + 0.2 * Math.sin(2 * t + offset);
+    const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
+    const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
     
     // Calculate velocity for motion-reactive effects
     const dx = x - lastPositionRef.current.x;
@@ -287,10 +310,10 @@ export default function HandEffectQuickView() {
   return (
     <div style={{
       position: 'absolute',
-      bottom: 12,
-      right: 342, // Position to the left of AmbientAnimationControlPanel (320 + 12 gap + 10 padding)
-      width: 300,
-      height: 225,
+      bottom: PREVIEW_BOTTOM,
+      right: PREVIEW_RIGHT, // Position to the left of AmbientAnimationControlPanel
+      width: PREVIEW_WIDTH,
+      height: PREVIEW_HEIGHT,
       background: 'rgba(0,0,0,0.6)',
       backdropFilter: 'blur(10px)',
       border: '1px solid rgba(0,150,255,0.3)',
