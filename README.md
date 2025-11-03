@@ -33,7 +33,7 @@ A real-time motion tracking and visual effects application that combines pose de
    npm install
    ```
 
-3. **Set up environment variables** (Optional - for AI features)
+3. **Set up environment variables** (Optional - for AI features and Spotify)
    ```bash
    # Create .env.local file
    touch .env.local
@@ -41,8 +41,15 @@ A real-time motion tracking and visual effects application that combines pose de
    
    Add to `.env.local`:
    ```env
+   # AI Features (Optional)
    VITE_GROQ_API_KEY=your_groq_api_key_here
+   
+   # Spotify Auto-Color Feature (Optional)
+   VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
    ```
+
+   See [Spotify Setup](#spotify-auto-color-feature) for details on configuring Spotify integration.
 
 4. **Start the application**
    ```bash
@@ -96,6 +103,44 @@ For AI-powered lyrics analysis, you need an API key:
    ```env
    VITE_GROQ_API_KEY=your_groq_api_key_here
    ```
+
+### Spotify Auto-Color Feature
+
+ChoreoXplore can automatically select background and visual asset colors based on your currently playing Spotify track. The colors are derived from the album artwork palette and audio features (energy, valence, key, etc.).
+
+#### Setup
+
+1. **Create a Spotify App**
+   - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   - Click "Create an App"
+   - Give it a name (e.g., "ChoreoXplore")
+   - Add `http://localhost:5173` to "Redirect URIs"
+   - Save and copy your **Client ID**
+
+2. **Configure Environment Variables**
+   Add to `.env.local`:
+   ```env
+   VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
+   ```
+
+3. **How to Use**
+   - On the landing page, click **"Connect to Spotify"**
+   - Authorize the app
+   - Start playing a track on Spotify
+   - Toggle **"Auto from Spotify"** ON
+   - Colors will update automatically when the track changes (~5s)
+   - Toggle OFF to manually override colors
+
+#### How It Works
+
+- **Album Art**: Extracts a vibrant color palette from album artwork
+- **Audio Features**: Maps energy, valence, key, and mode to color properties
+  - Energy → Saturation (more energy = more vibrant)
+  - Valence → Hue shift (positive = warmer, negative = cooler)
+  - Key/Mode → Base hue (musical key mapped to color wheel)
+- **Fallback**: If album art is unavailable or CORS-blocked, uses audio features only
+- **Performance**: Polls every 5 seconds, updates only when track changes
 
 
 

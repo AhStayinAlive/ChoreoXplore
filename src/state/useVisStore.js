@@ -52,7 +52,17 @@ const useVisStore = create((set, get) => ({
   setMusic: (music) => set({ music }),
   setMotion: (motion) => set({ motion }),
   setIsActive: (isActive) => set({ isActive }),
-  setParams: (p) => set(s => ({ params: { ...s.params, ...p } })),
+  setParams: (p) => {
+    console.log('🔧 useVisStore.setParams CALLED with:', p);
+    const result = set(s => {
+      const newParams = { ...s.params, ...p };
+      console.log('🔧 useVisStore.setParams UPDATING from:', s.params.handEffect?.fluidDistortion?.fluidColor);
+      console.log('🔧 useVisStore.setParams UPDATING to:', newParams.handEffect?.fluidDistortion?.fluidColor);
+      return { params: newParams };
+    });
+    console.log('🔧 useVisStore.setParams COMPLETED');
+    return result;
+  },
 }));
 
 export { useVisStore };

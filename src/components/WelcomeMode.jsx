@@ -1,14 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useStore from '../core/store';
 import { useSpotify } from '../contexts/SpotifyContext.jsx';
+import { 
+  enableSpotifyTheme, 
+  disableSpotifyTheme, 
+  forceUpdateTheme
+} from '../integrations/spotifyThemeBootstrap';
 
 export default function WelcomeMode() {
   const [bgColor, setBgColor] = useState('#000000'); // Default black
   const [assetColor, setAssetColor] = useState('#ffffff'); // Default white
+  const [autoFromSpotify, setAutoFromSpotify] = useState(false);
+  const [trackInfo, setTrackInfo] = useState(null);
   
   const setMode = useStore(s => s.setMode);
   const setUserColors = useStore(s => s.setUserColors);
-  const { isAuthenticated, authenticate } = useSpotify();
+  const { isAuthenticated, authenticate, accessToken } = useSpotify();
+
+  // Listen for theme updates
+  useEffect(() => {
+    const handleThemeUpdate = (event) => {
+      const theme = event.detail;
+      if (autoFromSpotify && theme) {
+        setBgColor(theme.background);
+        setAssetColor(theme.asset);
+        setTrackInfo(theme.meta);
+      }
+    };
+
+    window.addEventListener('cx:theme', handleThemeUpdate);
+    return () => window.removeEventListener('cx:theme', handleThemeUpdate);
+  }, [autoFromSpotify]);
+
+  // Handle auto-from-Spotify toggle
+  useEffect(() => {
+    if (autoFromSpotify && accessToken) {
+      enableSpotifyTheme();
+      // Force immediate update
+      forceUpdateTheme()
+        .then(theme => {
+          if (theme) {
+            setBgColor(theme.background);
+            setAssetColor(theme.asset);
+            setTrackInfo(theme.meta);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating theme from Spotify:', error);
+        });
+    } else {
+      disableSpotifyTheme();
+    }
+  }, [autoFromSpotify, accessToken]);
 
   const handleContinue = () => {
     setUserColors({ bgColor, assetColor });
@@ -128,6 +171,59 @@ export default function WelcomeMode() {
             />
           </div>
         </div>
+
+        {/* Auto from Spotify Toggle */}
+        {accessToken && (
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              cursor: 'pointer',
+              padding: '12px',
+              background: 'rgba(0, 150, 255, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 150, 255, 0.3)'
+            }}>
+              <input
+                type="checkbox"
+                checked={autoFromSpotify}
+                onChange={(e) => setAutoFromSpotify(e.target.checked)}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  cursor: 'pointer'
+                }}
+              />
+              <span style={{
+                color: '#EDEEF2',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Auto from Spotify
+              </span>
+            </label>
+            
+            {/* Track Info Display */}
+            {trackInfo && autoFromSpotify && (
+              <div style={{
+                padding: '8px 12px',
+                background: 'rgba(0, 150, 255, 0.1)',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: 'rgba(237, 238, 242, 0.8)',
+                textAlign: 'center'
+              }}>
+                Auto-selected from: <strong>{trackInfo.trackName}</strong> – {trackInfo.artist}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Spotify Authentication */}
         {!isAuthenticated ? (
