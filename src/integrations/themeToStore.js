@@ -60,8 +60,11 @@ export function wireThemeToStore() {
       fluid: { fluidColor: updatedHandEffect.fluidDistortion.fluidColor }
     });
     
-    // Update the store with the new hand effect
+    // Force a complete update by creating a new params object
+    // This ensures React detects the change
+    const currentParamsSnapshot = { ...currentParams };
     visStoreState.setParams({
+      ...currentParamsSnapshot,
       handEffect: updatedHandEffect
     });
 
