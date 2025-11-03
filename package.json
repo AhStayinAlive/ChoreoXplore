@@ -31,6 +31,7 @@
     "meyda": "^5.6.3",
     "ml-matrix": "^6.12.1",
     "node-fetch": "^2.6.7",
+    "node-vibrant": "^4.0.3",
     "openai": "^4.104.0",
     "postprocessing": "^6.37.8",
     "react": "^19.1.1",
@@ -39,6 +40,7 @@
     "spotify-web-api-js": "^1.5.2",
     "stats.js": "^0.17.0",
     "three": "^0.180.0",
+    "tinycolor2": "^1.6.0",
     "zod": "^4.1.9",
     "zustand": "^5.0.8"
   },
