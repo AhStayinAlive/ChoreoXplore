@@ -1,6 +1,7 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
+import { useEffect } from "react";
 
 export default function HandEffectsPanel() {
   const params = useVisStore(s => s.params);
@@ -13,6 +14,25 @@ export default function HandEffectsPanel() {
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
     fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false }
   };
+
+  // DEBUG: Log when component renders and what colors it receives
+  useEffect(() => {
+    console.log('🖼️ HandEffectsPanel RENDERED with handEffect:', {
+      type: handEffect.type,
+      selection: handEffect.handSelection,
+      ripple: handEffect.ripple?.baseColor,
+      smoke: handEffect.smoke?.color,
+      fluid: handEffect.fluidDistortion?.fluidColor,
+      fullHandEffect: handEffect
+    });
+  });
+
+  // DEBUG: Log specifically fluid color on every render
+  useEffect(() => {
+    if (handEffect.fluidDistortion?.fluidColor) {
+      console.log('🖼️ Current fluid color in component:', handEffect.fluidDistortion.fluidColor);
+    }
+  }, [handEffect.fluidDistortion?.fluidColor]);
 
   const handleEffectChange = (updates) => {
     setParams({ handEffect: { ...handEffect, ...updates } });
