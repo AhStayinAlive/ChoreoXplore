@@ -142,7 +142,9 @@ Asset:
   - From vibrant palette or audio-derived
 
 Hand Colors:
-  - Analogous variations (±30° hue)
+  - handLeft: Analogous warm (+30° hue)
+  - handRight: Analogous cool (-30° hue)
+  - handCenter: Triadic complementary (+120° hue)
   - Same saturation/lightness as asset
 ```
 

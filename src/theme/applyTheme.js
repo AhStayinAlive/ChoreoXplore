@@ -14,6 +14,7 @@ export function applyTheme(theme) {
   document.documentElement.style.setProperty('--cx-asset', theme.asset);
   document.documentElement.style.setProperty('--cx-hand-left', theme.handLeft);
   document.documentElement.style.setProperty('--cx-hand-right', theme.handRight);
+  document.documentElement.style.setProperty('--cx-hand-center', theme.handCenter);
 
   // Set legacy accent colors for UI coherence
   document.documentElement.style.setProperty('--accent', theme.asset);

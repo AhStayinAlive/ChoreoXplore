@@ -132,6 +132,7 @@ export async function buildMusicTheme(track, audioFeatures) {
   // Hand colors: complementary and analogous variations
   const handLeftHue = (adjustedHue + 30) % 360;
   const handRightHue = (adjustedHue - 30 + 360) % 360;
+  const handCenterHue = (adjustedHue + 120) % 360; // Triadic complementary for 3rd hand
   
   const handLeft = tinycolor({ 
     h: handLeftHue, 
@@ -144,12 +145,19 @@ export async function buildMusicTheme(track, audioFeatures) {
     s: saturation / 100, 
     l: assetLightness / 100 
   }).toHexString();
+  
+  const handCenter = tinycolor({ 
+    h: handCenterHue, 
+    s: saturation / 100, 
+    l: assetLightness / 100 
+  }).toHexString();
 
   return {
     background,
     asset,
     handLeft,
     handRight,
+    handCenter,
     meta: {
       trackId: track.id,
       trackName: track.name,
