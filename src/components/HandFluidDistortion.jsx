@@ -15,7 +15,7 @@ const HandFluidDistortion = () => {
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
   const isActive = useVisStore(s => s.isActive);
-  const { gl, size, camera } = useThree(); // Get canvas DOM element, size, and camera
+  const { gl } = useThree(); // Get canvas DOM element
   
   // Separate tracking state for each hand
   const leftHandRefs = {
@@ -149,16 +149,20 @@ const HandFluidDistortion = () => {
 
   // Update hand tracking each frame
   useFrame((state, delta) => {
-    // Update left hand if enabled (pointer ID 1)
+    // Use the same pointer ID for both hands to prevent repulsion
+    // The library treats different pointer IDs as multi-touch which creates opposing forces
+    const singlePointerId = 1;
+    
+    // Update left hand if enabled
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
-      updateHandFluid(leftHandPos, leftHandRefs, delta, 1);
+      updateHandFluid(leftHandPos, leftHandRefs, delta, singlePointerId);
     }
     
-    // Update right hand if enabled (pointer ID 2)
+    // Update right hand if enabled (using same pointer ID)
     if (rightHandEnabled) {
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
-      updateHandFluid(rightHandPos, rightHandRefs, delta, 2);
+      updateHandFluid(rightHandPos, rightHandRefs, delta, singlePointerId);
     }
   });
 
