@@ -659,6 +659,7 @@ export default function HandEffectQuickView() {
   const params = useVisStore(s => s.params);
   const setParams = useVisStore(s => s.setParams);
   const handEffect = useMemo(() => params.handEffect || {}, [params.handEffect]);
+  const userColors = useStore(s => s.userColors); // Get user colors for background
   
   const effectType = handEffect.type || 'none';
   const handSelection = handEffect.handSelection || 'none';
@@ -791,8 +792,8 @@ export default function HandEffectQuickView() {
             preserveDrawingBuffer: true
           }}
         >
-          {/* Background color matches theme or is transparent */}
-          <color attach="background" args={['rgba(0,0,0,0)']} />
+          {/* Background color matches main UI exactly */}
+          <color attach="background" args={[userColors.bgColor]} />
           
           {/* Background visual mode */}
           <PreviewBackgroundVisual />
