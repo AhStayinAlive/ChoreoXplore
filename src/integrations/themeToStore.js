@@ -4,6 +4,7 @@
  */
 
 import useStore from '../core/store';
+import { useVisStore } from '../state/useVisStore';
 
 /**
  * Initialize theme-to-store integration
@@ -20,7 +21,32 @@ export function wireThemeToStore() {
       assetColor: theme.asset
     });
 
+    // Update hand effect colors in useVisStore
+    const visStoreState = useVisStore.getState();
+    const currentHandEffect = visStoreState.params.handEffect || {};
+    
+    // Update hand effect colors based on theme
+    visStoreState.setParams({
+      handEffect: {
+        ...currentHandEffect,
+        ripple: {
+          ...currentHandEffect.ripple,
+          baseColor: theme.handLeft || theme.asset,
+          rippleColor: theme.handRight || theme.asset
+        },
+        smoke: {
+          ...currentHandEffect.smoke,
+          color: theme.handCenter || theme.asset
+        },
+        fluidDistortion: {
+          ...currentHandEffect.fluidDistortion,
+          fluidColor: theme.handLeft || theme.asset
+        }
+      }
+    });
+
     console.log('🎨 Theme synced to store:', theme.background, theme.asset);
+    console.log('🎨 Hand colors updated:', theme.handLeft, theme.handRight, theme.handCenter);
   };
 
   // Listen for theme events

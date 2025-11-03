@@ -79,4 +79,19 @@ The 3rd color is automatically generated and applied whenever:
 2. "Auto from Spotify" toggle is ON
 3. A track is playing
 
-No additional configuration needed!
+**Automatic Application to Hand Effects:**
+When the theme updates, the hand effect colors are automatically set:
+- **Ripple Effect**: 
+  - Base Color → `handLeft`
+  - Ripple Color → `handRight`
+- **Smoke Effect**: 
+  - Color → `handCenter`
+- **Fluid Effect**: 
+  - Fluid Color → `handLeft`
+
+No manual configuration needed! The colors update automatically when you:
+1. Enable "Auto from Spotify" on the landing page
+2. Have a track playing in Spotify
+3. Enable hand effects in the Hand Effects Panel
+
+The hand effect settings panel will show the auto-selected colors, and they update automatically when the track changes (~5 seconds).
