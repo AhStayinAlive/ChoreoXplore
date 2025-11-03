@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
 import useStore, { hexToRGB } from '../core/store';
 import * as THREE from 'three';
+import { EffectComposer } from '@react-three/postprocessing';
+import { Fluid } from '@whatisjery/react-fluid-distortion';
 import {
   handRippleVertexShader,
   handRippleFragmentShader,
@@ -31,51 +33,104 @@ const FLUID_OPACITY_MULTIPLIER = 0.5;
 const FLUID_OPACITY_MAX = 0.9;
 
 /**
- * Background visual mode for preview (simplified version of actual visual modes)
+ * Background visual mode for preview - uses actual QuandCestMode shader
  */
 function PreviewBackgroundVisual() {
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
+  const motion = useVisStore(s => s.motion);
   const userColors = useStore(s => s.userColors);
   
+  // Use the actual Quand C'est shader
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uEnergy;
+uniform float uMotion;
+uniform float uIntensity;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  float t = uTime;
+  
+  float pattern = 0.0;
+  
+  // Create outer rectangle lines that are always visible (very thin)
+  if(uv.y > 0.98) pattern = 1.0;
+  if(uv.x > 0.98) pattern = 1.0;
+  if(uv.x < 0.02) pattern = 1.0;
+  
+  // Create organic diagonal lines extending from edges toward center when music plays
+  float energyBoost = uEnergy * 20.0;
+  float baseLength = 0.1;
+  float musicLength = energyBoost * 0.35;
+  float totalLength = baseLength + musicLength;
+  
+  if(totalLength > 0.05) {
+    // Lines from top edge going diagonally down
+    for(int i = 0; i < 4; i++) {
+      float x = 0.15 + float(i) * 0.23;
+      float angle = -0.3 + float(i) * 0.2;
+      float distFromTop = uv.y - 0.98;
+      float waveOffset = sin(distFromTop * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
+      float expectedX = x + distFromTop * tan(angle) + waveOffset;
+      float distToLine = abs(uv.x - expectedX);
+      float lineLength = totalLength;
+      float taperFactor = 1.0 - (abs(distFromTop) / lineLength);
+      float lineWidth = 0.006 * taperFactor;
+      if(distToLine < lineWidth && distFromTop > -lineLength && distFromTop < 0.004) {
+        pattern = 1.0;
+      }
+    }
+    
+    // Lines from left edge going diagonally right
+    for(int i = 0; i < 4; i++) {
+      float y = 0.15 + float(i) * 0.23;
+      float angle = 0.2 + float(i) * 0.15;
+      float distFromLeft = uv.x - 0.02;
+      float waveOffset = sin(distFromLeft * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
+      float expectedY = y + distFromLeft * tan(angle) + waveOffset;
+      float distToLine = abs(uv.y - expectedY);
+      float lineLength = totalLength;
+      float taperFactor = 1.0 - (abs(distFromLeft) / lineLength);
+      float lineWidth = 0.006 * taperFactor;
+      if(distToLine < lineWidth && distFromLeft < lineLength && distFromLeft > -0.004) {
+        pattern = 1.0;
+      }
+    }
+    
+    // Lines from right edge going diagonally left
+    for(int i = 0; i < 4; i++) {
+      float y = 0.15 + float(i) * 0.23;
+      float angle = -0.2 - float(i) * 0.15;
+      float distFromRight = uv.x - 0.98;
+      float waveOffset = sin(distFromRight * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
+      float expectedY = y + distFromRight * tan(angle) + waveOffset;
+      float distToLine = abs(uv.y - expectedY);
+      float lineLength = totalLength;
+      float taperFactor = 1.0 - (abs(distFromRight) / lineLength);
+      float lineWidth = 0.006 * taperFactor;
+      if(distToLine < lineWidth && distFromRight > -lineLength && distFromRight < 0.004) {
+        pattern = 1.0;
+      }
+    }
+  }
+  
+  vec3 col = uColor * pattern * uIntensity;
+  gl_FragColor = vec4(col, pattern * uIntensity);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
   const material = useMemo(() => {
-    // Simple shader for background visualization
-    const fragmentShader = `
-      uniform float uTime;
-      uniform vec3 uColor;
-      uniform float uEnergy;
-      uniform float uIntensity;
-      varying vec2 vUv;
-      
-      void main() {
-        vec2 uv = vUv;
-        float t = uTime;
-        
-        // Create animated grid pattern
-        float grid = 0.0;
-        float gridSize = 0.1;
-        
-        // Vertical lines
-        if(mod(uv.x, gridSize) < 0.005) grid = 0.3;
-        // Horizontal lines  
-        if(mod(uv.y, gridSize) < 0.005) grid = 0.3;
-        
-        // Pulsing based on music energy
-        float pulse = sin(t * 3.0 + uv.x * 5.0) * uEnergy * 0.5;
-        
-        vec3 color = uColor * (uIntensity * 0.3 + grid + pulse);
-        gl_FragColor = vec4(color, 0.4);
-      }
-    `;
-    
-    const vertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-    
     return new THREE.ShaderMaterial({
       fragmentShader,
       vertexShader,
@@ -83,13 +138,15 @@ function PreviewBackgroundVisual() {
         uTime: { value: 0 },
         uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uEnergy: { value: 0 },
+        uMotion: { value: 0 },
         uIntensity: { value: 0.8 },
       },
       transparent: true,
       depthWrite: false,
       blending: THREE.NormalBlending,
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps intentional - shaders are defined inline and never change
   
   const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
 
@@ -100,8 +157,13 @@ function PreviewBackgroundVisual() {
     material.uniforms.uIntensity.value = params.intensity;
     
     const energy = (music?.energy ?? 0) * params.musicReact;
+    const sharp = (motion?.sharpness ?? 0) * params.motionReact;
+    
     material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
       material.uniforms.uEnergy.value, energy, 0.2
+    );
+    material.uniforms.uMotion.value = THREE.MathUtils.lerp(
+      material.uniforms.uMotion.value, sharp, 0.15
     );
   });
 
@@ -194,17 +256,17 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
 }
 
 /**
- * Fluid distortion effect visualization
+ * Fluid distortion effect visualization using actual Fluid component
  */
-function FluidMarker({ handSide, color, intensity, radius }) {
-  const meshRef = useRef();
-  const timeRef = useRef(0);
+function FluidDistortionPreview({ handSide }) {
+  const { gl } = useThree();
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const timeRef = useRef(0);
+  const lastScreenPosRef = useRef({ x: 0, y: 0 });
   const speed = params.speed || 1.0;
   
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
-    
     timeRef.current += delta * speed;
     const t = timeRef.current;
     
@@ -213,23 +275,90 @@ function FluidMarker({ handSide, color, intensity, radius }) {
     const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
     const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
     
-    meshRef.current.position.set((x - 0.5) * COORDINATE_SCALE_X, (0.5 - y) * COORDINATE_SCALE_Y, 0);
+    // Convert to screen coordinates
+    const canvasRect = gl.domElement.getBoundingClientRect();
+    const screenX = canvasRect.left + (x * canvasRect.width);
+    const screenY = canvasRect.top + (y * canvasRect.height);
     
-    // Add pulsing effect based on intensity
-    const scale = radius * (1 + PULSE_AMPLITUDE * Math.sin(t * PULSE_FREQUENCY));
-    meshRef.current.scale.set(scale, scale, scale);
+    // Only dispatch events if position changed significantly
+    if (Math.abs(screenX - lastScreenPosRef.current.x) > 1 || 
+        Math.abs(screenY - lastScreenPosRef.current.y) > 1) {
+      
+      // Calculate velocity
+      const dx = screenX - lastScreenPosRef.current.x;
+      const dy = screenY - lastScreenPosRef.current.y;
+      const velocity = Math.sqrt(dx * dx + dy * dy) / delta;
+      
+      // Add music energy to enhance effect (unused but calculated for potential future use)
+      const energy = (music?.energy ?? 0) * params.musicReact;
+      const _enhancedVelocity = velocity * (1 + energy); // Prefix with _ to indicate intentionally unused
+      
+      // Dispatch pointer event
+      const pointerEvent = new PointerEvent('pointermove', {
+        bubbles: true,
+        cancelable: true,
+        clientX: screenX,
+        clientY: screenY,
+        movementX: dx,
+        movementY: dy,
+        pointerType: 'mouse',
+        isPrimary: true
+      });
+      
+      // Mark it as hand tracking event
+      Object.defineProperty(pointerEvent, 'isHandTracking', { value: true });
+      
+      window.dispatchEvent(pointerEvent);
+      
+      lastScreenPosRef.current = { x: screenX, y: screenY };
+    }
   });
   
+  return null;
+}
+
+/**
+ * Fluid effect wrapper that intercepts mouse events
+ */
+function FluidEffectWrapper({ settings, showLeftHand, showRightHand }) {
+  // Intercept mouse/pointer events to prevent user input from affecting fluid
+  useEffect(() => {
+    const interceptWindowEvent = (e) => {
+      if (!e.isHandTracking) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('pointermove', interceptWindowEvent, { capture: true });
+    
+    return () => {
+      window.removeEventListener('pointermove', interceptWindowEvent, { capture: true });
+    };
+  }, []);
+  
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[FLUID_MARKER_BASE_SIZE, 16, 16]} />
-      <meshBasicMaterial 
-        color={color} 
-        transparent 
-        opacity={Math.min(intensity * FLUID_OPACITY_MULTIPLIER, FLUID_OPACITY_MAX)}
-        blending={THREE.AdditiveBlending}
-      />
-    </mesh>
+    <>
+      <EffectComposer>
+        <Fluid
+          radius={settings.radius * 100 || 10}
+          curl={settings.curl || 10}
+          swirl={settings.swirl || 20}
+          distortion={settings.distortion || 2}
+          force={settings.force || 2}
+          pressure={settings.intensity || 10}
+          densityDissipation={0.98}
+          velocityDissipation={settings.velocityDissipation || 0.99}
+          intensity={settings.intensity || 10}
+          rainbow={settings.rainbow || false}
+          fluidColor={settings.fluidColor || '#005eff'}
+          blend={0}
+        />
+      </EffectComposer>
+      
+      {showLeftHand && <FluidDistortionPreview handSide="left" />}
+      {showRightHand && <FluidDistortionPreview handSide="right" />}
+    </>
   );
 }
 
@@ -361,13 +490,10 @@ function SimulatedHandMovement({ handSide, effectType }) {
     />;
   }
   
+  // Fluid distortion is handled separately by FluidEffectWrapper
+  // Return null here as the fluid effect needs to be at a different level
   if (effectType === 'fluidDistortion') {
-    return <FluidMarker 
-      handSide={handSide}
-      color={effectSettings.fluidColor || '#005eff'}
-      intensity={effectSettings.intensity || 1.0}
-      radius={effectSettings.radius || 0.1}
-    />;
+    return null;
   }
   
   return null;
@@ -518,18 +644,30 @@ export default function HandEffectQuickView() {
           {/* Background visual mode */}
           <PreviewBackgroundVisual />
           
-          {/* Hand effects */}
-          {showLeftHand && (
-            <SimulatedHandMovement 
-              handSide="left" 
-              effectType={effectType}
+          {/* Hand effects - conditional rendering based on effect type */}
+          {effectType === 'fluidDistortion' ? (
+            // Fluid distortion requires special handling with EffectComposer
+            <FluidEffectWrapper 
+              settings={handEffect.fluidDistortion || {}}
+              showLeftHand={showLeftHand}
+              showRightHand={showRightHand}
             />
-          )}
-          {showRightHand && (
-            <SimulatedHandMovement 
-              handSide="right" 
-              effectType={effectType}
-            />
+          ) : (
+            // Other effects (ripple, smoke) render normally
+            <>
+              {showLeftHand && (
+                <SimulatedHandMovement 
+                  handSide="left" 
+                  effectType={effectType}
+                />
+              )}
+              {showRightHand && (
+                <SimulatedHandMovement 
+                  handSide="right" 
+                  effectType={effectType}
+                />
+              )}
+            </>
           )}
         </Canvas>
       </div>
