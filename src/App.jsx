@@ -5,6 +5,7 @@ import MotionInputPanel from "./components/MotionInputPanel";
 import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
 import HandEffectsPanel from "./components/HandEffectsPanel";
+import HandEffectQuickView from "./components/HandEffectQuickView";
 import WelcomeMode from "./components/WelcomeMode";
 import SpotifyCallback from "./components/SpotifyCallback";
 import SpotifyPlaybackControl from "./components/SpotifyPlaybackControl";
@@ -245,6 +246,9 @@ function AppContent({
           }}>
             <HandEffectsPanel />
           </div>
+          
+          {/* Hand Effect Quick View - Bottom right */}
+          <HandEffectQuickView />
         </>
       )}
 

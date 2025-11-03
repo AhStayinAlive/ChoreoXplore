@@ -1,18 +1,20 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function HandEffectsPanel() {
   const params = useVisStore(s => s.params);
   const setParams = useVisStore(s => s.setParams);
+  const [showQuickView, setShowQuickView] = useState(true);
 
   const handEffect = params.handEffect || {
     type: 'none',
     handSelection: 'none',
     ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
-    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false }
+    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false },
+    showQuickView: true
   };
 
   // DEBUG: Log when component renders and what colors it receives
@@ -99,13 +101,23 @@ export default function HandEffectsPanel() {
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
         <h3 style={{ fontWeight: 600, margin: 0, flexShrink: 0 }}>Hand Effects</h3>
-        <ToggleButton
-          label="Motion Reactive"
-          selected={handEffect.motionReactive !== false}
-          onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
-        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ToggleButton
+            label="Preview"
+            selected={showQuickView}
+            onChange={(val) => {
+              setShowQuickView(!!val);
+              setParams({ handEffect: { ...handEffect, showQuickView: !!val } });
+            }}
+          />
+          <ToggleButton
+            label="Motion Reactive"
+            selected={handEffect.motionReactive !== false}
+            onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
+          />
+        </div>
       </div>
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
