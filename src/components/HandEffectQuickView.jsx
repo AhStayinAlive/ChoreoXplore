@@ -31,9 +31,31 @@ const FLUID_OPACITY_MULTIPLIER = 0.5;
 const FLUID_OPACITY_MAX = 0.9;
 
 /**
- * Background visual mode for preview - uses actual QuandCestMode shader
+ * Background visual mode for preview - renders the currently selected visual mode
  */
 function PreviewBackgroundVisual() {
+  const params = useVisStore(s => s.params);
+  const mode = params.mode;
+  
+  // Render the appropriate visual mode based on current selection
+  switch (mode) {
+    case 'quand_cest':
+      return <PreviewQuandCestMode />;
+    case 'pulsating_circle':
+      return <PreviewPulsatingCircleMode />;
+    case 'vertical_lines':
+      return <PreviewVerticalLinesMode />;
+    case 'lines':
+      return <PreviewLines1DMode />;
+    default:
+      return <PreviewQuandCestMode />; // Default to quand_cest
+  }
+}
+
+/**
+ * Quand C'est visual mode for preview
+ */
+function PreviewQuandCestMode() {
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
   const motion = useVisStore(s => s.motion);
@@ -169,6 +191,24 @@ void main(){
 }
 
 /**
+ * Simplified preview versions of other visual modes
+ */
+function PreviewPulsatingCircleMode() {
+  // Simplified pulsating circle for preview
+  return null; // TODO: Implement if needed
+}
+
+function PreviewVerticalLinesMode() {
+  // Simplified vertical lines for preview
+  return null; // TODO: Implement if needed
+}
+
+function PreviewLines1DMode() {
+  // Simplified lines 1D for preview
+  return null; // TODO: Implement if needed
+}
+
+/**
  * Enhanced smoke trail with more particles and music reactivity
  */
 function SmokeTrail({ handSide, color, intensity, radius }) {
@@ -296,7 +336,7 @@ function ParticleTrailEffect({ handSide, color, intensity, particleSize, trailLe
   const material = useMemo(() => {
     return new THREE.PointsMaterial({
       color: new THREE.Color(color),
-      size: particleSize * 1.5,
+      size: particleSize * 2.5, // Increased from 1.5 to match main UI better
       transparent: true,
       opacity: intensity,
       blending: THREE.AdditiveBlending,
