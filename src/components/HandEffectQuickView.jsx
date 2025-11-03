@@ -1,10 +1,8 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
 import useStore, { hexToRGB } from '../core/store';
 import * as THREE from 'three';
-import { EffectComposer } from '@react-three/postprocessing';
-import { Fluid } from '@whatisjery/react-fluid-distortion';
 import {
   handRippleVertexShader,
   handRippleFragmentShader,
@@ -256,15 +254,133 @@ function SmokeTrail({ handSide, color, intensity, radius }) {
 }
 
 /**
- * Fluid distortion effect visualization using actual Fluid component
+ * Enhanced particle trail effect (the preview smoke effect now as a real effect)
  */
-function FluidDistortionPreview({ handSide }) {
-  const { gl } = useThree();
+function ParticleTrailEffect({ handSide, color, intensity, particleSize, trailLength, fadeSpeed }) {
+  const particlesRef = useRef();
+  const timeRef = useRef(0);
+  const trailPositions = useRef([]);
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
-  const timeRef = useRef(0);
-  const lastScreenPosRef = useRef({ x: 0, y: 0 });
   const speed = params.speed || 1.0;
+  
+  const particleCount = Math.floor(trailLength);
+  
+  // Initialize trail positions
+  useEffect(() => {
+    trailPositions.current = new Array(particleCount).fill(null).map(() => ({
+      x: 0.5,
+      y: 0.5,
+      age: 0
+    }));
+  }, [particleCount]);
+  
+  const geometry = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = 0;
+      positions[i * 3 + 1] = 0;
+      positions[i * 3 + 2] = 0;
+      sizes[i] = particleSize * (1 - i / particleCount);
+    }
+    
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    return geom;
+  }, [particleCount, particleSize]);
+  
+  const material = useMemo(() => {
+    return new THREE.PointsMaterial({
+      color: new THREE.Color(color),
+      size: particleSize * 1.5,
+      transparent: true,
+      opacity: intensity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+  }, [color, intensity, particleSize]);
+  
+  useFrame((state, delta) => {
+    if (!particlesRef.current) return;
+    
+    timeRef.current += delta * speed;
+    const t = timeRef.current;
+    
+    // Calculate current hand position (figure-8)
+    const offset = handSide === 'left' ? 0 : Math.PI;
+    const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
+    const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
+    
+    // Shift trail positions with fade
+    for (let i = trailPositions.current.length - 1; i > 0; i--) {
+      trailPositions.current[i] = { ...trailPositions.current[i - 1] };
+      trailPositions.current[i].age += delta;
+    }
+    trailPositions.current[0] = { x, y, age: 0 };
+    
+    // Update geometry positions with music reactivity
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    const positions = particlesRef.current.geometry.attributes.position.array;
+    const sizes = particlesRef.current.geometry.attributes.size.array;
+    
+    for (let i = 0; i < trailPositions.current.length; i++) {
+      const pos = trailPositions.current[i];
+      const fade = Math.pow(fadeSpeed, i);
+      
+      positions[i * 3] = (pos.x - 0.5) * COORDINATE_SCALE_X;
+      positions[i * 3 + 1] = (0.5 - pos.y) * COORDINATE_SCALE_Y;
+      positions[i * 3 + 2] = -i * 0.01 + energy * 0.1; // Add depth based on music
+      
+      // Adjust size with fade
+      sizes[i] = particleSize * (1 - i / particleCount) * fade * (1 + energy * 0.2);
+    }
+    
+    particlesRef.current.geometry.attributes.position.needsUpdate = true;
+    particlesRef.current.geometry.attributes.size.needsUpdate = true;
+    
+    // Update material opacity based on music
+    if (particlesRef.current.material) {
+      particlesRef.current.material.opacity = intensity * (1 + energy * 0.3);
+    }
+  });
+  
+  return <points ref={particlesRef} geometry={geometry} material={material} />;
+}
+
+/**
+ * Fluid effect wrapper - simplified for preview to avoid window-level event conflicts
+ * Shows visual markers instead of actual fluid distortion to keep it contained
+ */
+function FluidEffectPreview({ settings, showLeftHand, showRightHand }) {
+  // For preview, we'll show enhanced visual markers that represent the fluid effect
+  // This avoids the issue of the Fluid library listening to window events globally
+  
+  return (
+    <>
+      {showLeftHand && <FluidVisualMarker handSide="left" settings={settings} />}
+      {showRightHand && <FluidVisualMarker handSide="right" settings={settings} />}
+    </>
+  );
+}
+
+/**
+ * Visual marker to represent fluid distortion in preview
+ */
+function FluidVisualMarker({ handSide, settings }) {
+  const meshRef = useRef();
+  const trailMeshes = useRef([]);
+  const timeRef = useRef(0);
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const speed = params.speed || 1.0;
+  
+  // Create trail of spheres
+  const trailCount = 5;
   
   useFrame((state, delta) => {
     timeRef.current += delta * speed;
@@ -275,90 +391,73 @@ function FluidDistortionPreview({ handSide }) {
     const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
     const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
     
-    // Convert to screen coordinates
-    const canvasRect = gl.domElement.getBoundingClientRect();
-    const screenX = canvasRect.left + (x * canvasRect.width);
-    const screenY = canvasRect.top + (y * canvasRect.height);
+    const energy = (music?.energy ?? 0) * params.musicReact;
     
-    // Only dispatch events if position changed significantly
-    if (Math.abs(screenX - lastScreenPosRef.current.x) > 1 || 
-        Math.abs(screenY - lastScreenPosRef.current.y) > 1) {
-      
-      // Calculate velocity
-      const dx = screenX - lastScreenPosRef.current.x;
-      const dy = screenY - lastScreenPosRef.current.y;
-      const velocity = Math.sqrt(dx * dx + dy * dy) / delta;
-      
-      // Add music energy to enhance effect (unused but calculated for potential future use)
-      const energy = (music?.energy ?? 0) * params.musicReact;
-      const _enhancedVelocity = velocity * (1 + energy); // Prefix with _ to indicate intentionally unused
-      
-      // Dispatch pointer event
-      const pointerEvent = new PointerEvent('pointermove', {
-        bubbles: true,
-        cancelable: true,
-        clientX: screenX,
-        clientY: screenY,
-        movementX: dx,
-        movementY: dy,
-        pointerType: 'mouse',
-        isPrimary: true
-      });
-      
-      // Mark it as hand tracking event
-      Object.defineProperty(pointerEvent, 'isHandTracking', { value: true });
-      
-      window.dispatchEvent(pointerEvent);
-      
-      lastScreenPosRef.current = { x: screenX, y: screenY };
+    // Update main sphere
+    if (meshRef.current) {
+      meshRef.current.position.set((x - 0.5) * COORDINATE_SCALE_X, (0.5 - y) * COORDINATE_SCALE_Y, 0);
+      const scale = (settings.radius || 0.1) * 2 * (1 + PULSE_AMPLITUDE * Math.sin(t * PULSE_FREQUENCY) + energy * 0.3);
+      meshRef.current.scale.set(scale, scale, scale);
     }
+    
+    // Update trail spheres with wave distortion
+    trailMeshes.current.forEach((mesh, i) => {
+      if (mesh) {
+        const trailT = t - (i * 0.1);
+        const trailX = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(trailT + offset);
+        const trailY = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * trailT + offset);
+        
+        // Add swirl/distortion effect
+        const distortion = settings.distortion || 1;
+        const swirl = (settings.swirl || 0) * 0.01;
+        const angle = trailT * swirl;
+        const distX = Math.cos(angle) * distortion * 0.1;
+        const distY = Math.sin(angle) * distortion * 0.1;
+        
+        mesh.position.set(
+          (trailX - 0.5 + distX) * COORDINATE_SCALE_X, 
+          (0.5 - trailY + distY) * COORDINATE_SCALE_Y, 
+          -i * 0.05
+        );
+        
+        const trailScale = (settings.radius || 0.1) * 1.5 * (1 - i / trailCount);
+        mesh.scale.set(trailScale, trailScale, trailScale);
+      }
+    });
   });
   
-  return null;
-}
-
-/**
- * Fluid effect wrapper that intercepts mouse events
- */
-function FluidEffectWrapper({ settings, showLeftHand, showRightHand }) {
-  // Intercept mouse/pointer events to prevent user input from affecting fluid
-  useEffect(() => {
-    const interceptWindowEvent = (e) => {
-      if (!e.isHandTracking) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-      }
-    };
-    
-    window.addEventListener('pointermove', interceptWindowEvent, { capture: true });
-    
-    return () => {
-      window.removeEventListener('pointermove', interceptWindowEvent, { capture: true });
-    };
-  }, []);
+  const color = settings.fluidColor || '#005eff';
+  const intensity = settings.intensity || 1.0;
   
   return (
-    <>
-      <EffectComposer>
-        <Fluid
-          radius={settings.radius * 100 || 10}
-          curl={settings.curl || 10}
-          swirl={settings.swirl || 20}
-          distortion={settings.distortion || 2}
-          force={settings.force || 2}
-          pressure={settings.intensity || 10}
-          densityDissipation={0.98}
-          velocityDissipation={settings.velocityDissipation || 0.99}
-          intensity={settings.intensity || 10}
-          rainbow={settings.rainbow || false}
-          fluidColor={settings.fluidColor || '#005eff'}
-          blend={0}
+    <group>
+      {/* Main sphere */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshBasicMaterial 
+          color={color} 
+          transparent 
+          opacity={Math.min(intensity * 0.6, 0.9)}
+          blending={THREE.AdditiveBlending}
         />
-      </EffectComposer>
+      </mesh>
       
-      {showLeftHand && <FluidDistortionPreview handSide="left" />}
-      {showRightHand && <FluidDistortionPreview handSide="right" />}
-    </>
+      {/* Trail spheres */}
+      {Array.from({ length: trailCount }).map((_, i) => (
+        <mesh key={i} ref={el => trailMeshes.current[i] = el}>
+          <sphereGeometry args={[0.1, 12, 12]} />
+          <meshBasicMaterial 
+            color={settings.rainbow ? 
+              `hsl(${(i / trailCount) * 360}, 70%, 60%)` : 
+              color
+            }
+            transparent 
+            opacity={Math.min((intensity * 0.4 * (1 - i / trailCount)), 0.7)}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -382,6 +481,8 @@ function SimulatedHandMovement({ handSide, effectType }) {
         return handEffect.smoke || {};
       case 'fluidDistortion':
         return handEffect.fluidDistortion || {};
+      case 'particleTrail':
+        return handEffect.particleTrail || {};
       default:
         return {};
     }
@@ -490,7 +591,18 @@ function SimulatedHandMovement({ handSide, effectType }) {
     />;
   }
   
-  // Fluid distortion is handled separately by FluidEffectWrapper
+  if (effectType === 'particleTrail') {
+    return <ParticleTrailEffect 
+      handSide={handSide}
+      color={effectSettings.color || '#00ffff'}
+      intensity={effectSettings.intensity || 0.8}
+      particleSize={effectSettings.particleSize || 0.15}
+      trailLength={effectSettings.trailLength || 50}
+      fadeSpeed={effectSettings.fadeSpeed || 0.95}
+    />;
+  }
+  
+  // Fluid distortion is handled separately by FluidEffectPreview
   // Return null here as the fluid effect needs to be at a different level
   if (effectType === 'fluidDistortion') {
     return null;
@@ -646,14 +758,14 @@ export default function HandEffectQuickView() {
           
           {/* Hand effects - conditional rendering based on effect type */}
           {effectType === 'fluidDistortion' ? (
-            // Fluid distortion requires special handling with EffectComposer
-            <FluidEffectWrapper 
+            // Fluid distortion uses visual markers to stay within preview canvas
+            <FluidEffectPreview 
               settings={handEffect.fluidDistortion || {}}
               showLeftHand={showLeftHand}
               showRightHand={showRightHand}
             />
           ) : (
-            // Other effects (ripple, smoke) render normally
+            // Other effects (ripple, smoke, particleTrail) render normally
             <>
               {showLeftHand && (
                 <SimulatedHandMovement 
