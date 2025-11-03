@@ -37,13 +37,17 @@ export default function WelcomeMode() {
     if (autoFromSpotify && accessToken) {
       enableSpotifyTheme();
       // Force immediate update
-      forceUpdateTheme().then(theme => {
-        if (theme) {
-          setBgColor(theme.background);
-          setAssetColor(theme.asset);
-          setTrackInfo(theme.meta);
-        }
-      });
+      forceUpdateTheme()
+        .then(theme => {
+          if (theme) {
+            setBgColor(theme.background);
+            setAssetColor(theme.asset);
+            setTrackInfo(theme.meta);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating theme from Spotify:', error);
+        });
     } else {
       disableSpotifyTheme();
     }

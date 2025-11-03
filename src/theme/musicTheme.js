@@ -49,7 +49,12 @@ function deriveHueFromKey(key, mode) {
     330   // B - Red-Magenta
   ];
 
-  let hue = keyHues[key] || 210; // Default to blue
+  // Validate key is in valid range (0-11)
+  if (key < 0 || key > 11 || !Number.isInteger(key)) {
+    return 210; // Default to blue
+  }
+
+  let hue = keyHues[key];
   
   // Shift hue slightly for minor keys
   if (mode === 0) {
@@ -72,7 +77,7 @@ export async function buildMusicTheme(track, audioFeatures) {
   }
 
   // Derive colors from audio features as fallback/enhancement
-  const baseHue = audioFeatures?.key !== undefined 
+  const baseHue = (audioFeatures?.key !== undefined && audioFeatures.key >= 0 && audioFeatures.key <= 11)
     ? deriveHueFromKey(audioFeatures.key, audioFeatures.mode)
     : 210; // Default to blue
 

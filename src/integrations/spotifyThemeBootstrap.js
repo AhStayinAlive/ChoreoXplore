@@ -22,8 +22,12 @@ function getAccessToken() {
     return null;
   }
 
-  if (Date.now() >= parseInt(expiry)) {
-    // Token expired
+  const expiryTime = parseInt(expiry);
+  if (isNaN(expiryTime) || Date.now() >= expiryTime) {
+    // Token expired - clean up
+    localStorage.removeItem('spotify_access_token');
+    localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_token_expiry');
     return null;
   }
 
