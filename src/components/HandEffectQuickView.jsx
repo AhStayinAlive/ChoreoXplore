@@ -288,7 +288,7 @@ export default function HandEffectQuickView() {
     <div style={{
       position: 'absolute',
       bottom: 12,
-      right: 12,
+      right: 342, // Position to the left of AmbientAnimationControlPanel (320 + 12 gap + 10 padding)
       width: 300,
       height: 225,
       background: 'rgba(0,0,0,0.6)',
