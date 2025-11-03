@@ -4,7 +4,7 @@ import HandFluidEffect from './HandFluidEffect';
 import HandSmokeEffect from './HandSmokeEffect';
 import HandFluidDistortion from './HandFluidDistortion';
 
-export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTexture, smokeTextureInstance }) {
+export default function HandEffectRouter({ smokeTexture, smokeTextureInstance }) {
   const params = useVisStore(s => s.params);
   const isActive = useVisStore(s => s.isActive);
   
@@ -17,7 +17,7 @@ export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTextu
   
   switch (handEffect.type) {
     case 'ripple':
-      return <HandFluidEffect fluidTexture={fluidTexture} fluidCanvas={fluidCanvas} />;
+      return <HandFluidEffect />;
     case 'smoke':
       return <HandSmokeEffect smokeTexture={smokeTexture} smokeTextureInstance={smokeTextureInstance} />;
     case 'fluidDistortion':

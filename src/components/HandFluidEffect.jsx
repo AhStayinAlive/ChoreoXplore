@@ -16,7 +16,7 @@ import {
   calculateRippleParams 
 } from '../utils/handTracking';
 
-const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
+const HandFluidEffect = () => {
   const leftMeshRef = useRef();
   const rightMeshRef = useRef();
   const { poseData } = usePoseDetection();
@@ -113,13 +113,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
     shaderMaterials.right.uniforms.uRippleColor.value.set(...hexToRgb(rippleSettings.rippleColor));
   }, [rippleSettings, shaderMaterials]);
 
-  // Set texture when available
-  useEffect(() => {
-    if (fluidTexture) {
-      shaderMaterials.left.uniforms.uTexture.value = fluidTexture;
-      shaderMaterials.right.uniforms.uTexture.value = fluidTexture;
-    }
-  }, [fluidTexture, shaderMaterials]);
+  // No texture needed - fluid is rendered directly
 
   // Helper function to update hand ripple
   const updateHandRipple = useCallback((currentHandPos, handRefs, material, delta) => {
@@ -168,11 +162,6 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
     // Update time uniform for both materials
     shaderMaterials.left.uniforms.uTime.value = timeRef.current * 0.001;
     shaderMaterials.right.uniforms.uTime.value = timeRef.current * 0.001;
-    
-    // Update texture if canvas is available
-    if (fluidTexture && fluidCanvas) {
-      fluidTexture.needsUpdate = true;
-    }
     
     // Update left hand if enabled
     if (leftHandEnabled) {
