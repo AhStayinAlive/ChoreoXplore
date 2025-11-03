@@ -46,7 +46,9 @@ const HandParticleTrailEffect = () => {
       positions[i * 3] = 0;
       positions[i * 3 + 1] = 0;
       positions[i * 3 + 2] = 0;
-      sizes[i] = particleSize * 150 * (1 - i / trailLength); // Scaled for SimpleSkeleton coordinate system
+      // Make particles fade to near-zero at the end
+      const sizeFade = Math.pow(1 - i / trailLength, 2); // Quadratic fade for smoother disappearance
+      sizes[i] = particleSize * 150 * sizeFade;
     }
     
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -114,7 +116,10 @@ const HandParticleTrailEffect = () => {
       positions[i * 3 + 2] = -i * 0.5 + energy * 5;
       
       // Adjust size with fade - scaled for SimpleSkeleton coordinate system
-      sizes[i] = particleSize * 150 * (1 - i / trailLength) * fade * (1 + energy * 0.2);
+      // Use quadratic fade for smoother disappearance like preview
+      const linearFade = 1 - i / trailLength;
+      const quadraticFade = Math.pow(linearFade, 2);
+      sizes[i] = particleSize * 150 * quadraticFade * fade * (1 + energy * 0.2);
     }
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;

@@ -791,7 +791,8 @@ export default function HandEffectQuickView() {
             preserveDrawingBuffer: true
           }}
         >
-          <color attach="background" args={['#000000']} />
+          {/* Background color matches theme or is transparent */}
+          <color attach="background" args={['rgba(0,0,0,0)']} />
           
           {/* Background visual mode */}
           <PreviewBackgroundVisual />
