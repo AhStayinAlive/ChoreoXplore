@@ -21,32 +21,59 @@ export function wireThemeToStore() {
       assetColor: theme.asset
     });
 
-    // Update hand effect colors in useVisStore
-    const visStoreState = useVisStore.getState();
-    const currentHandEffect = visStoreState.params.handEffect || {};
-    
-    // Update hand effect colors based on theme
-    visStoreState.setParams({
-      handEffect: {
-        ...currentHandEffect,
-        ripple: {
-          ...currentHandEffect.ripple,
-          baseColor: theme.handLeft || theme.asset,
-          rippleColor: theme.handRight || theme.asset
-        },
-        smoke: {
-          ...currentHandEffect.smoke,
-          color: theme.handCenter || theme.asset
-        },
-        fluidDistortion: {
-          ...currentHandEffect.fluidDistortion,
-          fluidColor: theme.handLeft || theme.asset
-        }
-      }
+    console.log('🎨 Theme synced to store:', theme.background, theme.asset);
+    console.log('🎨 Hand colors from theme:', { 
+      handLeft: theme.handLeft, 
+      handRight: theme.handRight, 
+      handCenter: theme.handCenter 
     });
 
-    console.log('🎨 Theme synced to store:', theme.background, theme.asset);
-    console.log('🎨 Hand colors updated:', theme.handLeft, theme.handRight, theme.handCenter);
+    // Update hand effect colors in useVisStore
+    const visStoreState = useVisStore.getState();
+    const currentParams = visStoreState.params;
+    const currentHandEffect = currentParams.handEffect || {};
+    
+    // Create updated hand effect with new colors
+    const updatedHandEffect = {
+      ...currentHandEffect,
+      ripple: {
+        ...(currentHandEffect.ripple || {}),
+        baseColor: theme.handLeft || theme.asset,
+        rippleColor: theme.handRight || theme.asset
+      },
+      smoke: {
+        ...(currentHandEffect.smoke || {}),
+        color: theme.handCenter || theme.asset
+      },
+      fluidDistortion: {
+        ...(currentHandEffect.fluidDistortion || {}),
+        fluidColor: theme.handLeft || theme.asset
+      }
+    };
+
+    console.log('🎨 Updating hand effect colors:', {
+      ripple: { 
+        baseColor: updatedHandEffect.ripple.baseColor, 
+        rippleColor: updatedHandEffect.ripple.rippleColor 
+      },
+      smoke: { color: updatedHandEffect.smoke.color },
+      fluid: { fluidColor: updatedHandEffect.fluidDistortion.fluidColor }
+    });
+    
+    // Update the store with the new hand effect
+    visStoreState.setParams({
+      handEffect: updatedHandEffect
+    });
+
+    // Verify the update
+    setTimeout(() => {
+      const verifyState = useVisStore.getState();
+      console.log('🎨 Verified hand effect colors after update:', {
+        ripple: verifyState.params.handEffect?.ripple?.baseColor,
+        smoke: verifyState.params.handEffect?.smoke?.color,
+        fluid: verifyState.params.handEffect?.fluidDistortion?.fluidColor
+      });
+    }, 100);
   };
 
   // Listen for theme events
