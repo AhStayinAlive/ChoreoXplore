@@ -91,7 +91,7 @@ const HandFluidDistortion = () => {
   }, [gl]);
 
   // Dispatch PointerEvent to WINDOW (library listens to window!)
-  const dispatchPointerEvent = useCallback((screenPos, velocity) => {
+  const dispatchPointerEvent = useCallback((screenPos, velocity, pointerId) => {
     if (!screenPos) return;
     
     // Calculate movement delta from velocity
@@ -106,7 +106,7 @@ const HandFluidDistortion = () => {
       clientY: screenPos.y,
       movementX: movementX,
       movementY: movementY,
-      pointerId: 1, // Use a consistent pointer ID
+      pointerId: pointerId, // Use unique pointer ID for each hand
       pointerType: 'touch', // Simulate touch input
       pressure: 0.5,
       width: 1,
@@ -121,7 +121,7 @@ const HandFluidDistortion = () => {
   }, []);
 
   // Update hand tracking and dispatch pointer events
-  const updateHandFluid = useCallback((currentHandPos, handRefs, delta) => {
+  const updateHandFluid = useCallback((currentHandPos, handRefs, delta, pointerId) => {
     if (currentHandPos) {
       // Smooth hand position to reduce jitter
       const smoothedPos = smoothHandPosition(currentHandPos, handRefs.smoothedPosition.current, 0.15);
@@ -135,8 +135,8 @@ const HandFluidDistortion = () => {
       const screenPos = convertHandToScreenCoords(smoothedPos);
       
       if (screenPos) {
-        // Dispatch pointer event to canvas
-        dispatchPointerEvent(screenPos, velocity);
+        // Dispatch pointer event with unique ID for each hand
+        dispatchPointerEvent(screenPos, velocity, pointerId);
         
         // Store screen position for next frame
         handRefs.lastScreenPosition.current = screenPos;
@@ -149,16 +149,16 @@ const HandFluidDistortion = () => {
 
   // Update hand tracking each frame
   useFrame((state, delta) => {
-    // Update left hand if enabled
+    // Update left hand if enabled (pointer ID 1)
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
-      updateHandFluid(leftHandPos, leftHandRefs, delta);
+      updateHandFluid(leftHandPos, leftHandRefs, delta, 1);
     }
     
-    // Update right hand if enabled
+    // Update right hand if enabled (pointer ID 2)
     if (rightHandEnabled) {
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
-      updateHandFluid(rightHandPos, rightHandRefs, delta);
+      updateHandFluid(rightHandPos, rightHandRefs, delta, 2);
     }
   });
 
