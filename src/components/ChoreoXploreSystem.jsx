@@ -5,6 +5,10 @@ import Lines1D_Irina from './Lines1D_Irina';
 import QuandCestMode from './QuandCestMode';
 import PulsatingCircleMode from './PulsatingCircleMode';
 import VerticalLinesMode from './VerticalLinesMode';
+import WaterRippleMode from './WaterRippleMode';
+import HeatWaveMode from './HeatWaveMode';
+import FlowingMode from './FlowingMode';
+import GentleWaveMode from './GentleWaveMode';
 import EmptyMode from './EmptyMode';
 
 export default function ChoreoXploreSystem() {
@@ -23,6 +27,14 @@ export default function ChoreoXploreSystem() {
       return <PulsatingCircleMode />;
     case 'vertical_lines':
       return <VerticalLinesMode />;
+    case 'water_ripple':
+      return <WaterRippleMode />;
+    case 'heat_wave':
+      return <HeatWaveMode />;
+    case 'flowing':
+      return <FlowingMode />;
+    case 'gentle_wave':
+      return <GentleWaveMode />;
     case 'empty':
       return <EmptyMode />;
     default:

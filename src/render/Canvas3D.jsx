@@ -109,6 +109,11 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
                 wavelength={ambientAnimationParams?.wavelength ?? 1.0}
                 intensity={ambientAnimationParams?.intensity ?? 0.3}
                 scale={mode === "choreoxplore" ? 1.0 : 1.0} // Same scale for all modes
+                audioReactive={ambientAnimationParams?.audioReactive ?? true}
+                audioSensitivity={ambientAnimationParams?.audioSensitivity ?? 0.5}
+                audioBassInfluence={ambientAnimationParams?.audioBassInfluence ?? 0.7}
+                audioMidInfluence={ambientAnimationParams?.audioMidInfluence ?? 0.5}
+                audioHighInfluence={ambientAnimationParams?.audioHighInfluence ?? 0.3}
               />
             </>
           )}

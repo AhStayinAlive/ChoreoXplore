@@ -1,8 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import useStore from '../core/store';
+import { audio$ } from '../core/audio';
 
 const AmbientBackgroundAnimation = ({ 
   backgroundImage, 
@@ -12,17 +13,43 @@ const AmbientBackgroundAnimation = ({
   amplitude = 0.5,
   wavelength = 1.0,
   intensity = 0.3,
-  scale = 1.0 // Add scale prop
+  scale = 1.0, // Add scale prop
+  audioReactive = true,
+  audioSensitivity = 0.5,
+  audioBassInfluence = 0.7,
+  audioMidInfluence = 0.5,
+  audioHighInfluence = 0.3
 }) => {
   const meshRef = useRef();
   const { size } = useThree();
   const [shaderMaterial, setShaderMaterial] = useState(null);
   const poseData = useStore(s => s.poseData);
+  const audioDataRef = useRef({ rms: 0, bands: [0, 0, 0], centroid: 0 });
+  const lastAudioUpdateRef = useRef({ bass: 0, mid: 0, high: 0, rms: 0 });
   
-  // Pose data is now working correctly
+  // Audio update threshold - only update GPU when values change by more than this amount
+  const AUDIO_UPDATE_THRESHOLD = 0.01;
+  
+  // Subscribe to audio data
+  useEffect(() => {
+    const subscription = audio$.subscribe((audioData) => {
+      audioDataRef.current = audioData;
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
   
   // Load background texture
   const texture = useTexture(backgroundImage);
+  
+  // Memoize audio parameters to reduce shader re-compilations
+  const audioParams = useMemo(() => ({
+    audioReactive,
+    audioSensitivity,
+    audioBassInfluence,
+    audioMidInfluence,
+    audioHighInfluence
+  }), [audioReactive, audioSensitivity, audioBassInfluence, audioMidInfluence, audioHighInfluence]);
   
   // Create shader material with ambient animation effects
   useEffect(() => {
@@ -39,7 +66,16 @@ const AmbientBackgroundAnimation = ({
         u_intensity: { value: intensity },
         u_effect_type: { value: getEffectTypeValue(effectType) },
         u_pose_data: { value: new Float32Array(33 * 2) }, // 33 landmarks * 2 (x,y)
-        u_pose_active: { value: 0.0 } // 1.0 if pose data is available, 0.0 otherwise
+        u_pose_active: { value: 0.0 }, // 1.0 if pose data is available, 0.0 otherwise
+        u_audio_reactive: { value: audioParams.audioReactive ? 1.0 : 0.0 },
+        u_audio_sensitivity: { value: audioParams.audioSensitivity },
+        u_audio_bass: { value: 0.0 },
+        u_audio_mid: { value: 0.0 },
+        u_audio_high: { value: 0.0 },
+        u_audio_rms: { value: 0.0 },
+        u_audio_bass_influence: { value: audioParams.audioBassInfluence },
+        u_audio_mid_influence: { value: audioParams.audioMidInfluence },
+        u_audio_high_influence: { value: audioParams.audioHighInfluence }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -59,6 +95,15 @@ const AmbientBackgroundAnimation = ({
         uniform float u_effect_type;
         uniform float u_pose_data[66]; // 33 landmarks * 2 (x,y)
         uniform float u_pose_active;
+        uniform float u_audio_reactive;
+        uniform float u_audio_sensitivity;
+        uniform float u_audio_bass;
+        uniform float u_audio_mid;
+        uniform float u_audio_high;
+        uniform float u_audio_rms;
+        uniform float u_audio_bass_influence;
+        uniform float u_audio_mid_influence;
+        uniform float u_audio_high_influence;
         varying vec2 vUv;
         
         // Noise function for organic movement
@@ -100,15 +145,30 @@ const AmbientBackgroundAnimation = ({
           vec2 center = vec2(0.5, 0.5);
           float dist = distance(uv, center);
           
-          // Create multiple ripple layers
-          float ripple1 = sin(dist * u_wavelength * 20.0 - time * u_speed * 2.0) * u_amplitude * 0.02;
-          float ripple2 = sin(dist * u_wavelength * 35.0 - time * u_speed * 1.5) * u_amplitude * 0.015;
-          float ripple3 = sin(dist * u_wavelength * 50.0 - time * u_speed * 1.2) * u_amplitude * 0.01;
+          // Audio modulation
+          float audioMod = 1.0;
+          if (u_audio_reactive > 0.5) {
+            // Bass drives amplitude, mids drive frequency, highs add shimmer
+            audioMod = 1.0 + (u_audio_bass * u_audio_bass_influence * 2.0 + 
+                             u_audio_mid * u_audio_mid_influence + 
+                             u_audio_high * u_audio_high_influence * 0.5) * u_audio_sensitivity;
+          }
+          
+          // Create multiple ripple layers with audio modulation
+          float ripple1 = sin(dist * u_wavelength * 20.0 * audioMod - time * u_speed * 2.0) * u_amplitude * 0.02;
+          float ripple2 = sin(dist * u_wavelength * 35.0 * audioMod - time * u_speed * 1.5) * u_amplitude * 0.015;
+          float ripple3 = sin(dist * u_wavelength * 50.0 * audioMod - time * u_speed * 1.2) * u_amplitude * 0.01;
           
           // Add some randomness for organic feel
           float noiseRipple = fractalNoise(uv * 3.0 + time * 0.1) * u_amplitude * 0.005;
           
-          float totalRipple = (ripple1 + ripple2 + ripple3 + noiseRipple) * u_intensity;
+          // Audio reactive pulsing
+          float audioPulse = 0.0;
+          if (u_audio_reactive > 0.5) {
+            audioPulse = u_audio_rms * u_audio_sensitivity * 0.01;
+          }
+          
+          float totalRipple = (ripple1 + ripple2 + ripple3 + noiseRipple + audioPulse) * u_intensity;
           
           // Radial distortion
           vec2 direction = normalize(uv - center);
@@ -117,24 +177,46 @@ const AmbientBackgroundAnimation = ({
         
         // Heat wave effect
         vec2 heatWave(vec2 uv, float time) {
+          // Audio modulation - bass creates waves, mids control speed
+          float audioMod = 1.0;
+          float audioSpeed = 1.0;
+          if (u_audio_reactive > 0.5) {
+            audioMod = 1.0 + (u_audio_bass * u_audio_bass_influence * 3.0) * u_audio_sensitivity;
+            audioSpeed = 1.0 + (u_audio_mid * u_audio_mid_influence) * u_audio_sensitivity;
+          }
+          
           // Vertical heat shimmer
-          float heat1 = sin(uv.x * u_wavelength * 15.0 + time * u_speed * 3.0) * u_amplitude * 0.02;
-          float heat2 = sin(uv.x * u_wavelength * 25.0 + time * u_speed * 2.0) * u_amplitude * 0.015;
+          float heat1 = sin(uv.x * u_wavelength * 15.0 + time * u_speed * 3.0 * audioSpeed) * u_amplitude * 0.02 * audioMod;
+          float heat2 = sin(uv.x * u_wavelength * 25.0 + time * u_speed * 2.0 * audioSpeed) * u_amplitude * 0.015 * audioMod;
           
           // Add some horizontal variation
-          float heat3 = sin(uv.y * u_wavelength * 10.0 + time * u_speed * 1.5) * u_amplitude * 0.01;
+          float heat3 = sin(uv.y * u_wavelength * 10.0 + time * u_speed * 1.5 * audioSpeed) * u_amplitude * 0.01;
           
           // Noise-based distortion
           float noiseHeat = fractalNoise(uv * 2.0 + time * 0.05) * u_amplitude * 0.008;
           
-          return vec2(heat1 + heat2 + noiseHeat, heat3) * u_intensity;
+          // Audio reactive shimmer
+          float audioShimmer = 0.0;
+          if (u_audio_reactive > 0.5) {
+            audioShimmer = u_audio_high * u_audio_high_influence * u_audio_sensitivity * 0.015;
+          }
+          
+          return vec2(heat1 + heat2 + noiseHeat + audioShimmer, heat3) * u_intensity;
         }
         
         // Flowing distortion effect
         vec2 flowingDistortion(vec2 uv, float time) {
+          // Audio modulation - all frequencies contribute to flow
+          float audioFlow = 1.0;
+          if (u_audio_reactive > 0.5) {
+            audioFlow = 1.0 + (u_audio_bass * u_audio_bass_influence * 2.0 + 
+                              u_audio_mid * u_audio_mid_influence * 1.5 + 
+                              u_audio_high * u_audio_high_influence) * u_audio_sensitivity;
+          }
+          
           // Create flowing patterns
-          float flow1 = sin(uv.x * u_wavelength * 12.0 + uv.y * u_wavelength * 8.0 + time * u_speed * 2.5) * u_amplitude * 0.02;
-          float flow2 = sin(uv.x * u_wavelength * 18.0 - uv.y * u_wavelength * 12.0 + time * u_speed * 1.8) * u_amplitude * 0.015;
+          float flow1 = sin(uv.x * u_wavelength * 12.0 + uv.y * u_wavelength * 8.0 + time * u_speed * 2.5 * audioFlow) * u_amplitude * 0.02;
+          float flow2 = sin(uv.x * u_wavelength * 18.0 - uv.y * u_wavelength * 12.0 + time * u_speed * 1.8 * audioFlow) * u_amplitude * 0.015;
           
           // Add circular flow patterns
           vec2 center = vec2(0.5, 0.5);
@@ -146,14 +228,28 @@ const AmbientBackgroundAnimation = ({
           // Noise-based flow
           float noiseFlow = fractalNoise(uv * 1.5 + time * 0.03) * u_amplitude * 0.006;
           
-          return vec2(flow1 + circularFlow + noiseFlow, flow2 + noiseFlow) * u_intensity;
+          // Audio reactive swirl
+          float audioSwirl = 0.0;
+          if (u_audio_reactive > 0.5) {
+            audioSwirl = sin(angle * 4.0 + u_audio_rms * 10.0) * u_audio_sensitivity * 0.01;
+          }
+          
+          return vec2(flow1 + circularFlow + noiseFlow + audioSwirl, flow2 + noiseFlow) * u_intensity;
         }
         
         // Gentle wave effect
         vec2 gentleWave(vec2 uv, float time) {
+          // Audio modulation - subtle response to all frequencies
+          float audioWave = 1.0;
+          if (u_audio_reactive > 0.5) {
+            audioWave = 1.0 + (u_audio_bass * u_audio_bass_influence * 0.5 + 
+                              u_audio_mid * u_audio_mid_influence * 0.3 + 
+                              u_audio_high * u_audio_high_influence * 0.2) * u_audio_sensitivity;
+          }
+          
           // Soft, gentle waves
-          float wave1 = sin(uv.x * u_wavelength * 8.0 + time * u_speed * 1.5) * u_amplitude * 0.015;
-          float wave2 = sin(uv.y * u_wavelength * 6.0 + time * u_speed * 1.2) * u_amplitude * 0.012;
+          float wave1 = sin(uv.x * u_wavelength * 8.0 + time * u_speed * 1.5) * u_amplitude * 0.015 * audioWave;
+          float wave2 = sin(uv.y * u_wavelength * 6.0 + time * u_speed * 1.2) * u_amplitude * 0.012 * audioWave;
           
           // Subtle diagonal waves
           float wave3 = sin((uv.x + uv.y) * u_wavelength * 10.0 + time * u_speed * 1.8) * u_amplitude * 0.008;
@@ -161,7 +257,13 @@ const AmbientBackgroundAnimation = ({
           // Very subtle noise
           float noiseWave = fractalNoise(uv * 1.0 + time * 0.02) * u_amplitude * 0.003;
           
-          return vec2(wave1 + wave3 + noiseWave, wave2 + noiseWave) * u_intensity;
+          // Audio reactive gentle pulse
+          float audioPulse = 0.0;
+          if (u_audio_reactive > 0.5) {
+            audioPulse = u_audio_rms * u_audio_sensitivity * 0.005;
+          }
+          
+          return vec2(wave1 + wave3 + noiseWave + audioPulse, wave2 + noiseWave) * u_intensity;
         }
         
         // Function to get distance from point to line segment
@@ -579,7 +681,7 @@ const AmbientBackgroundAnimation = ({
     });
 
     setShaderMaterial(material);
-  }, [texture, size.width, size.height, effectType, speed, amplitude, wavelength, intensity]);
+  }, [texture, size.width, size.height, effectType, speed, amplitude, wavelength, intensity, audioParams]);
 
   // Create a static shader material for when animation is off (but still with pose distortion)
   const staticShaderMaterial = new THREE.ShaderMaterial({
@@ -796,6 +898,29 @@ const AmbientBackgroundAnimation = ({
     if (shaderMaterial) {
         // Always update time (needed for both ambient animation and pose distortion)
         shaderMaterial.uniforms.u_time.value = state.clock.elapsedTime;
+        
+        // Update audio data if audio reactive is enabled
+        if (audioReactive && audioDataRef.current) {
+          const audioData = audioDataRef.current;
+          const bass = audioData.bands[0] || 0;
+          const mid = audioData.bands[1] || 0;
+          const high = audioData.bands[2] || 0;
+          const rms = audioData.rms || 0;
+          
+          // Only update if values changed significantly to reduce GPU updates
+          const last = lastAudioUpdateRef.current;
+          if (Math.abs(bass - last.bass) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(mid - last.mid) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(high - last.high) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(rms - last.rms) > AUDIO_UPDATE_THRESHOLD) {
+            shaderMaterial.uniforms.u_audio_bass.value = bass;
+            shaderMaterial.uniforms.u_audio_mid.value = mid;
+            shaderMaterial.uniforms.u_audio_high.value = high;
+            shaderMaterial.uniforms.u_audio_rms.value = rms;
+            
+            lastAudioUpdateRef.current = { bass, mid, high, rms };
+          }
+        }
     }
     
     // Also update static shader material if it exists

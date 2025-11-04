@@ -17,8 +17,27 @@ export default function ChoreoXploreControlPanel() {
     setParams({ [param]: value });
   };
 
+  const setAmbientAnimationParams = useStore(s => s.setAmbientAnimationParams);
+  const ambientAnimationParams = useStore(s => s.ambientAnimationParams);
+
   const handleModeChange = (mode) => {
     setParams({ mode });
+    
+    // Map new visual modes to ambient animation effect types
+    const modeToEffectMap = {
+      'water_ripple': 'waterRipple',
+      'heat_wave': 'heatWave',
+      'flowing': 'flowingDistortion',
+      'gentle_wave': 'gentleWave'
+    };
+    
+    if (modeToEffectMap[mode]) {
+      setAmbientAnimationParams({
+        ...ambientAnimationParams,
+        effectType: modeToEffectMap[mode],
+        isActive: true
+      });
+    }
   };
 
   return (
@@ -137,6 +156,10 @@ export default function ChoreoXploreControlPanel() {
               <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
               <option value="pulsating_circle" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Circle</option>
               <option value="vertical_lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Raindrop</option>
+              <option value="water_ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Water Ripple</option>
+              <option value="heat_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Heat Wave</option>
+              <option value="flowing" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Flowing</option>
+              <option value="gentle_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Gentle Wave</option>
             </select>
           </div>
         </div>
