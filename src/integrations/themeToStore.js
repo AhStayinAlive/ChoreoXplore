@@ -61,6 +61,10 @@ export function wireThemeToStore() {
       fluidDistortion: {
         ...(currentHandEffect.fluidDistortion || {}),
         fluidColor: theme.handLeft || theme.asset
+      },
+      particleTrail: {
+        ...(currentHandEffect.particleTrail || {}),
+        color: theme.asset
       }
     };
 
@@ -70,7 +74,8 @@ export function wireThemeToStore() {
         rippleColor: updatedHandEffect.ripple.rippleColor 
       },
       smoke: { color: updatedHandEffect.smoke.color },
-      fluid: { fluidColor: updatedHandEffect.fluidDistortion.fluidColor }
+      fluid: { fluidColor: updatedHandEffect.fluidDistortion.fluidColor },
+      particleTrail: { color: updatedHandEffect.particleTrail.color }
     });
     
     console.log('📝 CALLING setParams with updated handEffect...');
@@ -97,7 +102,8 @@ export function wireThemeToStore() {
     console.log('📊 IMMEDIATE VERIFY - Store state after setParams:', {
       ripple: immediateVerify.params.handEffect?.ripple?.baseColor,
       smoke: immediateVerify.params.handEffect?.smoke?.color,
-      fluid: immediateVerify.params.handEffect?.fluidDistortion?.fluidColor
+      fluid: immediateVerify.params.handEffect?.fluidDistortion?.fluidColor,
+      particleTrail: immediateVerify.params.handEffect?.particleTrail?.color
     });
 
     // Verify the update after a delay
@@ -106,7 +112,8 @@ export function wireThemeToStore() {
       console.log('📊 DELAYED VERIFY (100ms) - Store state:', {
         ripple: verifyState.params.handEffect?.ripple?.baseColor,
         smoke: verifyState.params.handEffect?.smoke?.color,
-        fluid: verifyState.params.handEffect?.fluidDistortion?.fluidColor
+        fluid: verifyState.params.handEffect?.fluidDistortion?.fluidColor,
+        particleTrail: verifyState.params.handEffect?.particleTrail?.color
       });
       console.log('═══════════════════════════════════════');
       console.log('🎨 THEME UPDATE COMPLETE');

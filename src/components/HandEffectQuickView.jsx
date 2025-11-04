@@ -777,9 +777,6 @@ export default function HandEffectQuickView() {
         }}>
           Effect Preview (Drag to Move)
         </h4>
-        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
-          🎵 Music Reactive
-        </div>
       </div>
       
       {/* Canvas for preview */}
@@ -826,17 +823,7 @@ export default function HandEffectQuickView() {
         </Canvas>
       </div>
       
-      {/* Info text */}
-      <div style={{
-        position: 'absolute',
-        bottom: 8,
-        left: 12,
-        fontSize: '10px',
-        color: 'rgba(255,255,255,0.6)',
-        pointerEvents: 'none'
-      }}>
-        Simulated movement • Synced to audio
-      </div>
+      {/* Bottom info text removed per request */}
     </div>
   );
 }

@@ -9,8 +9,8 @@ import {
   handRippleUniforms 
 } from '../shaders/handRippleShader';
 import { 
-  getRightHandPosition,
-  getLeftHandPosition,
+  getRightHandAnchor as getRightHandPosition,
+  getLeftHandAnchor as getLeftHandPosition,
   calculateHandVelocity, 
   smoothHandPosition,
   calculateRippleParams 
@@ -145,12 +145,14 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
           const shaderY = (y / 20000) + 0.5;
       
       // Use slider values directly, modulated by velocity and visibility
-      const velocityMultiplier = 1.0 + velocity * 0.5; // 1.0 to 1.5x based on movement
-      const visibilityMultiplier = Math.max(currentHandPos.visibility, 0.5);
+  const velocityMultiplier = 1.0 + velocity * 0.5; // 1.0 to 1.5x based on movement
+  // Normalize strength to be identical across hands regardless of landmark visibility
+  // Visibility already gates detection above; when a hand is present, use fixed intensity
+  const visibilityMultiplier = 1.0;
 
       // Update shader uniforms
       material.uniforms.uHandPosition.value.set(shaderX, shaderY);
-      material.uniforms.uRippleStrength.value = rippleSettings.intensity * visibilityMultiplier;
+  material.uniforms.uRippleStrength.value = rippleSettings.intensity * visibilityMultiplier;
       material.uniforms.uRippleRadius.value = rippleSettings.radius * velocityMultiplier;
       
       // Store current position for next frame

@@ -2,11 +2,12 @@ import React, { useRef, useCallback, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer } from '@react-three/postprocessing';
 import { Fluid } from '@whatisjery/react-fluid-distortion';
+import * as THREE from 'three';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { useVisStore } from '../state/useVisStore';
 import {
-  getRightHandPosition,
-  getLeftHandPosition,
+  getRightHandAnchor as getRightHandPosition,
+  getLeftHandAnchor as getLeftHandPosition,
   calculateHandVelocity,
   smoothHandPosition
 } from '../utils/handTracking';
@@ -48,6 +49,18 @@ const HandFluidDistortion = () => {
   const handSelection = handEffect?.handSelection || 'none';
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
   const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  // When both hands are selected, override all settings except radius and fluidColor to be 0
+  const effectiveSettings = handSelection === 'both' ? {
+    ...fluidSettings,
+    intensity: 0,
+    force: 0,
+    distortion: 0,
+    curl: 0,
+    swirl: 0,
+    rainbow: false
+    // radius and fluidColor stay from fluidSettings
+  } : fluidSettings;
 
   // THE REAL SOLUTION: Intercept at WINDOW level (library listens to window!)
   useEffect(() => {
@@ -68,27 +81,31 @@ const HandFluidDistortion = () => {
     };
   }, []);
 
-  // Convert hand position to screen coordinates using SimpleSkeleton coordinate system
+  // Convert hand position to screen coordinates using THREE.js projection
   const convertHandToScreenCoords = useCallback((handPos) => {
     if (!handPos) return null;
     
-    // Transform using SimpleSkeleton coordinate system (EXACTLY like ripple/smoke)
-    const scale = 22; // Match SimpleSkeleton default scale
-    const x = (handPos.x - 0.5) * 200 * scale;
-    const y = (0.5 - handPos.y) * 200 * scale; // FLIP Y (like ripple/smoke)
-    
-    // Convert to UV coordinates (0-1 range)
-    const uvX = (x / 20000) + 0.5;
-    const uvY = (y / 20000) + 0.5;
-    
-    // Map UV coords to canvas pixel coordinates
+    // Get canvas dimensions
     const canvasRect = gl.domElement.getBoundingClientRect();
-    const screenX = canvasRect.left + (uvX * canvasRect.width);
-    // Flip Y to compensate for library's internal Y flip - hand up = effect up
-    const screenY = canvasRect.top + ((1.0 - uvY) * canvasRect.height);
+    
+    // Transform hand position using SimpleSkeleton coordinate system (same as avatar)
+    const scale = 22; // Match SimpleSkeleton
+    const sceneX = (handPos.x - 0.5) * 200 * scale;
+    const sceneY = (0.5 - handPos.y) * 200 * scale;
+    const sceneZ = 2; // Same Z as avatar (in front)
+    
+    // Create 3D vector in scene space
+    const vector = new THREE.Vector3(sceneX, sceneY, sceneZ);
+    
+    // Project to screen space using camera
+    vector.project(camera);
+    
+    // Convert from normalized device coordinates (-1 to 1) to screen pixels
+    const screenX = canvasRect.left + ((vector.x + 1) / 2) * canvasRect.width;
+    const screenY = canvasRect.top + ((-vector.y + 1) / 2) * canvasRect.height;
     
     return { x: screenX, y: screenY };
-  }, [gl]);
+  }, [gl, camera]);
 
   // Dispatch PointerEvent to WINDOW (library listens to window!)
   const dispatchPointerEvent = useCallback((screenPos, velocity) => {
@@ -170,15 +187,15 @@ const HandFluidDistortion = () => {
   return (
     <EffectComposer>
       <Fluid
-        fluidColor={fluidSettings.fluidColor}
-        intensity={fluidSettings.intensity}
-        force={fluidSettings.force}
-        distortion={fluidSettings.distortion}
-        radius={fluidSettings.radius}
-        curl={fluidSettings.curl}
-        swirl={fluidSettings.swirl}
-        velocityDissipation={fluidSettings.velocityDissipation}
-        rainbow={fluidSettings.rainbow}
+        fluidColor={effectiveSettings.fluidColor}
+        intensity={effectiveSettings.intensity}
+        force={effectiveSettings.force}
+        distortion={effectiveSettings.distortion}
+        radius={effectiveSettings.radius}
+        curl={effectiveSettings.curl}
+        swirl={effectiveSettings.swirl}
+        velocityDissipation={effectiveSettings.velocityDissipation}
+        rainbow={effectiveSettings.rainbow}
         showBackground={false} // Keep background transparent
       />
     </EffectComposer>

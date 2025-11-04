@@ -3,7 +3,7 @@
  * Extracts palette from album art and derives colors from audio features
  */
 
-import Vibrant from 'node-vibrant';
+import { Vibrant } from 'node-vibrant/browser';
 import tinycolor from 'tinycolor2';
 
 /**

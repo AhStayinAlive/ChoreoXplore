@@ -110,11 +110,6 @@ export default function HandEffectsPanel() {
               setParams({ handEffect: { ...handEffect, showQuickView: !!val } });
             }}
           />
-          <ToggleButton
-            label="Motion Reactive"
-            selected={handEffect.motionReactive !== false}
-            onChange={(val) => setParams({ handEffect: { ...handEffect, motionReactive: !!val } })}
-          />
         </div>
       </div>
       
@@ -248,6 +243,7 @@ export default function HandEffectsPanel() {
                 max={0.8}
                 step={0.05}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleRippleChange({ radius: value })}
               />
             </div>
@@ -261,6 +257,7 @@ export default function HandEffectsPanel() {
                 max={1.5}
                 step={0.1}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleRippleChange({ intensity: value })}
               />
             </div>
@@ -296,6 +293,7 @@ export default function HandEffectsPanel() {
                 max={1.0}
                 step={0.05}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleSmokeChange({ intensity: value })}
               />
             </div>
@@ -309,6 +307,7 @@ export default function HandEffectsPanel() {
                 max={3.0}
                 step={0.1}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleSmokeChange({ radius: value })}
               />
             </div>
@@ -322,6 +321,7 @@ export default function HandEffectsPanel() {
                 max={2.0}
                 step={0.1}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
               />
             </div>
@@ -335,6 +335,7 @@ export default function HandEffectsPanel() {
                 max={1.0}
                 step={0.05}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleSmokeChange({ trailLength: value })}
               />
             </div>
@@ -348,7 +349,7 @@ export default function HandEffectsPanel() {
               Fluid Effect Settings
             </h4>
             
-            {/* Fluid Color */}
+            {/* Fluid Color - Always shown */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', color: 'white', fontSize: '10px', marginBottom: '4px', fontWeight: '500' }}>
                 Fluid Color
@@ -361,46 +362,54 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Intensity Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Intensity"
-                value={handEffect.fluidDistortion.intensity}
-                min={0}
-                max={10}
-                step={0.5}
-                format={(v) => v.toFixed(2)}
-                onChange={(value) => handleFluidDistortionChange({ intensity: value })}
-              />
-            </div>
+            {/* Only show intensity, force, distortion when NOT both hands */}
+            {handEffect.handSelection !== 'both' && (
+              <>
+                {/* Intensity Slider */}
+                <div style={{ marginBottom: 16 }}>
+                  <Slider
+                    label="Intensity"
+                    value={handEffect.fluidDistortion.intensity}
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    format={(v) => v.toFixed(2)}
+                    showValue={false}
+                    onChange={(value) => handleFluidDistortionChange({ intensity: value })}
+                  />
+                </div>
 
-            {/* Force Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Force"
-                value={handEffect.fluidDistortion.force}
-                min={0}
-                max={20}
-                step={0.5}
-                format={(v) => v.toFixed(2)}
-                onChange={(value) => handleFluidDistortionChange({ force: value })}
-              />
-            </div>
+                {/* Force Slider */}
+                <div style={{ marginBottom: 16 }}>
+                  <Slider
+                    label="Force"
+                    value={handEffect.fluidDistortion.force}
+                    min={0}
+                    max={20}
+                    step={0.5}
+                    format={(v) => v.toFixed(2)}
+                    showValue={false}
+                    onChange={(value) => handleFluidDistortionChange({ force: value })}
+                  />
+                </div>
 
-            {/* Distortion Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Distortion"
-                value={handEffect.fluidDistortion.distortion}
-                min={0}
-                max={2}
-                step={0.1}
-                format={(v) => v.toFixed(2)}
-                onChange={(value) => handleFluidDistortionChange({ distortion: value })}
-              />
-            </div>
+                {/* Distortion Slider */}
+                <div style={{ marginBottom: 16 }}>
+                  <Slider
+                    label="Distortion"
+                    value={handEffect.fluidDistortion.distortion}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    format={(v) => v.toFixed(2)}
+                    showValue={false}
+                    onChange={(value) => handleFluidDistortionChange({ distortion: value })}
+                  />
+                </div>
+              </>
+            )}
 
-            {/* Radius Slider */}
+            {/* Radius Slider - Always shown */}
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Radius"
@@ -409,58 +418,66 @@ export default function HandEffectsPanel() {
                 max={1}
                 step={0.01}
                 format={(v) => v.toFixed(2)}
+                showValue={false}
                 onChange={(value) => handleFluidDistortionChange({ radius: value })}
               />
             </div>
 
-            {/* Curl Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Curl"
-                value={handEffect.fluidDistortion.curl}
-                min={0}
-                max={50}
-                step={1}
-                format={(v) => v.toFixed(0)}
-                onChange={(value) => handleFluidDistortionChange({ curl: value })}
-              />
-            </div>
+            {/* Only show curl, swirl, and rainbow when NOT both hands */}
+            {handEffect.handSelection !== 'both' && (
+              <>
+                {/* Curl Slider */}
+                <div style={{ marginBottom: 16 }}>
+                  <Slider
+                    label="Curl"
+                    value={handEffect.fluidDistortion.curl}
+                    min={0}
+                    max={50}
+                    step={1}
+                    format={(v) => v.toFixed(0)}
+                    showValue={false}
+                    onChange={(value) => handleFluidDistortionChange({ curl: value })}
+                  />
+                </div>
 
-            {/* Swirl Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Swirl"
-                value={handEffect.fluidDistortion.swirl}
-                min={0}
-                max={20}
-                step={1}
-                format={(v) => v.toFixed(0)}
-                onChange={(value) => handleFluidDistortionChange({ swirl: value })}
-              />
-            </div>
+                {/* Swirl Slider */}
+                <div style={{ marginBottom: 16 }}>
+                  <Slider
+                    label="Swirl"
+                    value={handEffect.fluidDistortion.swirl}
+                    min={0}
+                    max={20}
+                    step={1}
+                    format={(v) => v.toFixed(0)}
+                    showValue={false}
+                    onChange={(value) => handleFluidDistortionChange({ swirl: value })}
+                  />
+                </div>
 
-            {/* Rainbow Toggle */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                color: 'white', 
-                fontSize: '12px', 
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={handEffect.fluidDistortion.rainbow}
-                  onChange={(e) => handleFluidDistortionChange({ rainbow: e.target.checked })}
-                  style={{
-                    marginRight: '8px',
-                    accentColor: '#0096ff'
-                  }}
-                />
-                Rainbow Mode
-              </label>
-            </div>
+                {/* Rainbow Toggle */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    color: 'white', 
+                    fontSize: '12px', 
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={handEffect.fluidDistortion.rainbow}
+                      onChange={(e) => handleFluidDistortionChange({ rainbow: e.target.checked })}
+                      style={{
+                        marginRight: '8px',
+                        accentColor: '#0096ff'
+                      }}
+                    />
+                    Rainbow Mode
+                  </label>
+                </div>
+              </>
+            )}
           </>
         )}
         {/* Particle Trail Effect Settings */}
@@ -498,6 +515,7 @@ export default function HandEffectsPanel() {
                 min={0}
                 max={1}
                 step={0.05}
+                showValue={false}
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, intensity: val }
                 })}
@@ -512,6 +530,7 @@ export default function HandEffectsPanel() {
                 min={0.05}
                 max={0.3}
                 step={0.01}
+                showValue={false}
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, particleSize: val }
                 })}
@@ -526,6 +545,7 @@ export default function HandEffectsPanel() {
                 min={10}
                 max={100}
                 step={5}
+                showValue={false}
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, trailLength: val }
                 })}
@@ -540,6 +560,7 @@ export default function HandEffectsPanel() {
                 min={0.8}
                 max={0.99}
                 step={0.01}
+                showValue={false}
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, fadeSpeed: val }
                 })}

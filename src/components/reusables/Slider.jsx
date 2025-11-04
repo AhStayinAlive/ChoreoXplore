@@ -32,6 +32,7 @@ export default function Slider({
   defaultValue,
   valueText = (v) => String(v),
   format = (v) => v,
+  showValue = true,
 }) {
   const trackRef = useRef(null);
   const [isHover, setHover] = useState(false);
@@ -137,7 +138,7 @@ export default function Slider({
       {label && (
         <div className="sl-head">
           <label htmlFor={id} className="ui-label">{label}</label>
-            <span className="sl-value">{format(value)}</span>
+            {showValue && <span className="sl-value">{format(value)}</span>}
         </div>
       )}
 

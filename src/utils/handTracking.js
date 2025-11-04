@@ -2,7 +2,6 @@
 
 /**
  * Extract left hand position from MediaPipe landmarks
- * Uses pinky tip for most accurate end-of-hand tracking, with forward offset
  * @param {Array} landmarks - MediaPipe pose landmarks array
  * @returns {Object|null} - Hand position {x, y, z, visibility} or null if not found
  */
@@ -11,57 +10,21 @@ export const getLeftHandPosition = (landmarks) => {
     return null;
   }
   
-  // Try pinky tip (17), then index tip (19), fallback to wrist (15)
-  const leftPinky = landmarks[17]; // Left pinky tip
-  const leftIndex = landmarks[19]; // Left index finger tip
-  const leftWrist = landmarks[15]; // Left wrist (fallback)
-  
-  // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
-  let handPoint = null;
-  let useWrist = false;
-  if (leftPinky && leftPinky.visibility > 0.1) {
-    handPoint = leftPinky;
-  } else if (leftIndex && leftIndex.visibility > 0.1) {
-    handPoint = leftIndex;
-  } else {
-    handPoint = leftWrist;
-    useWrist = true;
-  }
-  
-  if (!handPoint || handPoint.visibility < 0.1) {
+  const leftWrist = landmarks[15]; // Left wrist landmark (index 15)
+  if (!leftWrist || leftWrist.visibility < 0.3) {
     return null;
   }
   
-  // Calculate direction vector from wrist to hand point for offset
-  const wrist = landmarks[15];
-  let offsetX = 0;
-  let offsetY = 0;
-  
-  if (wrist && !useWrist) {
-    // Calculate direction from wrist to hand point
-    const dx = handPoint.x - wrist.x;
-    const dy = handPoint.y - wrist.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    
-    if (length > 0.01) {
-      // Extend 30% beyond the hand point in the same direction
-      const extendFactor = 0.3;
-      offsetX = (dx / length) * length * extendFactor;
-      offsetY = (dy / length) * length * extendFactor;
-    }
-  }
-  
   return {
-    x: handPoint.x + offsetX,
-    y: handPoint.y + offsetY,
-    z: handPoint.z,
-    visibility: handPoint.visibility
+    x: leftWrist.x,
+    y: leftWrist.y,
+    z: leftWrist.z,
+    visibility: leftWrist.visibility
   };
 };
 
 /**
  * Extract right hand position from MediaPipe landmarks
- * Uses pinky tip for most accurate end-of-hand tracking, with forward offset
  * @param {Array} landmarks - MediaPipe pose landmarks array
  * @returns {Object|null} - Hand position {x, y, visibility} or null if not found
  */
@@ -70,51 +33,16 @@ export const getRightHandPosition = (landmarks) => {
     return null;
   }
   
-  // Try pinky tip (18), then index tip (20), fallback to wrist (16)
-  const rightPinky = landmarks[18]; // Right pinky tip
-  const rightIndex = landmarks[20]; // Right index finger tip
-  const rightWrist = landmarks[16]; // Right wrist (fallback)
-  
-  // Use pinky if visible (most accurate for hand endpoint), otherwise index, otherwise wrist
-  let handPoint = null;
-  let useWrist = false;
-  if (rightPinky && rightPinky.visibility > 0.1) {
-    handPoint = rightPinky;
-  } else if (rightIndex && rightIndex.visibility > 0.1) {
-    handPoint = rightIndex;
-  } else {
-    handPoint = rightWrist;
-    useWrist = true;
-  }
-  
-  if (!handPoint || handPoint.visibility < 0.1) {
+  const rightWrist = landmarks[16]; // Right wrist landmark
+  if (!rightWrist || rightWrist.visibility < 0.3) {
     return null;
   }
   
-  // Calculate direction vector from wrist to hand point for offset
-  const wrist = landmarks[16];
-  let offsetX = 0;
-  let offsetY = 0;
-  
-  if (wrist && !useWrist) {
-    // Calculate direction from wrist to hand point
-    const dx = handPoint.x - wrist.x;
-    const dy = handPoint.y - wrist.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    
-    if (length > 0.01) {
-      // Extend 30% beyond the hand point in the same direction
-      const extendFactor = 0.3;
-      offsetX = (dx / length) * length * extendFactor;
-      offsetY = (dy / length) * length * extendFactor;
-    }
-  }
-  
   return {
-    x: handPoint.x + offsetX,
-    y: handPoint.y + offsetY,
-    z: handPoint.z,
-    visibility: handPoint.visibility
+    x: rightWrist.x,
+    y: rightWrist.y,
+    z: rightWrist.z,
+    visibility: rightWrist.visibility
   };
 };
 
@@ -132,9 +60,11 @@ export const calculateHandVelocity = (currentPos, lastPos, deltaTime = 0.016) =>
   const dy = currentPos.y - lastPos.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   
-  // Calculate and return raw velocity with minimal scaling
+  // Calculate velocity per second and normalize
   const velocity = distance / deltaTime;
-  return Math.min(velocity * 0.15, 1.0);
+  
+  // Scale and clamp velocity for effect intensity
+  return Math.min(velocity * 0.1, 1.0);
 };
 
 /**
@@ -159,11 +89,10 @@ export const landmarkToScreenCoords = (landmark, scale = 1) => {
  * @param {number} smoothingFactor - Smoothing factor (0-1, higher = more smoothing)
  * @returns {Object} - Smoothed position
  */
-export const smoothHandPosition = (currentPos, smoothedPos, smoothingFactor = 0.6) => {
+export const smoothHandPosition = (currentPos, smoothedPos, smoothingFactor = 0.1) => {
   if (!currentPos) return smoothedPos || { x: 0.5, y: 0.5 };
   if (!smoothedPos) return currentPos;
   
-  // Use higher smoothing factor for more immediate response
   return {
     x: smoothedPos.x + (currentPos.x - smoothedPos.x) * smoothingFactor,
     y: smoothedPos.y + (currentPos.y - smoothedPos.y) * smoothingFactor
@@ -188,3 +117,68 @@ export const calculateRippleParams = (handPos, velocity, visibility = 1) => {
     speed: 1.5 + velocity * 1.0 // Wave propagation speed
   };
 };
+
+// ---------------- Hand endpoint anchor (avatar-aligned) ----------------
+// We align effects to the OUTSIDE of the wrist circle drawn in SimpleSkeleton.
+// This uses the same scale and radius math as the avatar so the effect lands
+// at the visible end of the hand.
+
+const SKELETON_SCALE = 22; // Keep in sync with SimpleSkeleton
+
+const toSceneXY = (lm, scale = SKELETON_SCALE) => {
+  if (!lm) return { x: 0, y: 0 };
+  return {
+    x: (lm.x - 0.5) * 200 * scale,
+    y: (0.5 - lm.y) * 200 * scale
+  };
+};
+
+const sceneToNormalized = (pt, scale = SKELETON_SCALE) => {
+  return {
+    x: (pt.x / (200 * scale)) + 0.5,
+    y: 0.5 - (pt.y / (200 * scale))
+  };
+};
+
+const getHandAnchorNormalized = (landmarks, side = 'left') => {
+  if (!landmarks || landmarks.length < 33) return null;
+
+  const isLeft = side === 'left';
+  const SHO_L = landmarks[11];
+  const SHO_R = landmarks[12];
+  const ELB = landmarks[isLeft ? 13 : 14];
+  const WRI = landmarks[isLeft ? 15 : 16];
+
+  if (!WRI || WRI.visibility < 0.2) return null;
+
+  // Shoulder width in scene space (for radius estimation)
+  let shoulderW = 80; // fallback if shoulders not reliable
+  if (SHO_L && SHO_R && SHO_L.visibility > 0.1 && SHO_R.visibility > 0.1) {
+    const vLS = toSceneXY(SHO_L);
+    const vRS = toSceneXY(SHO_R);
+    shoulderW = Math.hypot(vLS.x - vRS.x, vLS.y - vRS.y);
+  }
+  // Same formula used in SimpleSkeleton for the lower arm radius
+  const armLowerR = Math.max(shoulderW * 0.14, 7);
+
+  // If no elbow, just use wrist center to avoid jitter
+  if (!ELB || ELB.visibility < 0.2) {
+    return { x: WRI.x, y: WRI.y, z: WRI.z ?? 0, visibility: WRI.visibility };
+  }
+
+  const pElb = toSceneXY(ELB);
+  const pWri = toSceneXY(WRI);
+  const dirX = pWri.x - pElb.x;
+  const dirY = pWri.y - pElb.y;
+  const len = Math.hypot(dirX, dirY) || 1;
+  const nx = dirX / len;
+  const ny = dirY / len;
+
+  const endScene = { x: pWri.x + nx * armLowerR, y: pWri.y + ny * armLowerR };
+  const endNorm = sceneToNormalized(endScene);
+  const visibility = Math.min(WRI.visibility ?? 1, ELB.visibility ?? 1);
+  return { x: endNorm.x, y: endNorm.y, z: WRI.z ?? 0, visibility };
+};
+
+export const getLeftHandAnchor = (landmarks) => getHandAnchorNormalized(landmarks, 'left');
+export const getRightHandAnchor = (landmarks) => getHandAnchorNormalized(landmarks, 'right');

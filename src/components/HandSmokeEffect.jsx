@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
 import usePoseDetection from '../hooks/usePoseDetection';
-import { getLeftHandPosition, getRightHandPosition } from '../utils/handTracking';
+import { getLeftHandAnchor as getLeftHandPosition, getRightHandAnchor as getRightHandPosition } from '../utils/handTracking';
 
 const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   const meshRef = useRef();
