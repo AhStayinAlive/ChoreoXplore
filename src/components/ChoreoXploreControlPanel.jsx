@@ -2,6 +2,7 @@ import { useVisStore } from "../state/useVisStore";
 import useStore from "../core/store";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
+import OpalineWavePanel from "../modes/OpalineWave/OpalineWavePanel";
 
 export default function ChoreoXploreControlPanel() {
   const music = useVisStore(s => s.music);
@@ -208,6 +209,9 @@ export default function ChoreoXploreControlPanel() {
             onChange={(value) => handleParamChange('musicReact', value)}
           />
         </div>
+
+        {/* Opaline Wave Controls (conditionally shown) */}
+        {params.mode === 'opaline_wave' && <OpalineWavePanel />}
 
       </div>
     </div>
