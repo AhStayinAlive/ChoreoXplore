@@ -33,7 +33,7 @@ const HandParticleTrailEffect = () => {
   const Z_SPACING = 0.3; // Spacing between particles in depth
   const DEPTH_CURVE_FACTOR = 0.5; // Curve factor for depth perception
   const CUBIC_FADE_WEIGHT = 0.6; // Weight for cubic fade in combined fade
-  const EXP_FADE_WEIGHT = 0.4; // Weight for exponential fade in combined fade
+  const EXP_FADE_WEIGHT = 1 - CUBIC_FADE_WEIGHT; // Weight for exponential fade (ensures sum = 1.0)
   
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
