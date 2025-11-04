@@ -26,7 +26,14 @@ const HandParticleTrailEffect = () => {
   const color = particleSettings.color || '#00ffff';
   const intensity = particleSettings.intensity || 0.8;
   const fadeSpeed = particleSettings.fadeSpeed || 0.95;
-  const smoothness = particleSettings.smoothness || 0.15; // Lower = smoother, more lag; Higher = more responsive
+  const smoothness = particleSettings.smoothness || 0.15; // Lower = less responsive, more smoothing; Higher = more responsive, less smoothing
+  
+  // Animation constants for smoother trail rendering
+  const POSITION_BLEND_FACTOR = 0.3; // How much to blend particle positions with next particle
+  const Z_SPACING = 0.3; // Spacing between particles in depth
+  const DEPTH_CURVE_FACTOR = 0.5; // Curve factor for depth perception
+  const CUBIC_FADE_WEIGHT = 0.6; // Weight for cubic fade in combined fade
+  const EXP_FADE_WEIGHT = 0.4; // Weight for exponential fade in combined fade
   
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
@@ -116,9 +123,8 @@ const HandParticleTrailEffect = () => {
       
       if (i < trailPositions.current.length - 1) {
         const nextPos = trailPositions.current[i + 1];
-        const blendFactor = 0.3; // How much to blend with next position
-        interpolatedX = pos.x * (1 - blendFactor) + nextPos.x * blendFactor;
-        interpolatedY = pos.y * (1 - blendFactor) + nextPos.y * blendFactor;
+        interpolatedX = pos.x * (1 - POSITION_BLEND_FACTOR) + nextPos.x * POSITION_BLEND_FACTOR;
+        interpolatedY = pos.y * (1 - POSITION_BLEND_FACTOR) + nextPos.y * POSITION_BLEND_FACTOR;
       }
       
       // Combine exponential fade with smoothed linear fade for gradual disappearance
@@ -129,12 +135,12 @@ const HandParticleTrailEffect = () => {
       const cubicFade = Math.pow(linearFade, 3);
       
       // Blend between cubic and exponential for best visual result
-      const combinedFade = cubicFade * 0.6 + expFade * 0.4;
+      const combinedFade = cubicFade * CUBIC_FADE_WEIGHT + expFade * EXP_FADE_WEIGHT;
       
       positions[i * 3] = interpolatedX;
       positions[i * 3 + 1] = interpolatedY;
       // Smoother z-spacing with slight curve for depth perception
-      positions[i * 3 + 2] = -i * 0.3 * (1 + linearFade * 0.5) + energy * 5;
+      positions[i * 3 + 2] = -i * Z_SPACING * (1 + linearFade * DEPTH_CURVE_FACTOR) + energy * 5;
       
       // Smooth size transition with combined fade
       sizes[i] = particleSize * 150 * combinedFade * (1 + energy * 0.2);
