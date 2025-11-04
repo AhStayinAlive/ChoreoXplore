@@ -63,9 +63,9 @@ vec3 godRays(vec2 uv, vec2 center, float intensity, float rayLen) {
   dir = normalize(dir);
   
   vec3 ray = vec3(0.0);
-  float samples = 8.0;
+  float samples = 5.0;
   
-  for (float i = 0.0; i < samples; i++) {
+  for (float i = 0.0; i < 5.0; i++) {
     float t = i / samples;
     vec2 samplePos = center + dir * dist * t * rayLen;
     float fade = (1.0 - t) * (1.0 - smoothstep(0.0, 0.5, dist));

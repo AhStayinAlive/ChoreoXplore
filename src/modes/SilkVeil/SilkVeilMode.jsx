@@ -107,12 +107,11 @@ void main() {
   vec3 pos = position;
   float detail = uDetail * 2.0;
   
-  // Multi-octave noise for organic movement
+  // Multi-octave noise for organic movement (reduced for performance)
   float noise1 = snoise(vec3(pos.x * detail, pos.y * detail, uTime * 0.3 + uBeatPhase));
   float noise2 = snoise(vec3(pos.x * detail * 2.0, pos.y * detail * 2.0, uTime * 0.5)) * 0.5;
-  float noise3 = snoise(vec3(pos.x * detail * 4.0, pos.y * detail * 4.0, uTime * 0.7)) * 0.25;
   
-  float displacement = (noise1 + noise2 + noise3) * uTurbulence * 100.0;
+  float displacement = (noise1 + noise2) * uTurbulence * 100.0;
   vDisplacement = displacement;
   
   pos.z += displacement;

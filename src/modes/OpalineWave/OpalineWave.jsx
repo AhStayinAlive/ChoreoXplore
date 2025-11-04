@@ -70,7 +70,7 @@ float fbm(vec2 p, int octaves) {
   float amplitude = 0.5;
   float frequency = 1.0;
   
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 4; i++) {
     if(i >= octaves) break;
     value += amplitude * noise(p * frequency);
     frequency *= 2.0;
@@ -138,13 +138,12 @@ void main() {
   float rotationSpeed = 0.2 + uLowFreq * 0.3;
   warpedUV = center + rotate2D(toCenter, uTime * rotationSpeed * (1.0 - dist * 0.5));
   
-  // Create layered, flowing patterns
-  float pattern1 = fbm(warpedUV + uTime * 0.1, 5);
-  float pattern2 = fbm(warpedUV * 1.5 - uTime * 0.08, 4);
-  float pattern3 = fbm(warpedUV * 2.0 + vec2(uTime * 0.15, -uTime * 0.12), 3);
+  // Create layered, flowing patterns (reduced octaves for performance)
+  float pattern1 = fbm(warpedUV + uTime * 0.1, 3);
+  float pattern2 = fbm(warpedUV * 1.5 - uTime * 0.08, 2);
   
   // Combine patterns for creamy fluid look
-  float thickness = (pattern1 * 0.5 + pattern2 * 0.3 + pattern3 * 0.2);
+  float thickness = (pattern1 * 0.6 + pattern2 * 0.4);
   thickness = smoothstep(0.2, 0.8, thickness);
   
   // Add shimmer detail
