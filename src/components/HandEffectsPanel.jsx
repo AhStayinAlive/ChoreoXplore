@@ -49,6 +49,18 @@ export default function HandEffectsPanel() {
     });
   };
 
+  const handleNoiseDistortionChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        noiseDistortion: { 
+          ...(handEffect.noiseDistortion || {}),  // Safe fallback
+          ...updates 
+        } 
+      } 
+    });
+  };
+
   const dropdownStyle = {
     width: "100%",
     padding: "10px 12px",
@@ -123,6 +135,7 @@ export default function HandEffectsPanel() {
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
             <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Particle Trail</option>
+            <option value="noiseDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Noise Distortion</option>
           </select>
         </div>
 
@@ -562,6 +575,84 @@ export default function HandEffectsPanel() {
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, smoothness: val }
                 })}
+              />
+            </div>
+          </div>
+        )}
+        {/* Noise Distortion Effect Settings */}
+        {handEffect.type === 'noiseDistortion' && handEffect.handSelection !== 'none' && (
+          <div style={{ marginBottom: 16 }}>
+            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Noise Distortion Settings</h4>
+            
+            {/* Color Pickers */}
+            <div style={{ 
+              marginBottom: 12, 
+              display: 'flex', 
+              gap: '12px',
+              alignItems: 'flex-start' 
+            }}>
+              {/* Color 1 */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Color 1
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.noiseDistortion?.color1 || '#00ffff'}
+                  onChange={(e) => handleNoiseDistortionChange({ color1: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+
+              {/* Color 2 */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Color 2
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.noiseDistortion?.color2 || '#ff00ff'}
+                  onChange={(e) => handleNoiseDistortionChange({ color2: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+            </div>
+
+            {/* Intensity */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Intensity"
+                value={handEffect.noiseDistortion?.intensity !== undefined ? handEffect.noiseDistortion.intensity : 0.8}
+                min={0}
+                max={1}
+                step={0.05}
+                showValue={false}
+                onChange={(val) => handleNoiseDistortionChange({ intensity: val })}
+              />
+            </div>
+
+            {/* Distortion Strength */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Distortion Strength"
+                value={handEffect.noiseDistortion?.distortionStrength !== undefined ? handEffect.noiseDistortion.distortionStrength : 0.2}
+                min={0}
+                max={0.5}
+                step={0.01}
+                showValue={false}
+                onChange={(val) => handleNoiseDistortionChange({ distortionStrength: val })}
               />
             </div>
           </div>
