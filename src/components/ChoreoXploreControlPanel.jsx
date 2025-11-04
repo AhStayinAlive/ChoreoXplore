@@ -17,8 +17,27 @@ export default function ChoreoXploreControlPanel() {
     setParams({ [param]: value });
   };
 
+  const setAmbientAnimationParams = useStore(s => s.setAmbientAnimationParams);
+  const ambientAnimationParams = useStore(s => s.ambientAnimationParams);
+
   const handleModeChange = (mode) => {
     setParams({ mode });
+    
+    // Map new visual modes to ambient animation effect types
+    const modeToEffectMap = {
+      'water_ripple': 'waterRipple',
+      'heat_wave': 'heatWave',
+      'flowing': 'flowingDistortion',
+      'gentle_wave': 'gentleWave'
+    };
+    
+    if (modeToEffectMap[mode]) {
+      setAmbientAnimationParams({
+        ...ambientAnimationParams,
+        effectType: modeToEffectMap[mode],
+        isActive: true
+      });
+    }
   };
 
   return (
