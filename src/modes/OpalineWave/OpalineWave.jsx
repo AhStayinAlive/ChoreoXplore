@@ -243,11 +243,11 @@ export default function OpalineWaveMode() {
       case 'beat':
         // Beat mode: detect strong energy changes for rhythmic pulses
         const energyChange = Math.abs(energy - lastEnergyRef.current);
-        lastEnergyRef.current = energy;
         const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
         lowBand = beatPulse * musicReact;
         midBand = beatPulse * 0.8 * musicReact;
         highBand = beatPulse * 0.6 * musicReact;
+        lastEnergyRef.current = energy;
         break;
       case 'frequencies':
       default:

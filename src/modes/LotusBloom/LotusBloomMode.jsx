@@ -200,6 +200,7 @@ export default function LotusBloomMode() {
         const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
         energy = beatPulse * musicReact;
         rms = beatPulse * 0.8 * musicReact;
+        lastEnergyRef.current = energyRaw;
         break;
       case 'frequencies':
       default:
@@ -208,8 +209,8 @@ export default function LotusBloomMode() {
         break;
     }
     
-    // Beat detection for phrase tracking
-    const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    // Beat detection for phrase tracking (only for non-beat modes)
+    const beat = audioMode !== 'beat' && energy > lastEnergyRef.current * 1.5 && energy > 0.1;
     if (beat) {
       beatCountRef.current++;
       // Change symmetry every 8 beats
@@ -219,7 +220,9 @@ export default function LotusBloomMode() {
         symmetryRef.current = symmetries[phraseIndex % symmetries.length];
       }
     }
-    lastEnergyRef.current = energy;
+    if (audioMode !== 'beat') {
+      lastEnergyRef.current = energy;
+    }
     
     // Update time
     uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);

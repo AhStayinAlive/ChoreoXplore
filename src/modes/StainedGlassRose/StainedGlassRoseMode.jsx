@@ -202,6 +202,7 @@ export default function StainedGlassRoseMode() {
         const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
         energy = beatPulse * musicReact;
         rms = beatPulse * 0.8 * musicReact;
+        lastEnergyRef.current = energyRaw;
         break;
       case 'frequencies':
       default:
@@ -210,9 +211,11 @@ export default function StainedGlassRoseMode() {
         break;
     }
     
-    // Onset detection
-    const onset = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
-    lastEnergyRef.current = energy;
+    // Onset detection (only for non-beat modes)
+    const onset = audioMode !== 'beat' && energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    if (audioMode !== 'beat') {
+      lastEnergyRef.current = energy;
+    }
     
     // Update time
     uniforms.uTime.value += dt;

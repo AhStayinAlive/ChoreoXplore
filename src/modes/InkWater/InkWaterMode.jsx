@@ -168,6 +168,7 @@ export default function InkWaterMode() {
         const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
         low = beatPulse * musicReact;
         high = beatPulse * 0.6 * musicReact;
+        lastEnergyRef.current = energyRaw;
         break;
       case 'frequencies':
       default:
@@ -177,8 +178,10 @@ export default function InkWaterMode() {
         break;
     }
     
-    // Track energy for beat detection
-    lastEnergyRef.current = energyRaw;
+    // Track energy for beat detection (only for non-beat modes to avoid double-update)
+    if (audioMode !== 'beat') {
+      lastEnergyRef.current = energyRaw;
+    }
     
     // Update time
     uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);

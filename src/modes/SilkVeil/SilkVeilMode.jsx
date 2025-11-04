@@ -253,6 +253,7 @@ export default function SilkVeilMode() {
         const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
         low = beatPulse * musicReact;
         high = beatPulse * 0.6 * musicReact;
+        lastEnergyRef.current = energy;
         break;
       case 'frequencies':
       default:
@@ -264,9 +265,11 @@ export default function SilkVeilMode() {
         break;
     }
     
-    // Beat detection: sudden increase in energy
-    const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
-    lastEnergyRef.current = energy;
+    // Beat detection: sudden increase in energy (only for non-beat modes)
+    const beat = audioMode !== 'beat' && energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    if (audioMode === 'frequencies') {
+      lastEnergyRef.current = energy;
+    }
     
     // Update time
     uniforms.uTime.value += dt * (0.5 + params.speed * 0.5);
