@@ -7,6 +7,7 @@ A real-time motion tracking and visual effects application that combines pose de
 - **Real-time Pose Tracking**: MediaPipe-powered skeleton detection with responsive avatar
 - **AI-Powered Analysis**: Sentiment analysis and visual recommendations for song lyrics
 - **3D Visualizations**: Three.js-powered 3D canvas with motion-reactive effects
+- **Audio-Reactive Background**: Dynamic visuals that respond to music frequencies in real-time
 - **Multiple Input Sources**: YouTube links, file uploads, and manual lyrics input
 - **Dynamic Scaling**: Avatar automatically scales based on distance from camera
 - **Clean Interface**: Intuitive controls for motion sensitivity and visual effects
@@ -88,6 +89,25 @@ A real-time motion tracking and visual effects application that combines pose de
 2. **Adjust parameters** using the sliders
 3. **Enable reactivity** to make effects respond to your movements
 4. **Experiment** with different presets and settings
+
+### Audio-Reactive Background Visuals
+
+1. **Grant microphone permission** when prompted (required for audio analysis)
+2. **Play music** through your system (or use VB-Audio Virtual Cable to route audio)
+3. **Open Ambient Animation panel** (appears when background image is present)
+4. **Toggle "Audio Reactive"** to ON
+5. **Adjust sensitivity** to control how strongly visuals respond to music
+6. **Fine-tune frequency response**:
+   - **Bass Influence**: How much kicks/bass notes affect visuals
+   - **Mid Influence**: How much vocals/instruments affect visuals
+   - **High Influence**: How much cymbals/hi-hats affect visuals
+7. **Choose effect type**:
+   - **Water Ripple**: Gentle ripples that pulse with music
+   - **Heat Wave**: Heat shimmer synchronized to music energy
+   - **Flowing Distortion**: Organic flows responding to all frequencies
+   - **Gentle Wave**: Subtle waves for minimal distraction
+
+**Tip**: Start with a preset (Gentle/Dynamic/Flowing/Subtle) and adjust from there!
 
 ## 🔧 Advanced Setup
 
