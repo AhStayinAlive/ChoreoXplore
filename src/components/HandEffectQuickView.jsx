@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
-import useStore, { hexToRGB } from '../core/store';
+import useStore from '../core/store';
 import * as THREE from 'three';
 import {
   handRippleVertexShader,
