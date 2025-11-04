@@ -1720,6 +1720,146 @@ function ParticleTrailEffect({ handSide, color, intensity, particleSize, trailLe
 }
 
 /**
+ * Noise Distortion effect for preview
+ */
+function NoiseDistortionEffect({ handSide, color1, color2, intensity, distortionStrength, distortionRadius }) {
+  const meshRef = useRef();
+  const timeRef = useRef(0);
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const speed = params.speed || 1.0;
+  
+  // Simplified Perlin noise shader for preview (same as main component)
+  const vertexShader = `
+    varying vec2 vUv;
+    
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  
+  const fragmentShader = `
+    uniform float uTime;
+    uniform vec2 uHandPos;
+    uniform float uHandActive;
+    uniform vec3 uColor1;
+    uniform vec3 uColor2;
+    uniform float uIntensity;
+    uniform float uDistortionStrength;
+    uniform float uDistortionRadius;
+    
+    varying vec2 vUv;
+    
+    // Simplified 2D noise for preview performance
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
+      
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+    
+    void main() {
+      vec2 uv = vUv;
+      
+      // Calculate distortion based on hand position
+      vec2 distortion = vec2(0.0);
+      float totalInfluence = 0.0;
+      
+      if (uHandActive > 0.5) {
+        vec2 handDiff = uv - uHandPos;
+        float handDist = length(handDiff);
+        float handInfluence = 1.0 - smoothstep(0.0, uDistortionRadius, handDist);
+        
+        // Warp noise field around hand
+        distortion = normalize(handDiff) * handInfluence * uDistortionStrength;
+        totalInfluence = handInfluence;
+      }
+      
+      // Apply distortion to UV coordinates
+      vec2 distortedUV = uv + distortion;
+      
+      // Generate moving noise pattern
+      float n = noise(distortedUV * 3.0 + vec2(uTime * 0.3));
+      n += noise(distortedUV * 6.0 + vec2(uTime * 0.5)) * 0.5;
+      n = (n + 1.0) * 0.5;
+      
+      // Add hand influence to noise
+      n = mix(n, n * (1.0 + totalInfluence), 0.5);
+      
+      // Blend colors
+      vec3 finalColor = mix(uColor1, uColor2, n);
+      
+      // Calculate alpha
+      float alpha = uIntensity * (0.3 + totalInfluence * 0.7);
+      
+      gl_FragColor = vec4(finalColor, alpha);
+    }
+  `;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uHandPos: { value: new THREE.Vector2(0.5, 0.5) },
+        uHandActive: { value: 1.0 },
+        uColor1: { value: new THREE.Color(color1) },
+        uColor2: { value: new THREE.Color(color2) },
+        uIntensity: { value: intensity },
+        uDistortionStrength: { value: distortionStrength },
+        uDistortionRadius: { value: distortionRadius }
+      },
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+  }, [color1, color2, intensity, distortionStrength, distortionRadius]);
+  
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    
+    timeRef.current += delta * speed;
+    const t = timeRef.current;
+    
+    // Calculate hand position (figure-8)
+    const offset = handSide === 'left' ? 0 : Math.PI;
+    const x = 0.5 + FIGURE8_X_AMPLITUDE * Math.sin(t + offset);
+    const y = 0.5 + FIGURE8_Y_AMPLITUDE * Math.sin(FIGURE8_Y_FREQUENCY * t + offset);
+    
+    // Update shader uniforms
+    meshRef.current.material.uniforms.uTime.value = t;
+    meshRef.current.material.uniforms.uHandPos.value.set(x, y);
+    meshRef.current.material.uniforms.uHandActive.value = 1.0;
+    
+    // Update colors and intensity with music reactivity
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    meshRef.current.material.uniforms.uColor1.value.set(color1);
+    meshRef.current.material.uniforms.uColor2.value.set(color2);
+    meshRef.current.material.uniforms.uIntensity.value = intensity * (1 + energy * 0.2);
+    meshRef.current.material.uniforms.uDistortionStrength.value = distortionStrength;
+    meshRef.current.material.uniforms.uDistortionRadius.value = distortionRadius;
+  });
+  
+  return (
+    <mesh ref={meshRef} material={material} position={[0, 0, 0]}>
+      <planeGeometry args={[8, 6]} />
+    </mesh>
+  );
+}
+
+/**
  * Fluid effect wrapper - simplified for preview to avoid window-level event conflicts
  * Shows visual markers instead of actual fluid distortion to keep it contained
  */
@@ -1850,6 +1990,8 @@ function SimulatedHandMovement({ handSide, effectType }) {
         return handEffect.fluidDistortion || {};
       case 'particleTrail':
         return handEffect.particleTrail || {};
+      case 'noiseDistortion':
+        return handEffect.noiseDistortion || {};
       default:
         return {};
     }
@@ -1966,6 +2108,17 @@ function SimulatedHandMovement({ handSide, effectType }) {
       particleSize={effectSettings.particleSize || 0.15}
       trailLength={effectSettings.trailLength || 50}
       fadeSpeed={effectSettings.fadeSpeed || 0.95}
+    />;
+  }
+  
+  if (effectType === 'noiseDistortion') {
+    return <NoiseDistortionEffect 
+      handSide={handSide}
+      color1={effectSettings.color1 || '#00ffff'}
+      color2={effectSettings.color2 || '#ff00ff'}
+      intensity={effectSettings.intensity !== undefined ? effectSettings.intensity : 0.8}
+      distortionStrength={effectSettings.distortionStrength !== undefined ? effectSettings.distortionStrength : 0.2}
+      distortionRadius={effectSettings.distortionRadius !== undefined ? effectSettings.distortionRadius : 0.5}
     />;
   }
   
