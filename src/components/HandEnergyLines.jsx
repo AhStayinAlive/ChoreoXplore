@@ -16,10 +16,14 @@ const vertexShader = `
   uniform float uIntensity;
   uniform float uNoiseScale;
   uniform float uAmplitude;
+  uniform bool uLeftHandVisible;
+  uniform bool uRightHandVisible;
+  uniform bool uBothHandsMode;
   
   varying vec2 vUv;
   varying float vDistanceFactor;
   varying float vSegmentPosition;
+  varying float vAlpha;
   
   // Perlin noise implementation (3D)
   vec3 mod289(vec3 x) {
@@ -115,15 +119,56 @@ const vertexShader = `
   void main() {
     vUv = uv;
     vSegmentPosition = uv.x; // Store segment position (0-1 along the line)
+    vAlpha = 1.0; // Default alpha
     
-    // Interpolate position between the two hands
-    vec3 startPos = vec3(uLeftHand.x, uLeftHand.y, 0.0);
-    vec3 endPos = vec3(uRightHand.x, uRightHand.y, 0.0);
+    // Determine line endpoints based on hand visibility
+    vec3 startPos, endPos;
+    
+    if (uBothHandsMode && uLeftHandVisible && uRightHandVisible) {
+      // Both hands visible: connect them
+      startPos = vec3(uLeftHand.x, uLeftHand.y, 0.0);
+      endPos = vec3(uRightHand.x, uRightHand.y, 0.0);
+    } else {
+      // One or no hands visible: connect to edges
+      // Use line index (position.z) to determine which edge to connect to
+      float lineIndex = position.z;
+      float edgeSelector = fract(lineIndex * 0.37); // Pseudo-random edge selection
+      
+      // Define edge positions (scattered around screen edges)
+      vec2 edgePos;
+      if (edgeSelector < 0.25) {
+        // Left edge
+        edgePos = vec2(0.0, fract(lineIndex * 0.61) * 0.6 + 0.2);
+      } else if (edgeSelector < 0.5) {
+        // Right edge
+        edgePos = vec2(1.0, fract(lineIndex * 0.73) * 0.6 + 0.2);
+      } else if (edgeSelector < 0.75) {
+        // Top edge
+        edgePos = vec2(fract(lineIndex * 0.83) * 0.6 + 0.2, 1.0);
+      } else {
+        // Bottom edge
+        edgePos = vec2(fract(lineIndex * 0.97) * 0.6 + 0.2, 0.0);
+      }
+      
+      if (uLeftHandVisible) {
+        startPos = vec3(uLeftHand.x, uLeftHand.y, 0.0);
+        endPos = vec3(edgePos.x, edgePos.y, 0.0);
+      } else if (uRightHandVisible) {
+        startPos = vec3(uRightHand.x, uRightHand.y, 0.0);
+        endPos = vec3(edgePos.x, edgePos.y, 0.0);
+      } else {
+        // No hands visible, don't render
+        vAlpha = 0.0;
+        startPos = vec3(0.5, 0.5, 0.0);
+        endPos = vec3(0.5, 0.5, 0.0);
+      }
+    }
+    
     vec3 basePosition = mix(startPos, endPos, uv.x);
     
-    // Calculate distance between hands for intensity
-    float handDistance = distance(uLeftHand, uRightHand);
-    vDistanceFactor = 1.0 - smoothstep(0.0, 1.0, handDistance);
+    // Calculate distance for intensity
+    float handDistance = distance(startPos.xy, endPos.xy);
+    vDistanceFactor = 1.0 - smoothstep(0.0, 1.5, handDistance); // Adjusted for edge connections
     
     // Apply noise-based distortion to create organic, wavy lightning effect
     // Use different noise coordinates per segment to create unique waves
@@ -174,6 +219,7 @@ const fragmentShader = `
   varying vec2 vUv;
   varying float vDistanceFactor;
   varying float vSegmentPosition;
+  varying float vAlpha;
   
   // Simple noise for brightness pulsing
   float hash(float n) {
@@ -213,7 +259,7 @@ const fragmentShader = `
     
     // Combine all effects
     vec3 finalColor = baseColor * flicker * (1.0 + centerGlow + sparkle);
-    float alpha = intensityFactor * (0.5 + centerGlow * 0.5 + sparkle);
+    float alpha = intensityFactor * (0.5 + centerGlow * 0.5 + sparkle) * vAlpha;
     
     gl_FragColor = vec4(finalColor, alpha);
   }
@@ -241,14 +287,32 @@ const HandEnergyLines = () => {
   const leftHandPos = getLeftHandPosition(poseData?.landmarks);
   const rightHandPos = getRightHandPosition(poseData?.landmarks);
   
-  // Use detected positions or fallback to defaults
-  const leftHand = leftHandPos?.visibility > 0.3 
-    ? { x: leftHandPos.x, y: leftHandPos.y }
-    : { x: 0.3, y: 0.5 };
-    
-  const rightHand = rightHandPos?.visibility > 0.3
-    ? { x: rightHandPos.x, y: rightHandPos.y }
-    : { x: 0.7, y: 0.6 };
+  // Check hand visibility
+  const leftHandVisible = leftHandPos?.visibility > 0.3;
+  const rightHandVisible = rightHandPos?.visibility > 0.3;
+  
+  // Convert hand positions to shader UV coordinates (matching HandNoiseDistortion approach)
+  const convertToShaderCoords = (handPos, fallbackX, fallbackY) => {
+    if (handPos?.visibility > 0.3) {
+      // Convert to SimpleSkeleton coordinate system
+      const scale = 22; // Match SimpleSkeleton default
+      const x = (handPos.x - 0.5) * 200 * scale;
+      const y = (0.5 - handPos.y) * 200 * scale; // Invert Y axis
+      
+      // Convert to UV coordinates (0-1 range) for 19500-width viewport
+      const shaderX = (x / 19500) + 0.5;
+      const shaderY = (y / 19500) + 0.5;
+      
+      return { x: shaderX, y: shaderY };
+    }
+    return { x: fallbackX, y: fallbackY };
+  };
+  
+  const leftHand = convertToShaderCoords(leftHandPos, 0.3, 0.5);
+  const rightHand = convertToShaderCoords(rightHandPos, 0.7, 0.6);
+  
+  // Determine if we're in "both hands" mode
+  const bothHandsMode = handSelection === 'both';
   
   // Calculate number of segments per line for smooth curves
   const segmentsPerLine = 64;
@@ -299,7 +363,10 @@ const HandEnergyLines = () => {
         uColorFar: { value: new THREE.Color(colorFar) },
         uNoiseScale: { value: noiseScale },
         uAmplitude: { value: amplitude },
-        uSparkleIntensity: { value: sparkleIntensity }
+        uSparkleIntensity: { value: sparkleIntensity },
+        uLeftHandVisible: { value: leftHandVisible },
+        uRightHandVisible: { value: rightHandVisible },
+        uBothHandsMode: { value: bothHandsMode }
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -309,7 +376,7 @@ const HandEnergyLines = () => {
       // with cylindrical segments or billboarded quads in future iterations
       linewidth: 2,
     });
-  }, [leftHand.x, leftHand.y, rightHand.x, rightHand.y, colorNear, colorFar, intensity, noiseScale, amplitude, sparkleIntensity]);
+  }, [leftHand.x, leftHand.y, rightHand.x, rightHand.y, colorNear, colorFar, intensity, noiseScale, amplitude, sparkleIntensity, leftHandVisible, rightHandVisible, bothHandsMode]);
   
   // Animation loop
   useFrame((state) => {
@@ -326,6 +393,9 @@ const HandEnergyLines = () => {
     mat.uniforms.uNoiseScale.value = noiseScale;
     mat.uniforms.uAmplitude.value = amplitude;
     mat.uniforms.uSparkleIntensity.value = sparkleIntensity;
+    mat.uniforms.uLeftHandVisible.value = leftHandVisible;
+    mat.uniforms.uRightHandVisible.value = rightHandVisible;
+    mat.uniforms.uBothHandsMode.value = bothHandsMode;
   });
   
   // Don't render if ChoreoXplore is not active
@@ -333,10 +403,9 @@ const HandEnergyLines = () => {
     return null;
   }
   
-  // For energy lines, render when both hands are selected
-  // TODO: Add support for edge connections when only one hand is visible
-  const bothHandsEnabled = handSelection === 'both';
-  if (!bothHandsEnabled) {
+  // Render when at least one hand is visible or when "both" is selected
+  const shouldRender = handSelection === 'both' || handSelection === 'left' || handSelection === 'right';
+  if (!shouldRender) {
     return null;
   }
   
