@@ -10,6 +10,11 @@ const AmbientAnimationControlPanel = ({
   const setParameters = useStore(s => s.setAmbientAnimationParams);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Helper function to format parameter values consistently
+  const formatValue = (value, defaultValue) => {
+    return (value ?? defaultValue).toFixed(2);
+  };
+
   // Effect type options
   const effectTypes = [
     { value: 'waterRipple', label: 'Water Ripple', description: 'Gentle ripples like water surface' },
@@ -227,7 +232,7 @@ const AmbientAnimationControlPanel = ({
                 {/* Audio Sensitivity */}
                 <div className="mt-3">
                   <label className="text-white/80 text-xs mb-2 block">
-                    Audio Sensitivity: {parameters.audioSensitivity?.toFixed(2) ?? 0.5}
+                    Audio Sensitivity: {formatValue(parameters.audioSensitivity, 0.5)}
                   </label>
                   <Slider
                     value={parameters.audioSensitivity ?? 0.5}
@@ -242,7 +247,7 @@ const AmbientAnimationControlPanel = ({
                 {/* Bass Influence */}
                 <div className="mt-3">
                   <label className="text-white/80 text-xs mb-2 block">
-                    Bass Influence: {parameters.audioBassInfluence?.toFixed(2) ?? 0.7}
+                    Bass Influence: {formatValue(parameters.audioBassInfluence, 0.7)}
                   </label>
                   <Slider
                     value={parameters.audioBassInfluence ?? 0.7}
@@ -257,7 +262,7 @@ const AmbientAnimationControlPanel = ({
                 {/* Mid Influence */}
                 <div className="mt-3">
                   <label className="text-white/80 text-xs mb-2 block">
-                    Mid Influence: {parameters.audioMidInfluence?.toFixed(2) ?? 0.5}
+                    Mid Influence: {formatValue(parameters.audioMidInfluence, 0.5)}
                   </label>
                   <Slider
                     value={parameters.audioMidInfluence ?? 0.5}
@@ -272,7 +277,7 @@ const AmbientAnimationControlPanel = ({
                 {/* High Influence */}
                 <div className="mt-3">
                   <label className="text-white/80 text-xs mb-2 block">
-                    High Influence: {parameters.audioHighInfluence?.toFixed(2) ?? 0.3}
+                    High Influence: {formatValue(parameters.audioHighInfluence, 0.3)}
                   </label>
                   <Slider
                     value={parameters.audioHighInfluence ?? 0.3}

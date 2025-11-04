@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -25,6 +25,7 @@ const AmbientBackgroundAnimation = ({
   const [shaderMaterial, setShaderMaterial] = useState(null);
   const poseData = useStore(s => s.poseData);
   const audioDataRef = useRef({ rms: 0, bands: [0, 0, 0], centroid: 0 });
+  const lastAudioUpdateRef = useRef({ bass: 0, mid: 0, high: 0, rms: 0 });
   
   // Subscribe to audio data
   useEffect(() => {
@@ -37,6 +38,15 @@ const AmbientBackgroundAnimation = ({
   
   // Load background texture
   const texture = useTexture(backgroundImage);
+  
+  // Memoize audio parameters to reduce shader re-compilations
+  const audioParams = useMemo(() => ({
+    audioReactive,
+    audioSensitivity,
+    audioBassInfluence,
+    audioMidInfluence,
+    audioHighInfluence
+  }), [audioReactive, audioSensitivity, audioBassInfluence, audioMidInfluence, audioHighInfluence]);
   
   // Create shader material with ambient animation effects
   useEffect(() => {
@@ -54,15 +64,15 @@ const AmbientBackgroundAnimation = ({
         u_effect_type: { value: getEffectTypeValue(effectType) },
         u_pose_data: { value: new Float32Array(33 * 2) }, // 33 landmarks * 2 (x,y)
         u_pose_active: { value: 0.0 }, // 1.0 if pose data is available, 0.0 otherwise
-        u_audio_reactive: { value: audioReactive ? 1.0 : 0.0 },
-        u_audio_sensitivity: { value: audioSensitivity },
+        u_audio_reactive: { value: audioParams.audioReactive ? 1.0 : 0.0 },
+        u_audio_sensitivity: { value: audioParams.audioSensitivity },
         u_audio_bass: { value: 0.0 },
         u_audio_mid: { value: 0.0 },
         u_audio_high: { value: 0.0 },
         u_audio_rms: { value: 0.0 },
-        u_audio_bass_influence: { value: audioBassInfluence },
-        u_audio_mid_influence: { value: audioMidInfluence },
-        u_audio_high_influence: { value: audioHighInfluence }
+        u_audio_bass_influence: { value: audioParams.audioBassInfluence },
+        u_audio_mid_influence: { value: audioParams.audioMidInfluence },
+        u_audio_high_influence: { value: audioParams.audioHighInfluence }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -668,7 +678,7 @@ const AmbientBackgroundAnimation = ({
     });
 
     setShaderMaterial(material);
-  }, [texture, size.width, size.height, effectType, speed, amplitude, wavelength, intensity, audioReactive, audioSensitivity, audioBassInfluence, audioMidInfluence, audioHighInfluence]);
+  }, [texture, size.width, size.height, effectType, speed, amplitude, wavelength, intensity, audioParams]);
 
   // Create a static shader material for when animation is off (but still with pose distortion)
   const staticShaderMaterial = new THREE.ShaderMaterial({
@@ -889,10 +899,25 @@ const AmbientBackgroundAnimation = ({
         // Update audio data if audio reactive is enabled
         if (audioReactive && audioDataRef.current) {
           const audioData = audioDataRef.current;
-          shaderMaterial.uniforms.u_audio_bass.value = audioData.bands[0] || 0;
-          shaderMaterial.uniforms.u_audio_mid.value = audioData.bands[1] || 0;
-          shaderMaterial.uniforms.u_audio_high.value = audioData.bands[2] || 0;
-          shaderMaterial.uniforms.u_audio_rms.value = audioData.rms || 0;
+          const bass = audioData.bands[0] || 0;
+          const mid = audioData.bands[1] || 0;
+          const high = audioData.bands[2] || 0;
+          const rms = audioData.rms || 0;
+          
+          // Only update if values changed significantly (threshold: 0.01) to reduce GPU updates
+          const threshold = 0.01;
+          const last = lastAudioUpdateRef.current;
+          if (Math.abs(bass - last.bass) > threshold ||
+              Math.abs(mid - last.mid) > threshold ||
+              Math.abs(high - last.high) > threshold ||
+              Math.abs(rms - last.rms) > threshold) {
+            shaderMaterial.uniforms.u_audio_bass.value = bass;
+            shaderMaterial.uniforms.u_audio_mid.value = mid;
+            shaderMaterial.uniforms.u_audio_high.value = high;
+            shaderMaterial.uniforms.u_audio_rms.value = rms;
+            
+            lastAudioUpdateRef.current = { bass, mid, high, rms };
+          }
         }
     }
     
