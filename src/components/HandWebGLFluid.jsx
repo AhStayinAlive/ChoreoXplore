@@ -230,7 +230,8 @@ const HandWebGLFluid = () => {
 
   // Create a full-screen quad for rendering
   const quadGeometry = useMemo(() => {
-    return new THREE.PlaneGeometry(2, 2); // Full-screen quad in normalized device coordinates
+    // Using large plane to match SimpleSkeleton coordinate system (scale 22, range ±200*22)
+    return new THREE.PlaneGeometry(20000, 20000);
   }, []);
 
   // Render a shader pass
