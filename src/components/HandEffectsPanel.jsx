@@ -61,6 +61,18 @@ export default function HandEffectsPanel() {
     });
   };
 
+  const handleEnergyLinesChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        energyLines: { 
+          ...(handEffect.energyLines || {}),  // Safe fallback
+          ...updates 
+        } 
+      } 
+    });
+  };
+
   const dropdownStyle = {
     width: "100%",
     padding: "10px 12px",
@@ -136,6 +148,7 @@ export default function HandEffectsPanel() {
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
             <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Particle Trail</option>
             <option value="noiseDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Noise Distortion</option>
+            <option value="energyLines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Energy Lines</option>
           </select>
         </div>
 
@@ -666,6 +679,123 @@ export default function HandEffectsPanel() {
                 step={0.05}
                 showValue={false}
                 onChange={(val) => handleNoiseDistortionChange({ distortionRadius: val })}
+              />
+            </div>
+          </div>
+        )}
+        {/* Energy Lines Effect Settings */}
+        {handEffect.type === 'energyLines' && handEffect.handSelection !== 'none' && (
+          <div style={{ marginBottom: 16 }}>
+            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Energy Lines Settings</h4>
+            
+            {/* Color Pickers */}
+            <div style={{ 
+              marginBottom: 12, 
+              display: 'flex', 
+              gap: '12px',
+              alignItems: 'flex-start' 
+            }}>
+              {/* Color Near */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Near Color
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.energyLines?.colorNear || '#00ffff'}
+                  onChange={(e) => handleEnergyLinesChange({ colorNear: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+
+              {/* Color Far */}
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  color: 'white',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                  fontWeight: '500',
+                }}>
+                  Far Color
+                </label>
+                <input
+                  type="color"
+                  value={handEffect.energyLines?.colorFar || '#ff00ff'}
+                  onChange={(e) => handleEnergyLinesChange({ colorFar: e.target.value })}
+                  style={colorPickerStyle}
+                />
+              </div>
+            </div>
+
+            {/* Line Count */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Line Count"
+                value={handEffect.energyLines?.lineCount || 5}
+                min={1}
+                max={15}
+                step={1}
+                showValue={false}
+                onChange={(val) => handleEnergyLinesChange({ lineCount: val })}
+              />
+            </div>
+
+            {/* Intensity */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Intensity"
+                value={handEffect.energyLines?.intensity !== undefined ? handEffect.energyLines.intensity : 1.0}
+                min={0}
+                max={2}
+                step={0.1}
+                showValue={false}
+                onChange={(val) => handleEnergyLinesChange({ intensity: val })}
+              />
+            </div>
+
+            {/* Amplitude */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Wave Amplitude"
+                value={handEffect.energyLines?.amplitude !== undefined ? handEffect.energyLines.amplitude : 0.05}
+                min={0}
+                max={0.2}
+                step={0.01}
+                showValue={false}
+                onChange={(val) => handleEnergyLinesChange({ amplitude: val })}
+              />
+            </div>
+
+            {/* Noise Scale */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Noise Scale"
+                value={handEffect.energyLines?.noiseScale || 3.0}
+                min={1}
+                max={10}
+                step={0.5}
+                showValue={false}
+                onChange={(val) => handleEnergyLinesChange({ noiseScale: val })}
+              />
+            </div>
+
+            {/* Sparkle Intensity */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Sparkle Intensity"
+                value={handEffect.energyLines?.sparkleIntensity !== undefined ? handEffect.energyLines.sparkleIntensity : 1.0}
+                min={0}
+                max={2}
+                step={0.1}
+                showValue={false}
+                onChange={(val) => handleEnergyLinesChange({ sparkleIntensity: val })}
               />
             </div>
           </div>
