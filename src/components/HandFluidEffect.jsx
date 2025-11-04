@@ -38,13 +38,14 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
 
   const timeRef = useRef(0);
 
-  // Get hand ripple settings
-  const rippleSettings = handEffect?.ripple || {
-    baseColor: '#00ccff',
-    rippleColor: '#ff00cc',
-    radius: 0.4,
-    intensity: 0.8
-  };
+  // Get hand ripple settings - read directly from store (defaults are set in useVisStore and overridden by themeToStore)
+  const rippleSettings = handEffect?.ripple || {};
+  
+  // Extract individual values for proper dependency tracking (like particle trail does)
+  const baseColor = rippleSettings.baseColor || '#00ccff';
+  const rippleColor = rippleSettings.rippleColor || '#ff00cc';
+  const radius = rippleSettings.radius || 0.1;
+  const intensity = rippleSettings.intensity || 0.8;
 
   const handSelection = handEffect?.handSelection || 'none';
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
@@ -68,9 +69,9 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       uHandPosition: { value: new THREE.Vector2(0.5, 0.5) },
       uRippleStrength: { value: 0.5 },
       uTime: { value: 0.0 },
-      uRippleRadius: { value: settings.radius },
-      uBaseColor: { value: new THREE.Vector3(...hexToRgb(settings.baseColor)) },
-      uRippleColor: { value: new THREE.Vector3(...hexToRgb(settings.rippleColor)) }
+      uRippleRadius: { value: radius },
+      uBaseColor: { value: new THREE.Vector3(...hexToRgb(baseColor)) },
+      uRippleColor: { value: new THREE.Vector3(...hexToRgb(rippleColor)) }
     };
 
     return new THREE.ShaderMaterial({
@@ -82,36 +83,17 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       depthWrite: false,
       side: THREE.DoubleSide
     });
-  }, []);
+  }, [baseColor, rippleColor, radius]); // Use extracted values as dependencies
 
   const shaderMaterials = {
-    left: useMemo(() => createShaderMaterial(rippleSettings), [rippleSettings, createShaderMaterial]),
-    right: useMemo(() => createShaderMaterial(rippleSettings), [rippleSettings, createShaderMaterial])
+    left: useMemo(() => createShaderMaterial(rippleSettings), [createShaderMaterial]),
+    right: useMemo(() => createShaderMaterial(rippleSettings), [createShaderMaterial])
   };
 
   // Create plane geometry with high vertex density for smooth distortion
   const planeGeometry = useMemo(() => {
     return new THREE.PlaneGeometry(20000, 20000, 100, 100); // Much larger to fill viewport with 0.1 zoom
   }, []);
-
-  // Update shader uniforms when settings change
-  useEffect(() => {
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [
-        parseInt(result[1], 16) / 255,
-        parseInt(result[2], 16) / 255,
-        parseInt(result[3], 16) / 255
-      ] : [0, 0, 0];
-    };
-
-    // Update both materials with new settings
-    shaderMaterials.left.uniforms.uBaseColor.value.set(...hexToRgb(rippleSettings.baseColor));
-    shaderMaterials.left.uniforms.uRippleColor.value.set(...hexToRgb(rippleSettings.rippleColor));
-    
-    shaderMaterials.right.uniforms.uBaseColor.value.set(...hexToRgb(rippleSettings.baseColor));
-    shaderMaterials.right.uniforms.uRippleColor.value.set(...hexToRgb(rippleSettings.rippleColor));
-  }, [rippleSettings, shaderMaterials]);
 
   // Set texture when available
   useEffect(() => {
@@ -152,8 +134,8 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
 
       // Update shader uniforms
       material.uniforms.uHandPosition.value.set(shaderX, shaderY);
-  material.uniforms.uRippleStrength.value = rippleSettings.intensity * visibilityMultiplier;
-      material.uniforms.uRippleRadius.value = rippleSettings.radius * velocityMultiplier;
+      material.uniforms.uRippleStrength.value = intensity * visibilityMultiplier;
+      material.uniforms.uRippleRadius.value = radius * velocityMultiplier;
       
       // Store current position for next frame
       handRefs.lastPosition.current = smoothedPos;
@@ -161,7 +143,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       // No hand detected - set ripple strength to 0 to hide the effect
       material.uniforms.uRippleStrength.value = 0;
     }
-  }, [rippleSettings]);
+  }, [intensity, radius]); // Use extracted values as dependencies
 
   // Update shader uniforms each frame
   useFrame((state, delta) => {

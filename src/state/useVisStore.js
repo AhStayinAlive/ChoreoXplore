@@ -64,14 +64,36 @@ const useVisStore = create((set, get) => ({
   setMotion: (motion) => set({ motion }),
   setIsActive: (isActive) => set({ isActive }),
   setParams: (p) => {
-    console.log('🔧 useVisStore.setParams CALLED with:', p);
     const result = set(s => {
-      const newParams = { ...s.params, ...p };
-      console.log('🔧 useVisStore.setParams UPDATING from:', s.params.handEffect?.fluidDistortion?.fluidColor);
-      console.log('🔧 useVisStore.setParams UPDATING to:', newParams.handEffect?.fluidDistortion?.fluidColor);
+      // Deep merge handEffect to preserve nested properties
+      const newParams = { ...s.params };
+      
+      if (p.handEffect) {
+        newParams.handEffect = {
+          ...s.params.handEffect,
+          ...p.handEffect,
+          // Deep merge nested effect settings
+          ripple: p.handEffect.ripple 
+            ? { ...(s.params.handEffect?.ripple || {}), ...p.handEffect.ripple }
+            : s.params.handEffect?.ripple,
+          smoke: p.handEffect.smoke
+            ? { ...(s.params.handEffect?.smoke || {}), ...p.handEffect.smoke }
+            : s.params.handEffect?.smoke,
+          fluidDistortion: p.handEffect.fluidDistortion
+            ? { ...(s.params.handEffect?.fluidDistortion || {}), ...p.handEffect.fluidDistortion }
+            : s.params.handEffect?.fluidDistortion,
+          particleTrail: p.handEffect.particleTrail
+            ? { ...(s.params.handEffect?.particleTrail || {}), ...p.handEffect.particleTrail }
+            : s.params.handEffect?.particleTrail,
+        };
+        delete p.handEffect; // Remove it so we don't spread it again
+      }
+      
+      // Merge any other params
+      Object.assign(newParams, p);
+      
       return { params: newParams };
     });
-    console.log('🔧 useVisStore.setParams COMPLETED');
     return result;
   },
 }));

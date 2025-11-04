@@ -33,18 +33,19 @@ const HandFluidDistortion = () => {
     lastScreenPosition: useRef({ x: 0, y: 0 })
   };
 
-  // Get fluid distortion settings
-  const fluidSettings = handEffect?.fluidDistortion || {
-    fluidColor: '#005eff',
-    intensity: 10,
-    force: 2,
-    distortion: 2,
-    radius: 0.3,
-    curl: 10,
-    swirl: 20,
-    velocityDissipation: 0.99,
-    rainbow: true
-  };
+  // Get fluid distortion settings - read directly from store (defaults are set in useVisStore and overridden by themeToStore)
+  const fluidSettings = handEffect?.fluidDistortion || {};
+  
+  // Extract individual values for proper dependency tracking (like particle trail does)
+  const fluidColor = fluidSettings.fluidColor || '#005eff';
+  const fluidIntensity = fluidSettings.intensity || 1;
+  const fluidForce = fluidSettings.force || 1.5;
+  const fluidDistortion = fluidSettings.distortion || 1;
+  const fluidRadius = fluidSettings.radius || 0.1;
+  const fluidCurl = fluidSettings.curl || 6;
+  const fluidSwirl = fluidSettings.swirl || 0;
+  const fluidVelocityDissipation = fluidSettings.velocityDissipation || 0.99;
+  const fluidRainbow = fluidSettings.rainbow || false;
 
   const handSelection = handEffect?.handSelection || 'none';
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
@@ -52,15 +53,26 @@ const HandFluidDistortion = () => {
   
   // When both hands are selected, override all settings except radius and fluidColor to be 0
   const effectiveSettings = handSelection === 'both' ? {
-    ...fluidSettings,
+    fluidColor: fluidColor,
     intensity: 0,
     force: 0,
     distortion: 0,
+    radius: fluidRadius,
     curl: 0,
     swirl: 0,
+    velocityDissipation: fluidVelocityDissipation,
     rainbow: false
-    // radius and fluidColor stay from fluidSettings
-  } : fluidSettings;
+  } : {
+    fluidColor: fluidColor,
+    intensity: fluidIntensity,
+    force: fluidForce,
+    distortion: fluidDistortion,
+    radius: fluidRadius,
+    curl: fluidCurl,
+    swirl: fluidSwirl,
+    velocityDissipation: fluidVelocityDissipation,
+    rainbow: fluidRainbow
+  };
 
   // THE REAL SOLUTION: Intercept at WINDOW level (library listens to window!)
   useEffect(() => {

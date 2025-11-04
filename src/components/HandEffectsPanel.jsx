@@ -1,39 +1,13 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function HandEffectsPanel() {
-  const params = useVisStore(s => s.params);
-  const setParams = useVisStore(s => s.setParams);
-
-  const handEffect = params.handEffect || {
-    type: 'none',
-    handSelection: 'none',
-    ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
-    smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
-    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false },
-    showQuickView: true
-  };
-
-  // DEBUG: Log when component renders and what colors it receives
-  useEffect(() => {
-    console.log('🖼️ HandEffectsPanel RENDERED with handEffect:', {
-      type: handEffect.type,
-      selection: handEffect.handSelection,
-      ripple: handEffect.ripple?.baseColor,
-      smoke: handEffect.smoke?.color,
-      fluid: handEffect.fluidDistortion?.fluidColor,
-      fullHandEffect: handEffect
-    });
-  });
-
-  // DEBUG: Log specifically fluid color on every render
-  useEffect(() => {
-    if (handEffect.fluidDistortion?.fluidColor) {
-      console.log('🖼️ Current fluid color in component:', handEffect.fluidDistortion.fluidColor);
-    }
-  }, [handEffect.fluidDistortion?.fluidColor]);
+  // Subscribe to the entire store state to ensure we catch all updates
+  const storeState = useVisStore();
+  const handEffect = storeState.params.handEffect || {};
+  const setParams = storeState.setParams;
 
   const handleEffectChange = (updates) => {
     setParams({ handEffect: { ...handEffect, ...updates } });
@@ -43,7 +17,10 @@ export default function HandEffectsPanel() {
     setParams({ 
       handEffect: { 
         ...handEffect, 
-        ripple: { ...handEffect.ripple, ...updates } 
+        ripple: { 
+          ...(handEffect.ripple || {}),  // Safe fallback
+          ...updates 
+        } 
       } 
     });
   };
@@ -52,7 +29,10 @@ export default function HandEffectsPanel() {
     setParams({ 
       handEffect: { 
         ...handEffect, 
-        smoke: { ...handEffect.smoke, ...updates } 
+        smoke: { 
+          ...(handEffect.smoke || {}),  // Safe fallback
+          ...updates 
+        } 
       } 
     });
   };
@@ -61,7 +41,10 @@ export default function HandEffectsPanel() {
     setParams({ 
       handEffect: { 
         ...handEffect, 
-        fluidDistortion: { ...handEffect.fluidDistortion, ...updates } 
+        fluidDistortion: { 
+          ...(handEffect.fluidDistortion || {}),  // Safe fallback
+          ...updates 
+        } 
       } 
     });
   };
@@ -208,7 +191,7 @@ export default function HandEffectsPanel() {
                 </label>
                 <input
                   type="color"
-                  value={handEffect.ripple.baseColor}
+                  value={handEffect.ripple?.baseColor || '#00ccff'}
                   onChange={(e) => handleRippleChange({ baseColor: e.target.value })}
                   style={colorPickerStyle}
                 />
@@ -227,7 +210,7 @@ export default function HandEffectsPanel() {
                 </label>
                 <input
                   type="color"
-                  value={handEffect.ripple.rippleColor}
+                  value={handEffect.ripple?.rippleColor || '#ff00cc'}
                   onChange={(e) => handleRippleChange({ rippleColor: e.target.value })}
                   style={colorPickerStyle}
                 />
@@ -238,7 +221,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Ripple Radius"
-                value={handEffect.ripple.radius}
+                value={handEffect.ripple?.radius || 0.1}
                 min={0.1}
                 max={0.8}
                 step={0.05}
@@ -252,7 +235,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Ripple Intensity"
-                value={handEffect.ripple.intensity}
+                value={handEffect.ripple?.intensity || 0.8}
                 min={0.1}
                 max={1.5}
                 step={0.1}
@@ -278,7 +261,7 @@ export default function HandEffectsPanel() {
               </label>
               <input
                 type="color"
-                value={handEffect.smoke.color}
+                value={handEffect.smoke?.color || '#ffffff'}
                 onChange={(e) => handleSmokeChange({ color: e.target.value })}
                 style={colorPickerStyle}
               />
@@ -288,7 +271,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Trail Intensity"
-                value={handEffect.smoke.intensity}
+                value={handEffect.smoke?.intensity || 0.7}
                 min={0.1}
                 max={1.0}
                 step={0.05}
@@ -302,7 +285,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Trail Radius"
-                value={handEffect.smoke.radius}
+                value={handEffect.smoke?.radius || 0.8}
                 min={0.5}
                 max={3.0}
                 step={0.1}
@@ -316,7 +299,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Motion Sensitivity"
-                value={handEffect.smoke.velocitySensitivity}
+                value={handEffect.smoke?.velocitySensitivity || 1.0}
                 min={0.0}
                 max={2.0}
                 step={0.1}
@@ -330,7 +313,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Trail Length"
-                value={handEffect.smoke.trailLength}
+                value={handEffect.smoke?.trailLength || 0.5}
                 min={0.1}
                 max={1.0}
                 step={0.05}
@@ -356,7 +339,7 @@ export default function HandEffectsPanel() {
               </label>
               <input
                 type="color"
-                value={handEffect.fluidDistortion.fluidColor}
+                value={handEffect.fluidDistortion?.fluidColor || '#005eff'}
                 onChange={(e) => handleFluidDistortionChange({ fluidColor: e.target.value })}
                 style={colorPickerStyle}
               />
@@ -369,7 +352,7 @@ export default function HandEffectsPanel() {
                 <div style={{ marginBottom: 16 }}>
                   <Slider
                     label="Intensity"
-                    value={handEffect.fluidDistortion.intensity}
+                    value={handEffect.fluidDistortion?.intensity || 1}
                     min={0}
                     max={10}
                     step={0.5}
@@ -383,7 +366,7 @@ export default function HandEffectsPanel() {
                 <div style={{ marginBottom: 16 }}>
                   <Slider
                     label="Force"
-                    value={handEffect.fluidDistortion.force}
+                    value={handEffect.fluidDistortion?.force || 1.5}
                     min={0}
                     max={20}
                     step={0.5}
@@ -397,7 +380,7 @@ export default function HandEffectsPanel() {
                 <div style={{ marginBottom: 16 }}>
                   <Slider
                     label="Distortion"
-                    value={handEffect.fluidDistortion.distortion}
+                    value={handEffect.fluidDistortion?.distortion || 1}
                     min={0}
                     max={2}
                     step={0.1}
@@ -413,7 +396,7 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 16 }}>
               <Slider
                 label="Radius"
-                value={handEffect.fluidDistortion.radius}
+                value={handEffect.fluidDistortion?.radius || 0.1}
                 min={0.01}
                 max={1}
                 step={0.01}
@@ -430,7 +413,7 @@ export default function HandEffectsPanel() {
                 <div style={{ marginBottom: 16 }}>
                   <Slider
                     label="Curl"
-                    value={handEffect.fluidDistortion.curl}
+                    value={handEffect.fluidDistortion?.curl || 6}
                     min={0}
                     max={50}
                     step={1}
@@ -444,7 +427,7 @@ export default function HandEffectsPanel() {
                 <div style={{ marginBottom: 16 }}>
                   <Slider
                     label="Swirl"
-                    value={handEffect.fluidDistortion.swirl}
+                    value={handEffect.fluidDistortion?.swirl || 0}
                     min={0}
                     max={20}
                     step={1}
@@ -466,7 +449,7 @@ export default function HandEffectsPanel() {
                   }}>
                     <input
                       type="checkbox"
-                      checked={handEffect.fluidDistortion.rainbow}
+                      checked={handEffect.fluidDistortion?.rainbow || false}
                       onChange={(e) => handleFluidDistortionChange({ rainbow: e.target.checked })}
                       style={{
                         marginRight: '8px',

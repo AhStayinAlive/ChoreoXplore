@@ -11,20 +11,28 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   const handEffect = useVisStore(s => s.params.handEffect);
   const handSelection = handEffect?.handSelection || 'none';
   const smokeSettings = handEffect?.smoke || {};
+  
+  // Extract individual values for proper dependency tracking (like particle trail does)
+  const smokeColor = smokeSettings.color || '#ffffff';
+  const smokeIntensity = smokeSettings.intensity || 0.7;
+  const smokeRadius = smokeSettings.radius || 0.8;
+  const smokeVelocitySensitivity = smokeSettings.velocitySensitivity || 1.0;
+  const smokeTrailLength = smokeSettings.trailLength || 0.5;
+  
   const [hasParticles, setHasParticles] = useState(false);
 
   // Update smoke texture settings when they change (like ripple effect does with uniforms)
   useEffect(() => {
     if (smokeTextureInstance) {
       smokeTextureInstance.updateSettings({
-        intensity: smokeSettings.intensity,
-        radiusMultiplier: smokeSettings.radius,
-        velocitySensitivity: smokeSettings.velocitySensitivity,
-        color: smokeSettings.color,
-        trailLength: smokeSettings.trailLength
+        intensity: smokeIntensity,
+        radiusMultiplier: smokeRadius,
+        velocitySensitivity: smokeVelocitySensitivity,
+        color: smokeColor,
+        trailLength: smokeTrailLength
       });
     }
-  }, [smokeSettings, smokeTextureInstance]);
+  }, [smokeColor, smokeIntensity, smokeRadius, smokeVelocitySensitivity, smokeTrailLength, smokeTextureInstance]); // Use extracted values
 
   // Create plane geometry (same size as ripple effect)
   const planeGeometry = useMemo(() => {
