@@ -43,6 +43,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
 
   // Silhouette color (white pictogram by default)
   const SILHOUETTE_COLOR = useMemo(() => new THREE.Color(0xffffff), []);
+  
+  // Tolerance for geometry dimension changes - if dimensions change less than this, reuse geometry
+  const GEOMETRY_TOLERANCE = 0.01;
 
   // Reusable material - created once and reused
   const material = useMemo(() => new THREE.MeshBasicMaterial({
@@ -76,10 +79,10 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       const mesh = pool.cylinders[pool.cylinderIndex];
       pool.cylinderIndex++;
       
-      // Update geometry if needed
+      // Update geometry if dimensions changed significantly
       const geo = mesh.geometry;
-      if (Math.abs(geo.parameters.radiusTop - radius) > 0.01 || 
-          Math.abs(geo.parameters.height - length) > 0.01) {
+      if (Math.abs(geo.parameters.radiusTop - radius) > GEOMETRY_TOLERANCE || 
+          Math.abs(geo.parameters.height - length) > GEOMETRY_TOLERANCE) {
         mesh.geometry.dispose();
         mesh.geometry = new THREE.CylinderGeometry(radius, radius, length, 24, 1, false);
       }
@@ -105,9 +108,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       const mesh = pool.spheres[pool.sphereIndex];
       pool.sphereIndex++;
       
-      // Update geometry if needed
+      // Update geometry if dimensions changed significantly
       const geo = mesh.geometry;
-      if (Math.abs(geo.parameters.radius - radius) > 0.01) {
+      if (Math.abs(geo.parameters.radius - radius) > GEOMETRY_TOLERANCE) {
         mesh.geometry.dispose();
         mesh.geometry = new THREE.SphereGeometry(radius, 24, 16);
       }
@@ -133,9 +136,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       const mesh = pool.circles[pool.circleIndex];
       pool.circleIndex++;
       
-      // Update geometry if needed
+      // Update geometry if dimensions changed significantly
       const geo = mesh.geometry;
-      if (Math.abs(geo.parameters.radius - radius) > 0.01) {
+      if (Math.abs(geo.parameters.radius - radius) > GEOMETRY_TOLERANCE) {
         mesh.geometry.dispose();
         mesh.geometry = new THREE.CircleGeometry(radius, 32);
       }
