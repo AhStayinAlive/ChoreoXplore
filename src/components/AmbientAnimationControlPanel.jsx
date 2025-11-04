@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Slider from './reusables/Slider';
-import ToggleButton from './reusables/ToggleButton';
 import useStore from '../core/store';
 
 const AmbientAnimationControlPanel = ({ 
-  onParametersChange,
   isVisible = true,
   className = ""
 }) => {
@@ -45,7 +43,12 @@ const AmbientAnimationControlPanel = ({
       speed: 1.0,
       amplitude: 0.5,
       wavelength: 1.0,
-      intensity: 0.3
+      intensity: 0.3,
+      audioReactive: true,
+      audioSensitivity: 0.5,
+      audioBassInfluence: 0.7,
+      audioMidInfluence: 0.5,
+      audioHighInfluence: 0.3
     };
     setParameters(defaultParams);
   };
@@ -195,6 +198,95 @@ const AmbientAnimationControlPanel = ({
             />
           </div>
 
+          {/* Audio Reactivity Section */}
+          <div className="pt-3 border-t border-white/10">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-white/90 text-sm font-medium">Audio Reactive</label>
+              <button
+                onClick={() => handleParameterChange('audioReactive', !parameters.audioReactive)}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: parameters.audioReactive ? "rgba(34,197,94,0.8)" : "rgba(107,114,128,0.8)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "6px",
+                  color: "white",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                  minWidth: "auto",
+                  flexShrink: 0
+                }}
+              >
+                {parameters.audioReactive ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            
+            {parameters.audioReactive && (
+              <>
+                {/* Audio Sensitivity */}
+                <div className="mt-3">
+                  <label className="text-white/80 text-xs mb-2 block">
+                    Audio Sensitivity: {parameters.audioSensitivity?.toFixed(2) ?? 0.5}
+                  </label>
+                  <Slider
+                    value={parameters.audioSensitivity ?? 0.5}
+                    onChange={(value) => handleParameterChange('audioSensitivity', value)}
+                    min={0.0}
+                    max={2.0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Bass Influence */}
+                <div className="mt-3">
+                  <label className="text-white/80 text-xs mb-2 block">
+                    Bass Influence: {parameters.audioBassInfluence?.toFixed(2) ?? 0.7}
+                  </label>
+                  <Slider
+                    value={parameters.audioBassInfluence ?? 0.7}
+                    onChange={(value) => handleParameterChange('audioBassInfluence', value)}
+                    min={0.0}
+                    max={1.0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Mid Influence */}
+                <div className="mt-3">
+                  <label className="text-white/80 text-xs mb-2 block">
+                    Mid Influence: {parameters.audioMidInfluence?.toFixed(2) ?? 0.5}
+                  </label>
+                  <Slider
+                    value={parameters.audioMidInfluence ?? 0.5}
+                    onChange={(value) => handleParameterChange('audioMidInfluence', value)}
+                    min={0.0}
+                    max={1.0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* High Influence */}
+                <div className="mt-3">
+                  <label className="text-white/80 text-xs mb-2 block">
+                    High Influence: {parameters.audioHighInfluence?.toFixed(2) ?? 0.3}
+                  </label>
+                  <Slider
+                    value={parameters.audioHighInfluence ?? 0.3}
+                    onChange={(value) => handleParameterChange('audioHighInfluence', value)}
+                    min={0.0}
+                    max={1.0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Reset Button */}
           <button
             onClick={resetToDefaults}
@@ -221,7 +313,15 @@ const AmbientAnimationControlPanel = ({
         <label className="text-white/90 text-sm font-medium mb-2 block">Quick Presets</label>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => setParameters(prev => ({ ...prev, effectType: 'waterRipple', speed: 1.0, amplitude: 0.3, intensity: 0.2 }))}
+            onClick={() => setParameters(prev => ({ 
+              ...prev, 
+              effectType: 'waterRipple', 
+              speed: 1.0, 
+              amplitude: 0.3, 
+              intensity: 0.2,
+              audioReactive: true,
+              audioSensitivity: 0.3
+            }))}
             style={{
               padding: "6px 12px",
               backgroundColor: "rgba(59,130,246,0.2)",
@@ -237,7 +337,15 @@ const AmbientAnimationControlPanel = ({
             Gentle
           </button>
           <button
-            onClick={() => setParameters(prev => ({ ...prev, effectType: 'heatWave', speed: 2.0, amplitude: 0.7, intensity: 0.5 }))}
+            onClick={() => setParameters(prev => ({ 
+              ...prev, 
+              effectType: 'heatWave', 
+              speed: 2.0, 
+              amplitude: 0.7, 
+              intensity: 0.5,
+              audioReactive: true,
+              audioSensitivity: 1.2
+            }))}
             style={{
               padding: "6px 12px",
               backgroundColor: "rgba(249,115,22,0.2)",
@@ -253,7 +361,15 @@ const AmbientAnimationControlPanel = ({
             Dynamic
           </button>
           <button
-            onClick={() => setParameters(prev => ({ ...prev, effectType: 'flowingDistortion', speed: 1.5, amplitude: 0.6, intensity: 0.4 }))}
+            onClick={() => setParameters(prev => ({ 
+              ...prev, 
+              effectType: 'flowingDistortion', 
+              speed: 1.5, 
+              amplitude: 0.6, 
+              intensity: 0.4,
+              audioReactive: true,
+              audioSensitivity: 0.8
+            }))}
             style={{
               padding: "6px 12px",
               backgroundColor: "rgba(168,85,247,0.2)",
@@ -269,7 +385,15 @@ const AmbientAnimationControlPanel = ({
             Flowing
           </button>
           <button
-            onClick={() => setParameters(prev => ({ ...prev, effectType: 'gentleWave', speed: 0.8, amplitude: 0.2, intensity: 0.15 }))}
+            onClick={() => setParameters(prev => ({ 
+              ...prev, 
+              effectType: 'gentleWave', 
+              speed: 0.8, 
+              amplitude: 0.2, 
+              intensity: 0.15,
+              audioReactive: true,
+              audioSensitivity: 0.4
+            }))}
             style={{
               padding: "6px 12px",
               backgroundColor: "rgba(34,197,94,0.2)",

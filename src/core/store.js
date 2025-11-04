@@ -75,7 +75,12 @@ const useStore = create((set, get) => ({
     speed: 1.0,
     amplitude: 0.5,
     wavelength: 1.0,
-    intensity: 0.3
+    intensity: 0.3,
+    audioReactive: true,
+    audioSensitivity: 0.5,
+    audioBassInfluence: 0.7,
+    audioMidInfluence: 0.5,
+    audioHighInfluence: 0.3
   },
   setAmbientAnimationParams: (params) => set({ ambientAnimationParams: params }),
 
