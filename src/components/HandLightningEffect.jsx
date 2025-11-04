@@ -23,6 +23,10 @@ const HandLightningEffect = () => {
   const chaos = lightningSettings.chaos || 0.5;
   const edgeMode = lightningSettings.edgeMode || 'corners'; // 'corners' or 'edges'
   
+  // Constants for lightning displacement
+  const DISPLACEMENT_SCALE = 100;
+  const SECONDARY_DISPLACEMENT_SCALE = 50;
+  
   // Noise function for lightning flicker (simple Perlin-like noise)
   const noise = (x) => {
     const n = Math.sin(x) * 43758.5453123;
@@ -49,11 +53,11 @@ const HandLightningEffect = () => {
       const noiseValue = noise(i * 0.5 + time * flickerSpeed) * 2 - 1;
       const displacement = chaos * segmentLength * noiseValue * (1 - Math.abs(t * 2 - 1)); // Taper at ends
       
-      basePoint.add(perpendicular.clone().multiplyScalar(displacement * 100));
+      basePoint.add(perpendicular.clone().multiplyScalar(displacement * DISPLACEMENT_SCALE));
       
       // Add secondary displacement for more chaos
       const secondaryNoise = noise(i * 1.3 + time * flickerSpeed * 1.5) * 2 - 1;
-      basePoint.z += secondaryNoise * displacement * 50;
+      basePoint.z += secondaryNoise * displacement * SECONDARY_DISPLACEMENT_SCALE;
       
       points.push(basePoint);
     }
@@ -99,7 +103,7 @@ const HandLightningEffect = () => {
         ];
         
         let nearestCorner = corners[0];
-        let minDistance = handX * handX + handY * handY + 100000000;
+        let minDistance = Number.MAX_VALUE;
         
         corners.forEach(corner => {
           const dist = Math.pow(handX - corner.x, 2) + Math.pow(handY - corner.y, 2);
@@ -115,16 +119,17 @@ const HandLightningEffect = () => {
   };
   
   // Create material with glow effect
+  // Note: LineBasicMaterial's linewidth parameter doesn't work in most WebGL implementations
+  // For visible thickness, consider using TubeGeometry or creating multiple offset lines
   const createLightningMaterial = useMemo(() => {
     return new THREE.LineBasicMaterial({
       color: new THREE.Color(color),
       transparent: true,
       opacity: intensity,
       blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      linewidth: thickness * 10 // Note: linewidth doesn't work in WebGL, we'll use tube geometry
+      depthWrite: false
     });
-  }, [color, intensity, thickness]);
+  }, [color, intensity]);
   
   // Create geometries for lightning
   const createGeometry = useMemo(() => {
