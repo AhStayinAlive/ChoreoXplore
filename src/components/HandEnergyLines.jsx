@@ -155,8 +155,8 @@ const vertexShader = `
     vec3 finalPosition = vec3(basePosition.xy + offset, basePosition.z);
     
     // Convert from normalized coordinates (0-1) to world space
-    // Scale to match the project's coordinate system (SimpleSkeleton default scale)
-    const float WORLD_SCALE = 2000.0;
+    // Scale to match the project's coordinate system (20000 units like HandNoiseDistortion)
+    const float WORLD_SCALE = 20000.0;
     finalPosition.xy = (finalPosition.xy - 0.5) * WORLD_SCALE;
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPosition, 1.0);
@@ -335,7 +335,7 @@ const HandEnergyLines = () => {
   }
   
   return (
-    <lineSegments ref={groupRef} geometry={geometry} material={material} />
+    <lineSegments ref={groupRef} geometry={geometry} material={material} position={[0, 0, 0]} />
   );
 };
 
