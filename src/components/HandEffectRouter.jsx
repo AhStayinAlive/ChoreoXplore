@@ -4,6 +4,7 @@ import HandFluidEffect from './HandFluidEffect';
 import HandSmokeEffect from './HandSmokeEffect';
 import HandFluidDistortion from './HandFluidDistortion';
 import HandParticleTrailEffect from './HandParticleTrailEffect';
+import HandNoiseDistortion from './HandNoiseDistortion';
 
 export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTexture, smokeTextureInstance }) {
   const params = useVisStore(s => s.params);
@@ -25,6 +26,8 @@ export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTextu
       return <HandFluidDistortion />;
     case 'particleTrail':
       return <HandParticleTrailEffect />;
+    case 'noiseDistortion':
+      return <HandNoiseDistortion />;
     default:
       return null;
   }
