@@ -113,10 +113,7 @@ export default function HandRippleSystem() {
 
   const enabled = handEffect?.ripplePass?.enabled || false;
 
-  return (
-    <HandRippleEffect 
-      enabled={enabled} 
-      ripplePass={ripplePassRef.current}
-    />
-  );
+  // Don't render the effect component as it intercepts the render pipeline
+  // This is a placeholder for future proper integration with EffectComposer
+  return null;
 }
