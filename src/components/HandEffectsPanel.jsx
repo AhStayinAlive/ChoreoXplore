@@ -655,6 +655,19 @@ export default function HandEffectsPanel() {
                 onChange={(val) => handleNoiseDistortionChange({ distortionStrength: val })}
               />
             </div>
+
+            {/* Distortion Radius */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Distortion Radius"
+                value={handEffect.noiseDistortion?.distortionRadius !== undefined ? handEffect.noiseDistortion.distortionRadius : 0.5}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                showValue={false}
+                onChange={(val) => handleNoiseDistortionChange({ distortionRadius: val })}
+              />
+            </div>
           </div>
         )}
       </div>

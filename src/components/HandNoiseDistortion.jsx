@@ -33,6 +33,7 @@ const fragmentShader = `
   uniform vec3 uColor2;
   uniform float uIntensity;
   uniform float uDistortionStrength;
+  uniform float uDistortionRadius;
   
   varying vec2 vUv;
   
@@ -138,7 +139,7 @@ const fragmentShader = `
     if (uLeftActive) {
       vec2 leftDiff = uv - uLeftHand;
       float leftDist = length(leftDiff);
-      float leftInfluence = 1.0 - smoothstep(0.0, 0.5, leftDist);
+      float leftInfluence = 1.0 - smoothstep(0.0, uDistortionRadius, leftDist);
       float leftVelFactor = 1.0 + uLeftVelocity * 2.0;
       
       // Warp noise field around left hand
@@ -150,7 +151,7 @@ const fragmentShader = `
     if (uRightActive) {
       vec2 rightDiff = uv - uRightHand;
       float rightDist = length(rightDiff);
-      float rightInfluence = 1.0 - smoothstep(0.0, 0.5, rightDist);
+      float rightInfluence = 1.0 - smoothstep(0.0, uDistortionRadius, rightDist);
       float rightVelFactor = 1.0 + uRightVelocity * 2.0;
       
       // Warp noise field around right hand
@@ -216,6 +217,7 @@ const HandNoiseDistortion = () => {
   const color2 = noiseSettings.color2 || '#ff00ff';
   const intensity = noiseSettings.intensity !== undefined ? noiseSettings.intensity : 0.8;
   const distortionStrength = noiseSettings.distortionStrength !== undefined ? noiseSettings.distortionStrength : 0.2;
+  const distortionRadius = noiseSettings.distortionRadius !== undefined ? noiseSettings.distortionRadius : 0.5;
 
   const handSelection = handEffect?.handSelection || 'none';
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
@@ -237,13 +239,14 @@ const HandNoiseDistortion = () => {
         uColor1: { value: new THREE.Color(color1) },
         uColor2: { value: new THREE.Color(color2) },
         uIntensity: { value: intensity },
-        uDistortionStrength: { value: distortionStrength }
+        uDistortionStrength: { value: distortionStrength },
+        uDistortionRadius: { value: distortionRadius }
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-  }, [color1, color2, intensity, distortionStrength]);
+  }, [color1, color2, intensity, distortionStrength, distortionRadius]);
 
   // Update hand tracking
   const updateHandTracking = useCallback((handRefs, currentHandPos, delta) => {
@@ -309,6 +312,7 @@ const HandNoiseDistortion = () => {
     meshRef.current.material.uniforms.uColor2.value.set(color2);
     meshRef.current.material.uniforms.uIntensity.value = intensity;
     meshRef.current.material.uniforms.uDistortionStrength.value = distortionStrength;
+    meshRef.current.material.uniforms.uDistortionRadius.value = distortionRadius;
   });
 
   // Don't render if no hands are enabled or ChoreoXplore is not active
