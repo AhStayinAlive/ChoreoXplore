@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useVisStore } from '../state/useVisStore';
-import useStore, { hexToRGB } from '../core/store';
+import useStore from '../core/store';
 import * as THREE from 'three';
 import {
   handRippleVertexShader,
@@ -9,12 +9,8 @@ import {
   handRippleUniforms
 } from '../shaders/handRippleShader';
 
-// Import actual mode components
-import SilkVeilMode from '../modes/SilkVeil/SilkVeilMode';
-import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
-import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
-import InkWaterMode from '../modes/InkWater/InkWaterMode';
-import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
+// Import ChoreoXploreSystem which contains all visual modes
+import ChoreoXploreSystem from './ChoreoXploreSystem';
 
 // Constants for positioning and animation
 const PREVIEW_WIDTH = 400;
@@ -36,203 +32,6 @@ const PULSE_FREQUENCY = 3;
 const FLUID_MARKER_BASE_SIZE = 0.2;
 const FLUID_OPACITY_MULTIPLIER = 0.5;
 const FLUID_OPACITY_MAX = 0.9;
-
-/**
- * Background visual mode for preview - renders the currently selected visual mode
- */
-function PreviewBackgroundVisual() {
-  const params = useVisStore(s => s.params);
-  const mode = params.mode;
-  
-  // Render the appropriate visual mode based on current selection
-  switch (mode) {
-    case 'quand_cest':
-      return <PreviewQuandCestMode />;
-    case 'pulsating_circle':
-      return <PreviewPulsatingCircleMode />;
-    case 'vertical_lines':
-      return <PreviewVerticalLinesMode />;
-    case 'lines':
-      return <PreviewLines1DMode />;
-    case 'empty':
-      return null; // Empty mode renders nothing
-    // New modes - render actual modes
-    case 'silk_veil':
-      return <SilkVeilMode />;
-    case 'lotus_bloom':
-      return <LotusBloomMode />;
-    case 'stained_glass_rose':
-      return <StainedGlassRoseMode />;
-    case 'ink_water':
-      return <InkWaterMode />;
-    case 'opaline_wave':
-      return <OpalineWaveMode />;
-    // Other modes use QuandCest as preview
-    case 'water_ripple':
-    case 'heat_wave':
-    case 'flowing':
-    case 'gentle_wave':
-      return <PreviewQuandCestMode />;
-    default:
-      return <PreviewQuandCestMode />; // Default to quand_cest
-  }
-}
-
-/**
- * Quand C'est visual mode for preview
- */
-function PreviewQuandCestMode() {
-  const params = useVisStore(s => s.params);
-  const music = useVisStore(s => s.music);
-  const motion = useVisStore(s => s.motion);
-  const userColors = useStore(s => s.userColors);
-  
-  // Use the actual Quand C'est shader
-  const fragmentShader = `
-uniform float uTime;
-uniform vec3 uColor;
-uniform float uEnergy;
-uniform float uMotion;
-uniform float uIntensity;
-varying vec2 vUv;
-
-void main() {
-  vec2 uv = vUv;
-  float t = uTime;
-  
-  float pattern = 0.0;
-  
-  // Create outer rectangle lines that are always visible (very thin)
-  if(uv.y > 0.98) pattern = 1.0;
-  if(uv.x > 0.98) pattern = 1.0;
-  if(uv.x < 0.02) pattern = 1.0;
-  
-  // Create organic diagonal lines extending from edges toward center when music plays
-  float energyBoost = uEnergy * 20.0;
-  float baseLength = 0.1;
-  float musicLength = energyBoost * 0.35;
-  float totalLength = baseLength + musicLength;
-  
-  if(totalLength > 0.05) {
-    // Lines from top edge going diagonally down
-    for(int i = 0; i < 4; i++) {
-      float x = 0.15 + float(i) * 0.23;
-      float angle = -0.3 + float(i) * 0.2;
-      float distFromTop = uv.y - 0.98;
-      float waveOffset = sin(distFromTop * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
-      float expectedX = x + distFromTop * tan(angle) + waveOffset;
-      float distToLine = abs(uv.x - expectedX);
-      float lineLength = totalLength;
-      float taperFactor = 1.0 - (abs(distFromTop) / lineLength);
-      float lineWidth = 0.006 * taperFactor;
-      if(distToLine < lineWidth && distFromTop > -lineLength && distFromTop < 0.004) {
-        pattern = 1.0;
-      }
-    }
-    
-    // Lines from left edge going diagonally right
-    for(int i = 0; i < 4; i++) {
-      float y = 0.15 + float(i) * 0.23;
-      float angle = 0.2 + float(i) * 0.15;
-      float distFromLeft = uv.x - 0.02;
-      float waveOffset = sin(distFromLeft * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
-      float expectedY = y + distFromLeft * tan(angle) + waveOffset;
-      float distToLine = abs(uv.y - expectedY);
-      float lineLength = totalLength;
-      float taperFactor = 1.0 - (abs(distFromLeft) / lineLength);
-      float lineWidth = 0.006 * taperFactor;
-      if(distToLine < lineWidth && distFromLeft < lineLength && distFromLeft > -0.004) {
-        pattern = 1.0;
-      }
-    }
-    
-    // Lines from right edge going diagonally left
-    for(int i = 0; i < 4; i++) {
-      float y = 0.15 + float(i) * 0.23;
-      float angle = -0.2 - float(i) * 0.15;
-      float distFromRight = uv.x - 0.98;
-      float waveOffset = sin(distFromRight * 8.0 + t * 2.0 + float(i)) * 0.02 * energyBoost;
-      float expectedY = y + distFromRight * tan(angle) + waveOffset;
-      float distToLine = abs(uv.y - expectedY);
-      float lineLength = totalLength;
-      float taperFactor = 1.0 - (abs(distFromRight) / lineLength);
-      float lineWidth = 0.006 * taperFactor;
-      if(distToLine < lineWidth && distFromRight > -lineLength && distFromRight < 0.004) {
-        pattern = 1.0;
-      }
-    }
-  }
-  
-  vec3 col = uColor * pattern * uIntensity;
-  gl_FragColor = vec4(col, pattern * uIntensity);
-}
-`;
-  
-  const vertexShader = `
-varying vec2 vUv;
-void main(){ 
-  vUv = uv; 
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
-}
-`;
-  
-  const material = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      fragmentShader,
-      vertexShader,
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
-        uEnergy: { value: 0 },
-        uMotion: { value: 0 },
-        uIntensity: { value: 0.8 },
-      },
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps intentional - shaders are defined inline and never change
-  
-  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
-
-  useFrame((_, dt) => {
-    material.uniforms.uTime.value += dt * (0.6 + params.speed);
-    const rgb = hexToRGB(userColors?.assetColor || '#0096ff');
-    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
-    material.uniforms.uIntensity.value = params.intensity;
-    
-    const energy = (music?.energy ?? 0) * params.musicReact;
-    const sharp = (motion?.sharpness ?? 0) * params.motionReact;
-    
-    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
-      material.uniforms.uEnergy.value, energy, 0.2
-    );
-    material.uniforms.uMotion.value = THREE.MathUtils.lerp(
-      material.uniforms.uMotion.value, sharp, 0.15
-    );
-  });
-
-  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
-}
-
-/**
- * Simplified preview versions of other visual modes
- */
-function PreviewPulsatingCircleMode() {
-  // Simplified pulsating circle for preview
-  return null; // TODO: Implement if needed
-}
-
-function PreviewVerticalLinesMode() {
-  // Simplified vertical lines for preview
-  return null; // TODO: Implement if needed
-}
-
-function PreviewLines1DMode() {
-  // Simplified lines 1D for preview
-  return null; // TODO: Implement if needed
-}
 
 /**
  * Enhanced smoke trail with more particles and music reactivity
@@ -808,7 +607,12 @@ export default function HandEffectQuickView() {
       {/* Canvas for preview */}
       <div style={{ width: '100%', height: 'calc(100% - 40px)', position: 'relative' }}>
         <Canvas
-          camera={{ position: [0, 0, 2], fov: 60 }}
+          orthographic
+          camera={{ 
+            zoom: 0.1, 
+            position: [0, 0, 5] 
+          }}
+          dpr={[1, 2]}
           gl={{ 
             alpha: true, 
             antialias: true,
@@ -818,8 +622,8 @@ export default function HandEffectQuickView() {
           {/* Background color matches main UI exactly */}
           <color attach="background" args={[userColors.bgColor]} />
           
-          {/* Background visual mode */}
-          <PreviewBackgroundVisual />
+          {/* Render the full ChoreoXplore system just like the main canvas */}
+          <ChoreoXploreSystem />
           
           {/* Hand effects - conditional rendering based on effect type */}
           {effectType === 'fluidDistortion' ? (
