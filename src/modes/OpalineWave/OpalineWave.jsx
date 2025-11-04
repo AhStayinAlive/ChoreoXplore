@@ -177,7 +177,7 @@ void main() {
 
 // Default parameters - simplified
 const DEFAULT_PARAMS = {
-  rainbowMode: true,
+  rainbowMode: false,
   colorSpread: 0.9,
   shimmerSpeed: 0.25
 };
@@ -206,7 +206,7 @@ export default function OpalineWaveMode() {
         uBgColor: { value: new THREE.Color() },
         uAssetColor: { value: new THREE.Color() },
         uTransparency: { value: 0.8 },
-        uRainbowMode: { value: true },
+        uRainbowMode: { value: false },
         uColorSpread: { value: DEFAULT_PARAMS.colorSpread },
         uShimmerSpeed: { value: DEFAULT_PARAMS.shimmerSpeed }
       },
@@ -287,7 +287,7 @@ export default function OpalineWaveMode() {
     material.uniforms.uTransparency.value = params.intensity || 0.8;
     
     // Update rainbow mode
-    material.uniforms.uRainbowMode.value = opalineParams.rainbowMode ?? true;
+    material.uniforms.uRainbowMode.value = opalineParams.rainbowMode ?? false;
     material.uniforms.uColorSpread.value = opalineParams.colorSpread ?? DEFAULT_PARAMS.colorSpread;
     material.uniforms.uShimmerSpeed.value = opalineParams.shimmerSpeed ?? DEFAULT_PARAMS.shimmerSpeed;
   });
