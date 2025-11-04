@@ -144,12 +144,40 @@ function AnimatedDemo() {
 
 ## Future Enhancements
 
-Potential additions:
-- Support for edge connections when one hand isn't visible
+Potential additions based on the original requirements:
+- **Edge Connections**: Support for drawing energy lines from each hand to screen edges when the other hand isn't visible
+  - Could be implemented by detecting hand visibility and adding conditional line rendering
+  - Would require additional geometry and shader logic for edge-to-hand connections
 - Customizable sparkle patterns
 - Audio reactivity integration
 - Particle effects at connection points
 - Variable line thickness based on energy level
+- Multi-hand support (more than 2 hands)
+- Configurable blend modes (beyond additive)
+
+### Implementing Edge Connections
+
+To add edge connections when one hand is not visible:
+
+```jsx
+<HandEnergyLines
+  leftHand={leftHandVisible ? leftHand : null}
+  rightHand={rightHandVisible ? rightHand : null}
+  enableEdgeConnections={true}  // Future prop
+  edgeConnectionPoints={[        // Future prop
+    { x: 0, y: 0.5 },    // Left edge
+    { x: 1, y: 0.5 },    // Right edge
+    { x: 0.5, y: 0 },    // Top edge
+    { x: 0.5, y: 1 }     // Bottom edge
+  ]}
+/>
+```
+
+This would require modifying the component to:
+1. Check for null/undefined hand positions
+2. Select nearest edge point when a hand is missing
+3. Render lines from visible hand to edge points
+4. Maintain the same visual quality and performance
 
 ## Credits
 
