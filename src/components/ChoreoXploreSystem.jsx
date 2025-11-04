@@ -12,7 +12,6 @@ import GentleWaveMode from './GentleWaveMode';
 import EmptyMode from './EmptyMode';
 import SilkVeilMode from '../modes/SilkVeil/SilkVeilMode';
 import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
-import PaperLanternsMode from '../modes/PaperLanterns/PaperLanternsMode';
 import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
 import InkWaterMode from '../modes/InkWater/InkWaterMode';
 
@@ -42,8 +41,6 @@ export default function ChoreoXploreSystem() {
       return <SilkVeilMode />;
     case 'lotus_bloom':
       return <LotusBloomMode />;
-    case 'paper_lanterns':
-      return <PaperLanternsMode />;
     case 'stained_glass_rose':
       return <StainedGlassRoseMode />;
     case 'ink_water':

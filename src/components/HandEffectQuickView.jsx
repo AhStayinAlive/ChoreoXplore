@@ -52,7 +52,6 @@ function PreviewBackgroundVisual() {
     // New modes - simplified preview versions
     case 'silk_veil':
     case 'lotus_bloom':
-    case 'paper_lanterns':
     case 'stained_glass_rose':
     case 'ink_water':
     case 'water_ripple':

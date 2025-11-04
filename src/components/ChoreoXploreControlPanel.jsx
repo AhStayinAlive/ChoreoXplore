@@ -162,7 +162,6 @@ export default function ChoreoXploreControlPanel() {
               <option value="gentle_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Gentle Wave</option>
               <option value="silk_veil" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Silk Veil</option>
               <option value="lotus_bloom" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lotus Bloom</option>
-              <option value="paper_lanterns" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Paper Lanterns</option>
               <option value="stained_glass_rose" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Stained Glass Rose</option>
               <option value="ink_water" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ink & Water</option>
             </select>

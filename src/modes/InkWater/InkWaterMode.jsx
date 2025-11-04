@@ -43,8 +43,8 @@ float hash(vec2 p) {
   return fract(p.x * p.y);
 }
 
-// Blue noise approximation
-float blueNoise(vec2 p) {
+// Smooth noise for organic blob movement
+float smoothNoise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   
@@ -57,59 +57,59 @@ float blueNoise(vec2 p) {
   return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-// Curl noise for flow
-vec2 curlNoise(vec2 p, float t) {
-  float e = 0.1;
-  float n1 = blueNoise(p + vec2(e, 0.0) + t);
-  float n2 = blueNoise(p + vec2(0.0, e) + t);
-  float n3 = blueNoise(p - vec2(e, 0.0) + t);
-  float n4 = blueNoise(p - vec2(0.0, e) + t);
-  
-  return vec2(n2 - n4, n3 - n1);
-}
-
 void main() {
   vec2 uv = vUv;
   
-  // Create ink bloom centers based on time
-  vec2 center1 = vec2(0.5 + sin(uTime * 0.3) * 0.2, 0.5 + cos(uTime * 0.2) * 0.2);
-  vec2 center2 = vec2(0.5 - sin(uTime * 0.25) * 0.15, 0.5 + sin(uTime * 0.35) * 0.15);
+  // Create 1-2 large lava lamp blobs that move slowly and organically
+  // Blob 1 - main blob
+  vec2 blob1Pos = vec2(
+    0.5 + sin(uTime * 0.15 + smoothNoise(vec2(uTime * 0.1))) * 0.25,
+    0.5 + cos(uTime * 0.12 + smoothNoise(vec2(uTime * 0.1 + 100.0))) * 0.25
+  );
   
-  float bloom1 = smoothstep(0.3 * uDiffusion, 0.0, length(uv - center1));
-  float bloom2 = smoothstep(0.25 * uDiffusion, 0.0, length(uv - center2));
+  // Blob 2 - secondary blob (controlled by diffusion parameter)
+  vec2 blob2Pos = vec2(
+    0.5 - sin(uTime * 0.18 + smoothNoise(vec2(uTime * 0.09 + 50.0))) * 0.2,
+    0.5 + sin(uTime * 0.16 + smoothNoise(vec2(uTime * 0.11 + 150.0))) * 0.2
+  );
   
-  // Apply curl noise flow for organic movement
-  vec2 flow = curlNoise(uv * 10.0, uTime * 0.1);
-  vec2 flowUV = uv + flow * uDiffusion * 0.05;
+  // Distance from blobs with organic deformation
+  float noise1 = smoothNoise(uv * 3.0 + uTime * 0.1);
+  float noise2 = smoothNoise(uv * 5.0 - uTime * 0.15);
   
-  // Create flowing ink pattern
-  float ink = bloom1 + bloom2 * 0.7;
+  float dist1 = length(uv - blob1Pos) - noise1 * 0.08;
+  float dist2 = length(uv - blob2Pos) - noise2 * 0.06;
   
-  // Add flowing tendrils
-  float tendrils = 0.0;
-  for (float i = 0.0; i < 3.0; i++) {
-    vec2 tendrilUV = flowUV + vec2(sin(uTime * 0.5 + i), cos(uTime * 0.4 + i)) * 0.1;
-    float tendril = smoothstep(0.2, 0.0, length(tendrilUV - center1));
-    tendrils += tendril * (1.0 - i / 3.0);
-  }
-  ink += tendrils * 0.3;
+  // Blob size influenced by diffusion (more diffusion = bigger blobs)
+  float size1 = 0.15 + uDiffusion * 0.1;
+  float size2 = 0.12 + uDiffusion * 0.08;
   
-  // Edge granulation with blue noise
-  float grain = blueNoise(uv * 500.0 + uTime);
-  float granulation = grain * uGrain;
+  // Create smooth blobs with soft edges
+  float blob1 = smoothstep(size1 + 0.1, size1 - 0.05, dist1);
+  float blob2 = smoothstep(size2 + 0.1, size2 - 0.05, dist2);
   
-  // Apply granulation at edges
-  float edgeDetect = ink * (1.0 - ink);
-  ink += granulation * edgeDetect * 0.3;
+  // Merge blobs with metaball effect
+  float blobs = blob1 + blob2;
+  blobs = smoothstep(0.3, 0.8, blobs);
   
-  // Paper texture
-  float paper = blueNoise(uv * 200.0) * 0.1 + 0.9;
+  // Add subtle internal swirls for more interest
+  float swirl = smoothNoise(uv * 8.0 + uTime * 0.2);
+  blobs += swirl * 0.1 * blobs;
   
-  // Mix with background (paper)
-  vec3 inkColor = uAssetColor * ink;
-  vec3 color = mix(uBgColor * paper, inkColor, min(ink, 1.0));
+  // Soft gradient within blobs
+  float blobGradient = smoothstep(0.0, 1.0, blobs);
   
-  float alpha = ink * uIntensity;
+  // Create smooth color transition
+  vec3 blobColor = mix(
+    uAssetColor * 0.6,
+    uAssetColor,
+    blobGradient
+  );
+  
+  // Mix with background for smooth transition
+  vec3 color = mix(uBgColor, blobColor, blobs * uIntensity);
+  
+  float alpha = blobs * uIntensity;
   
   gl_FragColor = vec4(color, min(alpha, 1.0));
 }

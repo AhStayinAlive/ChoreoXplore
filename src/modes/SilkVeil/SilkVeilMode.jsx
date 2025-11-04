@@ -231,14 +231,19 @@ export default function SilkVeilMode() {
   
   useFrame((state, dt) => {
     const musicReact = params.musicReact || 0;
-    const energy = (music?.energy ?? 0) * musicReact;
+    const energy = music?.energy ?? 0;
     const centroid = music?.centroid ?? 0;
     
-    // Estimate frequency bands from centroid (like other modes use energy)
+    // Apply musicReact to the final calculations, not to energy
+    // Estimate frequency bands from centroid
     // Low frequencies: when centroid is low
-    const low = energy * (1 - Math.min(centroid / 5000, 1));
+    const lowBand = energy * (1 - Math.min(centroid / 5000, 1));
     // High frequencies: when centroid is high  
-    const high = energy * Math.min(centroid / 5000, 1);
+    const highBand = energy * Math.min(centroid / 5000, 1);
+    
+    // Apply music reactivity multiplier
+    const low = lowBand * musicReact;
+    const high = highBand * musicReact;
     
     // Beat detection: sudden increase in energy
     const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
