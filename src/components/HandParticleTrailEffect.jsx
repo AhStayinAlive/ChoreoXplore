@@ -26,6 +26,7 @@ const HandParticleTrailEffect = () => {
   const color = particleSettings.color || '#00ffff';
   const intensity = particleSettings.intensity || 0.8;
   const fadeSpeed = particleSettings.fadeSpeed || 0.95;
+  const smoothness = particleSettings.smoothness || 0.15; // Lower = smoother, more lag; Higher = more responsive
   
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
@@ -84,10 +85,10 @@ const HandParticleTrailEffect = () => {
     const x = (handPos.x - 0.5) * 200 * scale;
     const y = (0.5 - handPos.y) * 200 * scale;
     
-    // Smooth the position
-    const smoothingFactor = 0.3;
-    smoothedPosition.current.x = smoothedPosition.current.x * (1 - smoothingFactor) + x * smoothingFactor;
-    smoothedPosition.current.y = smoothedPosition.current.y * (1 - smoothingFactor) + y * smoothingFactor;
+    // Smooth the position with configurable smoothness
+    // Use exponential moving average for smoother transitions
+    smoothedPosition.current.x = smoothedPosition.current.x * (1 - smoothness) + x * smoothness;
+    smoothedPosition.current.y = smoothedPosition.current.y * (1 - smoothness) + y * smoothness;
     
     // Shift trail positions
     for (let i = trailPositions.current.length - 1; i > 0; i--) {
@@ -108,17 +109,35 @@ const HandParticleTrailEffect = () => {
     
     for (let i = 0; i < trailPositions.current.length; i++) {
       const pos = trailPositions.current[i];
-      const fade = Math.pow(fadeSpeed, i);
       
-      positions[i * 3] = pos.x;
-      positions[i * 3 + 1] = pos.y;
-      positions[i * 3 + 2] = -i * 0.5 + energy * 5;
+      // Interpolate position with next particle for smoother transitions
+      let interpolatedX = pos.x;
+      let interpolatedY = pos.y;
       
-      // Adjust size with fade - scaled for SimpleSkeleton coordinate system
-      // Use quadratic fade for smoother disappearance like preview
+      if (i < trailPositions.current.length - 1) {
+        const nextPos = trailPositions.current[i + 1];
+        const blendFactor = 0.3; // How much to blend with next position
+        interpolatedX = pos.x * (1 - blendFactor) + nextPos.x * blendFactor;
+        interpolatedY = pos.y * (1 - blendFactor) + nextPos.y * blendFactor;
+      }
+      
+      // Combine exponential fade with smoothed linear fade for gradual disappearance
       const linearFade = 1 - i / trailLength;
-      const quadraticFade = Math.pow(linearFade, 2);
-      sizes[i] = particleSize * 150 * quadraticFade * fade * (1 + energy * 0.2);
+      const expFade = Math.pow(fadeSpeed, i);
+      
+      // Use cubic easing for even smoother fade (slower start, faster end)
+      const cubicFade = Math.pow(linearFade, 3);
+      
+      // Blend between cubic and exponential for best visual result
+      const combinedFade = cubicFade * 0.6 + expFade * 0.4;
+      
+      positions[i * 3] = interpolatedX;
+      positions[i * 3 + 1] = interpolatedY;
+      // Smoother z-spacing with slight curve for depth perception
+      positions[i * 3 + 2] = -i * 0.3 * (1 + linearFade * 0.5) + energy * 5;
+      
+      // Smooth size transition with combined fade
+      sizes[i] = particleSize * 150 * combinedFade * (1 + energy * 0.2);
     }
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
