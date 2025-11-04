@@ -120,6 +120,8 @@ export default function InkWaterMode() {
   const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
   
+  const lastEnergyRef = useRef(0);
+  
   // Material uniforms
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -144,12 +146,39 @@ export default function InkWaterMode() {
   
   useFrame((state, dt) => {
     const musicReact = params.musicReact || 0;
-    const energy = (music?.energy ?? 0) * musicReact;
+    const audioMode = params.audioMode || 'frequencies';
+    const energyRaw = music?.energy ?? 0;
     const centroid = music?.centroid ?? 0;
     
-    // Estimate frequency bands
-    const low = energy * (1 - Math.min(centroid / 5000, 1));
-    const high = energy * Math.min(centroid / 5000, 1);
+    let low, high;
+    
+    // Different audio modes
+    switch(audioMode) {
+      case 'energy':
+        low = energyRaw * 0.8 * musicReact;
+        high = energyRaw * 0.6 * musicReact;
+        break;
+      case 'rms':
+        const rms = music?.rms ?? 0;
+        low = rms * 0.9 * musicReact;
+        high = rms * 0.7 * musicReact;
+        break;
+      case 'beat':
+        const energyChange = Math.abs(energyRaw - lastEnergyRef.current);
+        const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
+        low = beatPulse * musicReact;
+        high = beatPulse * 0.6 * musicReact;
+        break;
+      case 'frequencies':
+      default:
+        // Estimate frequency bands
+        low = energyRaw * (1 - Math.min(centroid / 5000, 1)) * musicReact;
+        high = energyRaw * Math.min(centroid / 5000, 1) * musicReact;
+        break;
+    }
+    
+    // Track energy for beat detection
+    lastEnergyRef.current = energyRaw;
     
     // Update time
     uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);

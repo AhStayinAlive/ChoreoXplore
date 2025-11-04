@@ -87,16 +87,33 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-// Domain warping for oil-on-water effect
-vec2 domainWarp(vec2 p, float time, float strength) {
+// Rotation matrix for swirls
+vec2 rotate2D(vec2 p, float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
+// Domain warping for oil-on-water effect with swirl
+vec2 domainWarp(vec2 p, float time, float strength, float swirlStrength) {
   vec2 q = vec2(
     fbm(p + vec2(0.0, 0.0), 4),
     fbm(p + vec2(5.2, 1.3), 4)
   );
   
+  // Add swirling motion
+  vec2 center = vec2(0.5, 0.5);
+  vec2 toCenter = p - center;
+  float dist = length(toCenter);
+  float angle = atan(toCenter.y, toCenter.x);
+  
+  // Spiral swirl based on distance and time
+  float swirlAngle = swirlStrength * (1.0 - dist) * (sin(time * 0.3) * 0.5 + 0.5);
+  vec2 swirled = center + rotate2D(toCenter, swirlAngle);
+  
   vec2 r = vec2(
-    fbm(p + 4.0 * q + vec2(1.7 + time * 0.15, 9.2), 4),
-    fbm(p + 4.0 * q + vec2(8.3 + time * 0.12, 2.8), 4)
+    fbm(swirled + 4.0 * q + vec2(1.7 + time * 0.15, 9.2), 4),
+    fbm(swirled + 4.0 * q + vec2(8.3 + time * 0.12, 2.8), 4)
   );
   
   return p + strength * r;
@@ -109,9 +126,17 @@ void main() {
   float flowScale = 2.0 + uLowFreq * 2.0;
   float flowSpeed = 0.3 + uMidFreq * 0.5;
   float shimmer = uHighFreq;
+  float swirlIntensity = 1.5 + uMidFreq * 2.0; // Swirl reacts to mid frequencies
   
-  // Domain-warped coordinates for oil-on-water swirls
-  vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5);
+  // Domain-warped coordinates for oil-on-water swirls with rotation
+  vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5, swirlIntensity);
+  
+  // Add additional rotational flow field
+  vec2 center = vec2(0.5, 0.5);
+  vec2 toCenter = warpedUV - center;
+  float dist = length(toCenter);
+  float rotationSpeed = 0.2 + uLowFreq * 0.3;
+  warpedUV = center + rotate2D(toCenter, uTime * rotationSpeed * (1.0 - dist * 0.5));
   
   // Create layered, flowing patterns
   float pattern1 = fbm(warpedUV + uTime * 0.1, 5);
@@ -194,32 +219,63 @@ export default function OpalineWaveMode() {
   
   useFrame((state, dt) => {
     const musicReact = params.musicReact || 0;
+    const audioMode = params.audioMode || 'frequencies';
     const energy = (music?.energy ?? 0);
+    const rms = (music?.rms ?? 0);
     const centroid = music?.centroid ?? 0;
     
-    // Frequency bands
-    const lowBand = energy * (1 - Math.min(centroid / 5000, 1)) * musicReact;
-    const midBand = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2) * musicReact;
-    const highBand = energy * Math.min(centroid / 5000, 1) * musicReact;
+    let lowBand, midBand, highBand;
+    
+    // Different audio modes drive visuals differently
+    switch(audioMode) {
+      case 'energy':
+        // Energy mode: all bands driven by overall energy with slight variation
+        lowBand = energy * 0.8 * musicReact;
+        midBand = energy * 1.0 * musicReact;
+        highBand = energy * 0.6 * musicReact;
+        break;
+      case 'rms':
+        // RMS mode: volume-based with smooth changes
+        lowBand = rms * 0.9 * musicReact;
+        midBand = rms * 1.1 * musicReact;
+        highBand = rms * 0.7 * musicReact;
+        break;
+      case 'beat':
+        // Beat mode: detect strong energy changes for rhythmic pulses
+        const energyChange = Math.abs(energy - lastEnergyRef.current);
+        lastEnergyRef.current = energy;
+        const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
+        lowBand = beatPulse * musicReact;
+        midBand = beatPulse * 0.8 * musicReact;
+        highBand = beatPulse * 0.6 * musicReact;
+        break;
+      case 'frequencies':
+      default:
+        // Frequencies mode: separate low/mid/high bands based on centroid
+        lowBand = energy * (1 - Math.min(centroid / 5000, 1)) * musicReact;
+        midBand = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2) * musicReact;
+        highBand = energy * Math.min(centroid / 5000, 1) * musicReact;
+        break;
+    }
     
     // Update time
     material.uniforms.uTime.value += dt * (0.5 + params.speed * 0.5);
     
-    // Update audio reactivity
+    // Update audio reactivity with lerping for smoothness
     material.uniforms.uLowFreq.value = THREE.MathUtils.lerp(
       material.uniforms.uLowFreq.value,
       lowBand,
-      0.1
+      audioMode === 'beat' ? 0.3 : 0.1
     );
     material.uniforms.uMidFreq.value = THREE.MathUtils.lerp(
       material.uniforms.uMidFreq.value,
       midBand,
-      0.1
+      audioMode === 'beat' ? 0.3 : 0.1
     );
     material.uniforms.uHighFreq.value = THREE.MathUtils.lerp(
       material.uniforms.uHighFreq.value,
       highBand,
-      0.1
+      audioMode === 'beat' ? 0.3 : 0.1
     );
     
     // Update colors

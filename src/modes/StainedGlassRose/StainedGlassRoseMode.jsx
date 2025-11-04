@@ -180,9 +180,35 @@ export default function StainedGlassRoseMode() {
   
   useFrame((state, dt) => {
     const musicReact = params.musicReact || 0;
-    const rms = (music?.rms ?? 0) * musicReact;
+    const audioMode = params.audioMode || 'frequencies';
+    const rmsRaw = music?.rms ?? 0;
     const centroid = music?.centroid ?? 0;
-    const energy = (music?.energy ?? 0) * musicReact;
+    const energyRaw = music?.energy ?? 0;
+    
+    let rms, energy;
+    
+    // Different audio modes
+    switch(audioMode) {
+      case 'energy':
+        energy = energyRaw * musicReact;
+        rms = energyRaw * 0.8 * musicReact;
+        break;
+      case 'rms':
+        rms = rmsRaw * musicReact;
+        energy = rmsRaw * 1.2 * musicReact;
+        break;
+      case 'beat':
+        const energyChange = Math.abs(energyRaw - lastEnergyRef.current);
+        const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
+        energy = beatPulse * musicReact;
+        rms = beatPulse * 0.8 * musicReact;
+        break;
+      case 'frequencies':
+      default:
+        rms = rmsRaw * musicReact;
+        energy = energyRaw * musicReact;
+        break;
+    }
     
     // Onset detection
     const onset = energy > lastEnergyRef.current * 1.5 && energy > 0.1;

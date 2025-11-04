@@ -210,6 +210,66 @@ export default function ChoreoXploreControlPanel() {
           />
         </div>
 
+        {/* Audio Mode Selector */}
+        <div style={{ marginBottom: 16 }}>
+          <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0" }}>Audio Mode</h4>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '6px'
+          }}>
+            {['Energy', 'RMS', 'Frequencies', 'Beat'].map(mode => (
+              <button
+                key={mode}
+                onClick={() => handleParamChange('audioMode', mode.toLowerCase())}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  backgroundColor: (params.audioMode || 'frequencies') === mode.toLowerCase()
+                    ? 'rgba(0,150,255,0.4)'
+                    : 'rgba(0,0,0,0.4)',
+                  color: (params.audioMode || 'frequencies') === mode.toLowerCase()
+                    ? '#00aaff'
+                    : '#ccc',
+                  border: (params.audioMode || 'frequencies') === mode.toLowerCase()
+                    ? '1px solid rgba(0,150,255,0.6)'
+                    : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if ((params.audioMode || 'frequencies') !== mode.toLowerCase()) {
+                    e.target.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                    e.target.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if ((params.audioMode || 'frequencies') !== mode.toLowerCase()) {
+                    e.target.style.backgroundColor = 'rgba(0,0,0,0.4)';
+                    e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+                  }
+                }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+          <div style={{
+            fontSize: '10px',
+            color: '#888',
+            marginTop: '6px',
+            textAlign: 'center'
+          }}>
+            {(params.audioMode || 'frequencies') === 'energy' && 'Overall sound intensity'}
+            {(params.audioMode || 'frequencies') === 'rms' && 'Volume level changes'}
+            {(params.audioMode || 'frequencies') === 'frequencies' && 'Low/Mid/High frequency bands'}
+            {(params.audioMode || 'frequencies') === 'beat' && 'Rhythmic pulses'}
+          </div>
+        </div>
+
         {/* Opaline Wave Controls (conditionally shown) */}
         {params.mode === 'opaline_wave' && <OpalineWavePanel />}
 
