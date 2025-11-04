@@ -47,6 +47,8 @@ function PreviewBackgroundVisual() {
       return <PreviewVerticalLinesMode />;
     case 'lines':
       return <PreviewLines1DMode />;
+    case 'empty':
+      return null; // Empty mode renders nothing
     default:
       return <PreviewQuandCestMode />; // Default to quand_cest
   }

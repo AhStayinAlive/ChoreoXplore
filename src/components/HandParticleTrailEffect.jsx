@@ -46,9 +46,8 @@ const HandParticleTrailEffect = () => {
       positions[i * 3] = 0;
       positions[i * 3 + 1] = 0;
       positions[i * 3 + 2] = 0;
-      // Make particles fade to near-zero at the end
-      const sizeFade = Math.pow(1 - i / trailLength, 2); // Quadratic fade for smoother disappearance
-      sizes[i] = particleSize * 150 * sizeFade;
+      // Initialize with size 0 to hide particles until hand is detected
+      sizes[i] = 0;
     }
     
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -63,7 +62,7 @@ const HandParticleTrailEffect = () => {
       color: new THREE.Color(color),
       size: particleSize * 150, // Scale up significantly for SimpleSkeleton coordinate system (22 * 200 scale)
       transparent: true,
-      opacity: intensity,
+      opacity: 0, // Start invisible until hand is detected
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true

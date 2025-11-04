@@ -5,6 +5,7 @@ import Lines1D_Irina from './Lines1D_Irina';
 import QuandCestMode from './QuandCestMode';
 import PulsatingCircleMode from './PulsatingCircleMode';
 import VerticalLinesMode from './VerticalLinesMode';
+import EmptyMode from './EmptyMode';
 
 export default function ChoreoXploreSystem() {
   const motion = useVisStore(s => s.motion);
@@ -22,6 +23,8 @@ export default function ChoreoXploreSystem() {
       return <PulsatingCircleMode />;
     case 'vertical_lines':
       return <VerticalLinesMode />;
+    case 'empty':
+      return <EmptyMode />;
     default:
       return <ChoreoXplore />;
   }
