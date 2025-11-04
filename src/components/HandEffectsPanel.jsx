@@ -7,13 +7,24 @@ export default function HandEffectsPanel() {
   const params = useVisStore(s => s.params);
   const setParams = useVisStore(s => s.setParams);
 
-  const handEffect = params.handEffect || {
+  // Default settings with all effect configurations
+  const defaultHandEffect = {
     type: 'none',
     handSelection: 'none',
     ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
     fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false },
     webglFluid: { simResolution: 128, dyeResolution: 512, densityDissipation: 0.98, velocityDissipation: 0.99, pressure: 0.8, pressureIterations: 20, curl: 30, splatRadius: 0.25, splatForce: 6000, shading: true, colorful: true }
+  };
+
+  // Merge params.handEffect with defaults to ensure all nested properties exist
+  const handEffect = {
+    ...defaultHandEffect,
+    ...params.handEffect,
+    ripple: { ...defaultHandEffect.ripple, ...params.handEffect?.ripple },
+    smoke: { ...defaultHandEffect.smoke, ...params.handEffect?.smoke },
+    fluidDistortion: { ...defaultHandEffect.fluidDistortion, ...params.handEffect?.fluidDistortion },
+    webglFluid: { ...defaultHandEffect.webglFluid, ...params.handEffect?.webglFluid }
   };
 
   // DEBUG: Log when component renders and what colors it receives
