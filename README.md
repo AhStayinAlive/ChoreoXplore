@@ -258,6 +258,47 @@ ChoreoXplore/
 - Motion-reactive transformations
 - Real-time parameter adjustment
 
+### Hand Ripple Post-Process Effect
+
+A screen-space ripple effect that responds to hand movements and palm contact.
+
+**Features:**
+- Screen-space distortion ripples triggered by palm contact with surfaces
+- Keyboard test mode (press `R` to spawn a ripple in front of the camera)
+- Configurable parameters: max ripples, expansion speed, decay, radius, amplitude
+- Half-resolution rendering for performance
+- Ripple pooling with automatic cleanup
+
+**How to Enable and Test:**
+
+1. **Enable the Effect:**
+   - Navigate to ChoreoXplore mode
+   - Open the "Hand Effects" panel (bottom left)
+   - Scroll to "Screen Ripple Pass (Experimental)"
+   - Toggle "Enable Ripple Pass" ON
+
+2. **Test with Keyboard:**
+   - Press the `R` key to spawn a test ripple at the camera-forward position
+   - Adjust parameters in real-time using the sliders:
+     - **Max Ripples**: Number of simultaneous ripples (1-16)
+     - **Expansion Speed**: How fast ripples expand (0.1-2.0)
+     - **Decay**: How quickly ripples fade (0.5-3.0)
+     - **Max Radius**: Maximum ripple size (0.1-1.0)
+     - **Base Amplitude**: Displacement strength (0.1-2.0)
+
+3. **Test with Motion Capture:**
+   - Enable motion capture (webcam)
+   - Enable ChoreoXplore visuals
+   - Move your palms close to the ground (Y-axis near 0)
+   - Ripples will spawn automatically when palms contact the virtual surface
+
+**Technical Details:**
+- Uses GLSL fragment shader for screen-space UV displacement
+- Ripple events are pooled (FIFO) with 2.5s lifetime
+- Amplitude is mapped from palm velocity and optional pressure
+- Renders at half resolution for better performance
+- Default state: disabled (non-disruptive to existing features)
+
 ## 🤝 Contributing
 
 1. Fork the repository

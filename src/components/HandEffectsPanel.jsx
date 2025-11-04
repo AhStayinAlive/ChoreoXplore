@@ -551,6 +551,123 @@ export default function HandEffectsPanel() {
             </div>
           </div>
         )}
+        
+        {/* Ripple Pass (Postprocess) - Independent section */}
+        <div style={{ 
+          marginTop: 24,
+          paddingTop: 16,
+          borderTop: '1px solid rgba(0, 150, 255, 0.3)'
+        }}>
+          <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
+            Screen Ripple Pass (Experimental)
+          </h4>
+          <p style={{ 
+            color: 'rgba(255, 255, 255, 0.6)', 
+            fontSize: '10px', 
+            marginBottom: '12px',
+            lineHeight: '1.4'
+          }}>
+            Screen-space ripple post-process effect. Press 'R' to test. Triggers on palm contact when enabled.
+          </p>
+          
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              color: 'white', 
+              fontSize: '12px', 
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={handEffect.ripplePass?.enabled || false}
+                onChange={(e) => handleEffectChange({
+                  ripplePass: { ...(handEffect.ripplePass || {}), enabled: e.target.checked }
+                })}
+                style={{
+                  marginRight: '8px',
+                  accentColor: '#0096ff'
+                }}
+              />
+              Enable Ripple Pass
+            </label>
+          </div>
+          
+          {handEffect.ripplePass?.enabled && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <Slider
+                  label="Max Ripples"
+                  value={handEffect.ripplePass?.maxRipples || 8}
+                  min={1}
+                  max={16}
+                  step={1}
+                  showValue={false}
+                  onChange={(val) => handleEffectChange({
+                    ripplePass: { ...(handEffect.ripplePass || {}), maxRipples: Math.round(val) }
+                  })}
+                />
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <Slider
+                  label="Expansion Speed"
+                  value={handEffect.ripplePass?.expansionSpeed || 0.5}
+                  min={0.1}
+                  max={2.0}
+                  step={0.1}
+                  showValue={false}
+                  onChange={(val) => handleEffectChange({
+                    ripplePass: { ...(handEffect.ripplePass || {}), expansionSpeed: val }
+                  })}
+                />
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <Slider
+                  label="Decay"
+                  value={handEffect.ripplePass?.decay || 1.5}
+                  min={0.5}
+                  max={3.0}
+                  step={0.1}
+                  showValue={false}
+                  onChange={(val) => handleEffectChange({
+                    ripplePass: { ...(handEffect.ripplePass || {}), decay: val }
+                  })}
+                />
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <Slider
+                  label="Max Radius"
+                  value={handEffect.ripplePass?.maxRadius || 0.4}
+                  min={0.1}
+                  max={1.0}
+                  step={0.05}
+                  showValue={false}
+                  onChange={(val) => handleEffectChange({
+                    ripplePass: { ...(handEffect.ripplePass || {}), maxRadius: val }
+                  })}
+                />
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <Slider
+                  label="Base Amplitude"
+                  value={handEffect.ripplePass?.baseAmplitude || 1.0}
+                  min={0.1}
+                  max={2.0}
+                  step={0.1}
+                  showValue={false}
+                  onChange={(val) => handleEffectChange({
+                    ripplePass: { ...(handEffect.ripplePass || {}), baseAmplitude: val }
+                  })}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

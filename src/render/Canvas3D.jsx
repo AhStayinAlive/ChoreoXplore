@@ -21,6 +21,7 @@ import ChoreoXploreSystem from "../components/ChoreoXploreSystem";
 import HandEffectRouter from '../components/HandEffectRouter';
 import HandFluidCanvas from "../components/HandFluidCanvas";
 import HandSmokeCanvas from "../components/HandSmokeCanvas";
+import HandRippleSystem from "../components/HandRippleSystem";
 import { startIrinaAudioBridge, startIrinaPoseBridge } from "../adapters/bridgeCoreAudioToIrina";
 
 function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, fluidCanvas, smokeTexture, smokeTextureInstance }) {
@@ -129,6 +130,8 @@ function SceneRoot({ backgroundImage, ambientAnimationParams, fluidTexture, flui
             smokeTexture={smokeTexture}
             smokeTextureInstance={smokeTextureInstance}
           />
+          {/* Hand ripple post-process system */}
+          <HandRippleSystem />
         </>
       );
 }
