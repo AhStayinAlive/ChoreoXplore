@@ -3,6 +3,7 @@ import { useVisStore } from '../state/useVisStore';
 import HandFluidEffect from './HandFluidEffect';
 import HandSmokeEffect from './HandSmokeEffect';
 import HandFluidDistortion from './HandFluidDistortion';
+import HandWebGLFluid from './HandWebGLFluid';
 
 export default function HandEffectRouter({ smokeTexture, smokeTextureInstance }) {
   const params = useVisStore(s => s.params);
@@ -22,6 +23,8 @@ export default function HandEffectRouter({ smokeTexture, smokeTextureInstance })
       return <HandSmokeEffect smokeTexture={smokeTexture} smokeTextureInstance={smokeTextureInstance} />;
     case 'fluidDistortion':
       return <HandFluidDistortion />;
+    case 'webglFluid':
+      return <HandWebGLFluid />;
     default:
       return null;
   }

@@ -12,7 +12,8 @@ export default function HandEffectsPanel() {
     handSelection: 'none',
     ripple: { baseColor: '#00ccff', rippleColor: '#ff00cc', radius: 0.1, intensity: 0.8 },
     smoke: { color: '#ffffff', intensity: 0.7, radius: 0.8, velocitySensitivity: 1.0, trailLength: 0.5 },
-    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false }
+    fluidDistortion: { fluidColor: '#005eff', intensity: 1, force: 1.5, distortion: 1, radius: 0.1, curl: 6, swirl: 0, velocityDissipation: 0.99, rainbow: false },
+    webglFluid: { simResolution: 128, dyeResolution: 512, densityDissipation: 0.98, velocityDissipation: 0.99, pressure: 0.8, pressureIterations: 20, curl: 30, splatRadius: 0.25, splatForce: 6000, shading: true, colorful: true }
   };
 
   // DEBUG: Log when component renders and what colors it receives
@@ -61,6 +62,15 @@ export default function HandEffectsPanel() {
       handEffect: { 
         ...handEffect, 
         fluidDistortion: { ...handEffect.fluidDistortion, ...updates } 
+      } 
+    });
+  };
+
+  const handleWebGLFluidChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        webglFluid: { ...handEffect.webglFluid, ...updates } 
       } 
     });
   };
@@ -134,6 +144,7 @@ export default function HandEffectsPanel() {
             <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
+            <option value="webglFluid" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>WebGL Fluid Simulation</option>
           </select>
         </div>
 
@@ -448,6 +459,139 @@ export default function HandEffectsPanel() {
                   }}
                 />
                 Rainbow Mode
+              </label>
+            </div>
+          </>
+        )}
+
+        {/* WebGL Fluid Simulation Settings */}
+        {handEffect.type === 'webglFluid' && handEffect.handSelection !== 'none' && (
+          <>
+            <h4 style={{ color: 'white', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
+              WebGL Fluid Settings
+            </h4>
+            
+            {/* Curl Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Curl (Vorticity)"
+                value={handEffect.webglFluid.curl}
+                min={0}
+                max={50}
+                step={1}
+                format={(v) => v.toFixed(0)}
+                onChange={(value) => handleWebGLFluidChange({ curl: value })}
+              />
+            </div>
+
+            {/* Splat Force Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Splat Force"
+                value={handEffect.webglFluid.splatForce}
+                min={1000}
+                max={10000}
+                step={500}
+                format={(v) => v.toFixed(0)}
+                onChange={(value) => handleWebGLFluidChange({ splatForce: value })}
+              />
+            </div>
+
+            {/* Splat Radius Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Splat Radius"
+                value={handEffect.webglFluid.splatRadius}
+                min={0.01}
+                max={1.0}
+                step={0.05}
+                format={(v) => v.toFixed(2)}
+                onChange={(value) => handleWebGLFluidChange({ splatRadius: value })}
+              />
+            </div>
+
+            {/* Density Dissipation Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Color Persistence"
+                value={handEffect.webglFluid.densityDissipation}
+                min={0.9}
+                max={1.0}
+                step={0.01}
+                format={(v) => v.toFixed(2)}
+                onChange={(value) => handleWebGLFluidChange({ densityDissipation: value })}
+              />
+            </div>
+
+            {/* Velocity Dissipation Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Motion Persistence"
+                value={handEffect.webglFluid.velocityDissipation}
+                min={0.9}
+                max={1.0}
+                step={0.01}
+                format={(v) => v.toFixed(2)}
+                onChange={(value) => handleWebGLFluidChange({ velocityDissipation: value })}
+              />
+            </div>
+
+            {/* Pressure Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Pressure"
+                value={handEffect.webglFluid.pressure}
+                min={0.0}
+                max={1.0}
+                step={0.05}
+                format={(v) => v.toFixed(2)}
+                onChange={(value) => handleWebGLFluidChange({ pressure: value })}
+              />
+            </div>
+
+            {/* Shading Toggle */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'white', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={handEffect.webglFluid.shading}
+                  onChange={(e) => handleWebGLFluidChange({ shading: e.target.checked })}
+                  style={{
+                    marginRight: '8px',
+                    accentColor: '#0096ff'
+                  }}
+                />
+                3D Shading
+              </label>
+            </div>
+
+            {/* Colorful Toggle */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'white', 
+                fontSize: '12px', 
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={handEffect.webglFluid.colorful}
+                  onChange={(e) => handleWebGLFluidChange({ colorful: e.target.checked })}
+                  style={{
+                    marginRight: '8px',
+                    accentColor: '#0096ff'
+                  }}
+                />
+                Colorful Mode
               </label>
             </div>
           </>
