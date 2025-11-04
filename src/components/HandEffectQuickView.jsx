@@ -49,6 +49,17 @@ function PreviewBackgroundVisual() {
       return <PreviewLines1DMode />;
     case 'empty':
       return null; // Empty mode renders nothing
+    // New modes - simplified preview versions
+    case 'silk_veil':
+    case 'lotus_bloom':
+    case 'paper_lanterns':
+    case 'stained_glass_rose':
+    case 'ink_water':
+    case 'water_ripple':
+    case 'heat_wave':
+    case 'flowing':
+    case 'gentle_wave':
+      return <PreviewQuandCestMode />; // Use QuandCest as preview for new modes
     default:
       return <PreviewQuandCestMode />; // Default to quand_cest
   }

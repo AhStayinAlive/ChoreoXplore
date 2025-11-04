@@ -17,7 +17,6 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
-import { audioFeaturesService } from '../../services/AudioFeaturesService';
 import { autoThrottle } from '../../utils/autoThrottle';
 
 const vertexShader = `
@@ -102,17 +101,12 @@ void main() {
 export default function PaperLanternsMode() {
   const params = useVisStore(s => s.params);
   const motion = useVisStore(s => s.motion);
+  const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
-  
-  const audioFeaturesRef = useRef({
-    low: 0,
-    mid: 0,
-    high: 0,
-    beat: false,
-  });
   
   const lanternsRef = useRef(null);
   const instanceDataRef = useRef([]);
+  const lastEnergyRef = useRef(0);
   
   // Base count and throttled count
   const baseCount = 60;
@@ -120,7 +114,7 @@ export default function PaperLanternsMode() {
   
   // Create instanced geometry and attributes
   const { geometry, material } = useMemo(() => {
-    const geom = new THREE.CylinderGeometry(50, 50, 120, 8, 1);
+    const geom = new THREE.CylinderGeometry(150, 150, 300, 8, 1);
     
     // Create instance attributes
     const phases = new Float32Array(lanternCount);
@@ -174,18 +168,16 @@ export default function PaperLanternsMode() {
     return { geometry: geom, material: mat };
   }, [lanternCount]);
   
-  // Subscribe to audio features
-  React.useEffect(() => {
-    const unsubscribe = audioFeaturesService.subscribe((features) => {
-      audioFeaturesRef.current = features;
-    });
-    
-    return unsubscribe;
-  }, []);
-  
   useFrame((state, dt) => {
-    const { low, mid, beat } = audioFeaturesRef.current;
     const musicReact = params.musicReact || 0;
+    const energy = (music?.energy ?? 0) * musicReact;
+    const centroid = music?.centroid ?? 0;
+    
+    // Estimate frequency bands from centroid and energy
+    const low = energy * (1 - Math.min(centroid / 5000, 1));
+    const mid = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2);
+    const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    lastEnergyRef.current = energy;
     
     // Update time
     material.uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);
@@ -200,7 +192,7 @@ export default function PaperLanternsMode() {
     material.uniforms.uIntensity.value = params.intensity || 0.8;
     
     // Low frequencies control buoyancy
-    const buoyancy = low * musicReact;
+    const buoyancy = low;
     material.uniforms.uBuoyancy.value = THREE.MathUtils.lerp(
       material.uniforms.uBuoyancy.value,
       buoyancy,
@@ -208,7 +200,7 @@ export default function PaperLanternsMode() {
     );
     
     // Mid frequencies control sway
-    const sway = mid * musicReact;
+    const sway = mid;
     material.uniforms.uSway.value = THREE.MathUtils.lerp(
       material.uniforms.uSway.value,
       sway,

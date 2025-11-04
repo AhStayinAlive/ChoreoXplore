@@ -14,7 +14,6 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
-import { audioFeaturesService } from '../../services/AudioFeaturesService';
 
 const vertexShader = `
 varying vec2 vUv;
@@ -86,13 +85,25 @@ void main() {
   
   // Radial symmetry
   float symmetryAngle = 2.0 * PI / float(uSymmetry);
+  float petalIndex = floor((theta + PI) / symmetryAngle);
   float petalAngle = mod(theta, symmetryAngle) - symmetryAngle * 0.5;
   
-  // Create petal coordinates
-  vec2 petalPos = vec2(cos(petalAngle), sin(petalAngle)) * radius;
+  // Individual petal animation - each petal moves at slightly different time
+  float petalPhase = sin(uTime * 2.0 + petalIndex * 0.5) * 0.5 + 0.5;
+  float petalScale = uPetalScale * (0.8 + petalPhase * 0.4);
   
-  // Petal distance field with scale
-  float petalDist = petalSDF(petalPos, 300.0 * uPetalScale);
+  // Add subtle rotation per petal
+  float petalRotation = sin(uTime * 1.5 + petalIndex * 0.7) * 0.15;
+  float ca = cos(petalRotation);
+  float sa = sin(petalRotation);
+  mat2 petalRot = mat2(ca, -sa, sa, ca);
+  
+  // Create petal coordinates with individual rotation
+  vec2 petalPos = vec2(cos(petalAngle), sin(petalAngle)) * radius;
+  petalPos = petalRot * petalPos;
+  
+  // Petal distance field with individual scale
+  float petalDist = petalSDF(petalPos, 300.0 * petalScale);
   
   // Create petal pattern with subdivision rings
   float ringDist = mod(radius, 200.0 * uSubdivision);
@@ -131,18 +142,13 @@ void main() {
 
 export default function LotusBloomMode() {
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
-  
-  const audioFeaturesRef = useRef({
-    rms: 0,
-    centroid: 0,
-    onset: false,
-    phrase: 0,
-  });
   
   const rotationRef = useRef(0);
   const symmetryRef = useRef(6);
-  const lastPhraseRef = useRef(0);
+  const beatCountRef = useRef(0);
+  const lastEnergyRef = useRef(0);
   
   // Material uniforms
   const uniforms = useMemo(() => ({
@@ -156,15 +162,6 @@ export default function LotusBloomMode() {
     uHueShift: { value: 0 },
     uSubdivision: { value: 1.0 },
   }), []);
-  
-  // Subscribe to audio features
-  React.useEffect(() => {
-    const unsubscribe = audioFeaturesService.subscribe((features) => {
-      audioFeaturesRef.current = features;
-    });
-    
-    return unsubscribe;
-  }, []);
   
   // Create shader material
   const material = useMemo(() => {
@@ -180,8 +177,23 @@ export default function LotusBloomMode() {
   }, [uniforms]);
   
   useFrame((state, dt) => {
-    const { rms, centroid, phrase } = audioFeaturesRef.current;
     const musicReact = params.musicReact || 0;
+    const rms = (music?.rms ?? 0) * musicReact;
+    const centroid = music?.centroid ?? 0;
+    const energy = (music?.energy ?? 0) * musicReact;
+    
+    // Beat detection for phrase tracking
+    const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    if (beat) {
+      beatCountRef.current++;
+      // Change symmetry every 8 beats
+      if (beatCountRef.current % 8 === 0) {
+        const symmetries = [6, 8, 12, 10, 5, 7];
+        const phraseIndex = Math.floor(beatCountRef.current / 8);
+        symmetryRef.current = symmetries[phraseIndex % symmetries.length];
+      }
+    }
+    lastEnergyRef.current = energy;
     
     // Update time
     uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);
@@ -196,7 +208,7 @@ export default function LotusBloomMode() {
     uniforms.uIntensity.value = params.intensity || 0.8;
     
     // RMS controls petal scale (bloom/close)
-    const targetScale = 0.5 + rms * musicReact * 1.5;
+    const targetScale = 0.5 + rms * 1.5;
     uniforms.uPetalScale.value = THREE.MathUtils.lerp(
       uniforms.uPetalScale.value,
       targetScale,
@@ -213,13 +225,6 @@ export default function LotusBloomMode() {
       0.1
     );
     
-    // Phrase changes symmetry count
-    if (phrase !== lastPhraseRef.current) {
-      const symmetries = [6, 8, 12, 10, 5, 7];
-      symmetryRef.current = symmetries[phrase % symmetries.length];
-      lastPhraseRef.current = phrase;
-    }
-    
     uniforms.uSymmetry.value = symmetryRef.current;
     
     // Slow rotation
@@ -229,7 +234,7 @@ export default function LotusBloomMode() {
   
   return (
     <mesh position={[0, 0, 1]} material={material}>
-      <planeGeometry args={[20000, 10000]} />
+      <planeGeometry args={[25000, 13000]} />
     </mesh>
   );
 }

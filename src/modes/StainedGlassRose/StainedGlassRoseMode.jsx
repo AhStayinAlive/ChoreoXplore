@@ -13,7 +13,6 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
-import { audioFeaturesService } from '../../services/AudioFeaturesService';
 
 const vertexShader = `
 varying vec2 vUv;
@@ -146,16 +145,12 @@ void main() {
 
 export default function StainedGlassRoseMode() {
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
-  
-  const audioFeaturesRef = useRef({
-    rms: 0,
-    centroid: 0,
-    onset: false,
-  });
   
   const rotationRef = useRef(0);
   const flashRef = useRef(0);
+  const lastEnergyRef = useRef(0);
   
   // Material uniforms
   const uniforms = useMemo(() => ({
@@ -169,15 +164,6 @@ export default function StainedGlassRoseMode() {
     uFlash: { value: 0 },
     uColorBias: { value: 0 },
   }), []);
-  
-  // Subscribe to audio features
-  React.useEffect(() => {
-    const unsubscribe = audioFeaturesService.subscribe((features) => {
-      audioFeaturesRef.current = features;
-    });
-    
-    return unsubscribe;
-  }, []);
   
   // Create shader material
   const material = useMemo(() => {
@@ -193,8 +179,14 @@ export default function StainedGlassRoseMode() {
   }, [uniforms]);
   
   useFrame((state, dt) => {
-    const { rms, centroid, onset } = audioFeaturesRef.current;
     const musicReact = params.musicReact || 0;
+    const rms = (music?.rms ?? 0) * musicReact;
+    const centroid = music?.centroid ?? 0;
+    const energy = (music?.energy ?? 0) * musicReact;
+    
+    // Onset detection
+    const onset = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    lastEnergyRef.current = energy;
     
     // Update time
     uniforms.uTime.value += dt;
@@ -213,14 +205,14 @@ export default function StainedGlassRoseMode() {
     uniforms.uRotation.value = rotationRef.current;
     
     // RMS controls ray length and bloom
-    const rayLength = 0.5 + rms * musicReact * 1.5;
+    const rayLength = 0.5 + rms * 1.5;
     uniforms.uRayLength.value = THREE.MathUtils.lerp(
       uniforms.uRayLength.value,
       rayLength,
       0.1
     );
     
-    const bloom = 0.3 + rms * musicReact * 0.7;
+    const bloom = 0.3 + rms * 0.7;
     uniforms.uBloom.value = THREE.MathUtils.lerp(
       uniforms.uBloom.value,
       bloom,
@@ -247,7 +239,7 @@ export default function StainedGlassRoseMode() {
   
   return (
     <mesh position={[0, 0, 1]} material={material}>
-      <planeGeometry args={[20000, 10000]} />
+      <planeGeometry args={[25000, 13000]} />
     </mesh>
   );
 }

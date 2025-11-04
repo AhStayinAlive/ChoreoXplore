@@ -16,7 +16,6 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
-import { audioFeaturesService } from '../../services/AudioFeaturesService';
 import { autoThrottle } from '../../utils/autoThrottle';
 
 // Simplex-like noise approximation for GLSL
@@ -172,16 +171,12 @@ void main() {
 
 export default function SilkVeilMode() {
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
-  
-  const audioFeaturesRef = useRef({
-    low: 0,
-    high: 0,
-    beat: false,
-  });
   
   const meshRefs = useRef([]);
   const beatPhaseRef = useRef(0);
+  const lastEnergyRef = useRef(0);
   
   // Material uniforms
   const uniforms = useMemo(() => ({
@@ -197,14 +192,14 @@ export default function SilkVeilMode() {
     uCameraPos: { value: new THREE.Vector3(0, 0, 5) },
   }), []);
   
-  // Subscribe to audio features
-  React.useEffect(() => {
-    const unsubscribe = audioFeaturesService.subscribe((features) => {
-      audioFeaturesRef.current = features;
-    });
-    
-    return unsubscribe;
-  }, []);
+  // Subscribe to audio features - removed, using music from useVisStore directly
+  // React.useEffect(() => {
+  //   const unsubscribe = audioFeaturesService.subscribe((features) => {
+  //     audioFeaturesRef.current = features;
+  //   });
+  //   
+  //   return unsubscribe;
+  // }, []);
   
   // Create shader material
   const material = useMemo(() => {
@@ -235,8 +230,19 @@ export default function SilkVeilMode() {
   }, []);
   
   useFrame((state, dt) => {
-    const { low, high, beat } = audioFeaturesRef.current;
     const musicReact = params.musicReact || 0;
+    const energy = (music?.energy ?? 0) * musicReact;
+    const centroid = music?.centroid ?? 0;
+    
+    // Estimate frequency bands from centroid (like other modes use energy)
+    // Low frequencies: when centroid is low
+    const low = energy * (1 - Math.min(centroid / 5000, 1));
+    // High frequencies: when centroid is high  
+    const high = energy * Math.min(centroid / 5000, 1);
+    
+    // Beat detection: sudden increase in energy
+    const beat = energy > lastEnergyRef.current * 1.5 && energy > 0.1;
+    lastEnergyRef.current = energy;
     
     // Update time
     uniforms.uTime.value += dt * (0.5 + params.speed * 0.5);
@@ -251,7 +257,7 @@ export default function SilkVeilMode() {
     uniforms.uIntensity.value = params.intensity || 0.8;
     
     // Audio reactivity: low frequencies control turbulence
-    const turbulence = 0.3 + low * musicReact * 0.7;
+    const turbulence = 0.3 + low * 0.7;
     uniforms.uTurbulence.value = THREE.MathUtils.lerp(
       uniforms.uTurbulence.value,
       turbulence,
@@ -259,7 +265,7 @@ export default function SilkVeilMode() {
     );
     
     // High frequencies control shimmer
-    const shimmer = 0.3 + high * musicReact * 0.7;
+    const shimmer = 0.3 + high * 0.7;
     uniforms.uShimmer.value = THREE.MathUtils.lerp(
       uniforms.uShimmer.value,
       shimmer,
@@ -286,7 +292,7 @@ export default function SilkVeilMode() {
           scale={[layer.scale, layer.scale, 1]}
           material={material}
         >
-          <planeGeometry args={[10000, 5000, 32, 32]} />
+          <planeGeometry args={[25000, 13000, 32, 32]} />
         </mesh>
       ))}
     </group>

@@ -16,7 +16,6 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
-import { audioFeaturesService } from '../../services/AudioFeaturesService';
 
 const vertexShader = `
 varying vec2 vUv;
@@ -34,8 +33,6 @@ uniform vec3 uAssetColor;
 uniform float uIntensity;
 uniform float uDiffusion;
 uniform float uGrain;
-uniform sampler2D uPrevFrame;
-uniform vec2 uResolution;
 
 varying vec2 vUv;
 
@@ -74,58 +71,45 @@ vec2 curlNoise(vec2 p, float t) {
 void main() {
   vec2 uv = vUv;
   
-  // Sample previous frame for diffusion
-  vec3 prev = texture2D(uPrevFrame, uv).rgb;
+  // Create ink bloom centers based on time
+  vec2 center1 = vec2(0.5 + sin(uTime * 0.3) * 0.2, 0.5 + cos(uTime * 0.2) * 0.2);
+  vec2 center2 = vec2(0.5 - sin(uTime * 0.25) * 0.15, 0.5 + sin(uTime * 0.35) * 0.15);
   
-  // Diffusion blur (simple 9-tap)
-  vec3 blurred = vec3(0.0);
-  float kernel = uDiffusion * 0.001;
+  float bloom1 = smoothstep(0.3 * uDiffusion, 0.0, length(uv - center1));
+  float bloom2 = smoothstep(0.25 * uDiffusion, 0.0, length(uv - center2));
   
-  for (float y = -1.0; y <= 1.0; y++) {
-    for (float x = -1.0; x <= 1.0; x++) {
-      vec2 offset = vec2(x, y) * kernel;
-      blurred += texture2D(uPrevFrame, uv + offset).rgb;
-    }
-  }
-  blurred /= 9.0;
-  
-  // Apply curl noise flow
+  // Apply curl noise flow for organic movement
   vec2 flow = curlNoise(uv * 10.0, uTime * 0.1);
-  vec2 flowUV = uv + flow * uDiffusion * 0.01;
-  vec3 flowed = texture2D(uPrevFrame, flowUV).rgb;
+  vec2 flowUV = uv + flow * uDiffusion * 0.05;
   
-  // Mix diffusion and flow
-  vec3 ink = mix(blurred, flowed, 0.5);
+  // Create flowing ink pattern
+  float ink = bloom1 + bloom2 * 0.7;
   
-  // Add new ink based on energy
-  float energy = length(ink);
-  
-  // Create ink bloom center
-  vec2 center = vec2(0.5) + vec2(
-    sin(uTime * 0.3) * 0.2,
-    cos(uTime * 0.2) * 0.2
-  );
-  float bloom = smoothstep(0.3, 0.0, length(uv - center));
-  ink += uAssetColor * bloom * 0.01;
+  // Add flowing tendrils
+  float tendrils = 0.0;
+  for (float i = 0.0; i < 3.0; i++) {
+    vec2 tendrilUV = flowUV + vec2(sin(uTime * 0.5 + i), cos(uTime * 0.4 + i)) * 0.1;
+    float tendril = smoothstep(0.2, 0.0, length(tendrilUV - center1));
+    tendrils += tendril * (1.0 - i / 3.0);
+  }
+  ink += tendrils * 0.3;
   
   // Edge granulation with blue noise
   float grain = blueNoise(uv * 500.0 + uTime);
   float granulation = grain * uGrain;
   
   // Apply granulation at edges
-  float edgeDetect = length(ink) * (1.0 - length(ink));
-  ink += granulation * edgeDetect * 0.1;
+  float edgeDetect = ink * (1.0 - ink);
+  ink += granulation * edgeDetect * 0.3;
   
   // Paper texture
   float paper = blueNoise(uv * 200.0) * 0.1 + 0.9;
   
   // Mix with background (paper)
-  vec3 color = mix(uBgColor * paper, ink, min(length(ink), 1.0));
+  vec3 inkColor = uAssetColor * ink;
+  vec3 color = mix(uBgColor * paper, inkColor, min(ink, 1.0));
   
-  // Decay over time
-  color *= 0.99;
-  
-  float alpha = length(ink) * uIntensity;
+  float alpha = ink * uIntensity;
   
   gl_FragColor = vec4(color, min(alpha, 1.0));
 }
@@ -133,17 +117,8 @@ void main() {
 
 export default function InkWaterMode() {
   const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
-  
-  const audioFeaturesRef = useRef({
-    low: 0,
-    high: 0,
-    onset: false,
-  });
-  
-  // Ping-pong render targets for reaction-diffusion
-  const rtRef = useRef(null);
-  const rt2Ref = useRef(null);
   
   // Material uniforms
   const uniforms = useMemo(() => ({
@@ -153,18 +128,7 @@ export default function InkWaterMode() {
     uIntensity: { value: 0.8 },
     uDiffusion: { value: 1.0 },
     uGrain: { value: 0.5 },
-    uPrevFrame: { value: null },
-    uResolution: { value: new THREE.Vector2(512, 512) },
   }), []);
-  
-  // Subscribe to audio features
-  React.useEffect(() => {
-    const unsubscribe = audioFeaturesService.subscribe((features) => {
-      audioFeaturesRef.current = features;
-    });
-    
-    return unsubscribe;
-  }, []);
   
   // Create shader material
   const material = useMemo(() => {
@@ -178,34 +142,14 @@ export default function InkWaterMode() {
     });
   }, [uniforms]);
   
-  // Initialize render targets
-  React.useEffect(() => {
-    const rt1 = new THREE.WebGLRenderTarget(512, 512, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-    });
-    
-    const rt2 = new THREE.WebGLRenderTarget(512, 512, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-    });
-    
-    rtRef.current = rt1;
-    rt2Ref.current = rt2;
-    
-    uniforms.uPrevFrame.value = rt1.texture;
-    
-    return () => {
-      rt1.dispose();
-      rt2.dispose();
-    };
-  }, [uniforms]);
-  
   useFrame((state, dt) => {
-    const { low, high } = audioFeaturesRef.current;
     const musicReact = params.musicReact || 0;
+    const energy = (music?.energy ?? 0) * musicReact;
+    const centroid = music?.centroid ?? 0;
+    
+    // Estimate frequency bands
+    const low = energy * (1 - Math.min(centroid / 5000, 1));
+    const high = energy * Math.min(centroid / 5000, 1);
     
     // Update time
     uniforms.uTime.value += dt * (0.3 + params.speed * 0.3);
@@ -220,7 +164,7 @@ export default function InkWaterMode() {
     uniforms.uIntensity.value = params.intensity || 0.8;
     
     // Low frequencies control diffusion
-    const diffusion = 1.0 + low * musicReact * 3.0;
+    const diffusion = 1.0 + low * 3.0;
     uniforms.uDiffusion.value = THREE.MathUtils.lerp(
       uniforms.uDiffusion.value,
       diffusion,
@@ -228,21 +172,17 @@ export default function InkWaterMode() {
     );
     
     // High frequencies control granulation
-    const grain = 0.3 + high * musicReact * 0.7;
+    const grain = 0.3 + high * 0.7;
     uniforms.uGrain.value = THREE.MathUtils.lerp(
       uniforms.uGrain.value,
       grain,
       0.1
     );
-    
-    // Ping-pong render targets
-    // Note: In a real implementation, you'd render to the target here
-    // For now, we'll use a simpler approximation
   });
   
   return (
     <mesh position={[0, 0, 1]} material={material}>
-      <planeGeometry args={[20000, 10000]} />
+      <planeGeometry args={[25000, 13000]} />
     </mesh>
   );
 }
