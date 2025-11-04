@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import usePoseDetection from '../hooks/usePoseDetection';
 import useStore from '../core/store';
@@ -9,6 +9,16 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   const poseDataRef = useRef(null);
   const { poseData } = usePoseDetection();
   const skeletonVisible = useStore(s => s.skeletonVisible);
+  
+  // Object pool for reusing meshes
+  const poolRef = useRef({
+    cylinders: [],
+    spheres: [],
+    circles: [],
+    cylinderIndex: 0,
+    sphereIndex: 0,
+    circleIndex: 0
+  });
 
   // Update pose data reference
   useEffect(() => {
@@ -32,12 +42,26 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   ];
 
   // Silhouette color (white pictogram by default)
-  const SILHOUETTE_COLOR = new THREE.Color(0xffffff);
+  const SILHOUETTE_COLOR = useMemo(() => new THREE.Color(0xffffff), []);
+  
+  // Tolerance for geometry dimension changes - if dimensions change less than this, reuse geometry
+  const GEOMETRY_TOLERANCE = 0.01;
+
+  // Reusable material - created once and reused
+  const material = useMemo(() => new THREE.MeshBasicMaterial({
+    color: SILHOUETTE_COLOR,
+    side: THREE.DoubleSide,
+    depthTest: true,
+    depthWrite: true,
+    wireframe: false,
+    transparent: false,
+    opacity: 1.0
+  }), [SILHOUETTE_COLOR]);
 
   // Reusable vectors
-  const vUp = new THREE.Vector3(0, 1, 0);
-  const tmpA = new THREE.Vector3();
-  const tmpB = new THREE.Vector3();
+  const vUp = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const tmpA = useMemo(() => new THREE.Vector3(), []);
+  const tmpB = useMemo(() => new THREE.Vector3(), []);
 
   // Helpers
   function toSceneXY(lm, scale) {
@@ -48,57 +72,115 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     );
   }
 
-  function addCapsule(start, end, radius, addCaps = true) {
+  // Get or create a cylinder mesh from the pool
+  function getCylinder(radius, length) {
+    const pool = poolRef.current;
+    if (pool.cylinderIndex < pool.cylinders.length) {
+      const mesh = pool.cylinders[pool.cylinderIndex];
+      pool.cylinderIndex++;
+      
+      // Update geometry if dimensions changed significantly
+      const geo = mesh.geometry;
+      if (Math.abs(geo.parameters.radiusTop - radius) > GEOMETRY_TOLERANCE || 
+          Math.abs(geo.parameters.height - length) > GEOMETRY_TOLERANCE) {
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.CylinderGeometry(radius, radius, length, 24, 1, false);
+      }
+      
+      mesh.visible = true;
+      return mesh;
+    }
+    
+    // Create new mesh if pool is exhausted
+    const geo = new THREE.CylinderGeometry(radius, radius, length, 24, 1, false);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.renderOrder = 10;
+    pool.cylinders.push(mesh);
+    pool.cylinderIndex++;
+    groupRef.current.add(mesh);
+    return mesh;
+  }
+
+  // Get or create a sphere mesh from the pool
+  function getSphere(radius) {
+    const pool = poolRef.current;
+    if (pool.sphereIndex < pool.spheres.length) {
+      const mesh = pool.spheres[pool.sphereIndex];
+      pool.sphereIndex++;
+      
+      // Update geometry if dimensions changed significantly
+      const geo = mesh.geometry;
+      if (Math.abs(geo.parameters.radius - radius) > GEOMETRY_TOLERANCE) {
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.SphereGeometry(radius, 24, 16);
+      }
+      
+      mesh.visible = true;
+      return mesh;
+    }
+    
+    // Create new mesh if pool is exhausted
+    const geo = new THREE.SphereGeometry(radius, 24, 16);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.renderOrder = 10;
+    pool.spheres.push(mesh);
+    pool.sphereIndex++;
+    groupRef.current.add(mesh);
+    return mesh;
+  }
+
+  // Get or create a circle mesh from the pool (for head)
+  function getCircle(radius) {
+    const pool = poolRef.current;
+    if (pool.circleIndex < pool.circles.length) {
+      const mesh = pool.circles[pool.circleIndex];
+      pool.circleIndex++;
+      
+      // Update geometry if dimensions changed significantly
+      const geo = mesh.geometry;
+      if (Math.abs(geo.parameters.radius - radius) > GEOMETRY_TOLERANCE) {
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.CircleGeometry(radius, 32);
+      }
+      
+      mesh.visible = true;
+      return mesh;
+    }
+    
+    // Create new mesh if pool is exhausted
+    const geo = new THREE.CircleGeometry(radius, 32);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.renderOrder = 10;
+    pool.circles.push(mesh);
+    pool.circleIndex++;
+    groupRef.current.add(mesh);
+    return mesh;
+  }
+
+  function addCapsule(start, end, radius) {
     const dir = tmpB.copy(end).sub(start);
     const length = dir.length();
     if (length <= 0.0001) return;
 
     const forward = dir.clone().normalize();
-    const mat = new THREE.MeshBasicMaterial({
-      color: SILHOUETTE_COLOR,
-      side: THREE.DoubleSide,
-      depthTest: true,
-      depthWrite: true,
-      wireframe: false,
-      transparent: false,
-      opacity: 1.0
-    });
-
-    // Cylinder body
-    const cylGeo = new THREE.CylinderGeometry(radius, radius, length, 24, 1, false);
-    const cyl = new THREE.Mesh(cylGeo, mat);
-    cyl.position.copy(start).addScaledVector(dir, 0.5);
-    cyl.quaternion.setFromUnitVectors(vUp, forward);
-    cyl.renderOrder = 10;
-    groupRef.current.add(cyl);
+    const mesh = getCylinder(radius, length);
+    mesh.position.copy(start).addScaledVector(dir, 0.5);
+    mesh.quaternion.setFromUnitVectors(vUp, forward);
   }
 
   function addJointSphere(pos, radius) {
-    const mat = new THREE.MeshBasicMaterial({
-      color: SILHOUETTE_COLOR,
-      side: THREE.DoubleSide,
-      depthTest: true,
-      depthWrite: true,
-      wireframe: false,
-      transparent: false,
-      opacity: 1.0
-    });
-    const capGeo = new THREE.SphereGeometry(radius, 24, 16);
-    const cap = new THREE.Mesh(capGeo, mat);
-    cap.position.copy(pos);
-    cap.renderOrder = 10;
-    groupRef.current.add(cap);
+    const mesh = getSphere(radius);
+    mesh.position.copy(pos);
   }
 
   useFrame(() => {
     if (!groupRef.current || !poseDataRef.current || !skeletonVisible) {
-      // Clear existing children if skeleton is not visible
+      // Hide all pooled objects when skeleton is not visible
       if (groupRef.current && !skeletonVisible) {
-        while (groupRef.current.children.length > 0) {
-          const child = groupRef.current.children.pop();
-          child.geometry?.dispose?.();
-          child.material?.dispose?.();
-        }
+        const pool = poolRef.current;
+        pool.cylinders.forEach(mesh => mesh.visible = false);
+        pool.spheres.forEach(mesh => mesh.visible = false);
+        pool.circles.forEach(mesh => mesh.visible = false);
       }
       return;
     }
@@ -110,12 +192,11 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     // Fixed scale - larger base scale so avatar stays visible
     let scale = 22 * modeScale;
 
-    // Clear existing children and dispose to avoid leaks
-    while (groupRef.current.children.length > 0) {
-      const child = groupRef.current.children.pop();
-      child.geometry?.dispose?.();
-      child.material?.dispose?.();
-    }
+    // Reset pool indices to reuse existing objects
+    const pool = poolRef.current;
+    pool.cylinderIndex = 0;
+    pool.sphereIndex = 0;
+    pool.circleIndex = 0;
 
     // Precompute key anchor points in scene space
     const L_SHO = landmarks[11], R_SHO = landmarks[12];
@@ -161,20 +242,8 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       const neckEnd = headCenter.clone().add(new THREE.Vector3(0, -headR * 0.9, 0));
       addCapsule(shouldersMid, neckEnd, neckR);
       // Head - solid filled circle (flat, always faces camera)
-      const headGeo = new THREE.CircleGeometry(headR, 32);
-      const headMat = new THREE.MeshBasicMaterial({ 
-        color: SILHOUETTE_COLOR,
-        side: THREE.DoubleSide,
-        transparent: false,
-        opacity: 1.0,
-        wireframe: false,
-        depthTest: true,
-        depthWrite: true
-      });
-      const head = new THREE.Mesh(headGeo, headMat);
+      const head = getCircle(headR);
       head.position.copy(headCenter);
-      head.renderOrder = 10; // Render on top
-      groupRef.current.add(head);
     }
 
     // Arms
@@ -224,7 +293,36 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
         addJointSphere(anklePos, legLowerR); // ankle
       }
     }
+    
+    // Hide unused pooled objects
+    for (let i = pool.cylinderIndex; i < pool.cylinders.length; i++) {
+      pool.cylinders[i].visible = false;
+    }
+    for (let i = pool.sphereIndex; i < pool.spheres.length; i++) {
+      pool.spheres[i].visible = false;
+    }
+    for (let i = pool.circleIndex; i < pool.circles.length; i++) {
+      pool.circles[i].visible = false;
+    }
   });
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      // Dispose all pooled geometries and material
+      const pool = poolRef.current;
+      pool.cylinders.forEach(mesh => {
+        mesh.geometry?.dispose();
+      });
+      pool.spheres.forEach(mesh => {
+        mesh.geometry?.dispose();
+      });
+      pool.circles.forEach(mesh => {
+        mesh.geometry?.dispose();
+      });
+      material.dispose();
+    };
+  }, [material]);
 
   return (
     <group ref={groupRef} position={[0, 0, 0]} />
