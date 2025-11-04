@@ -308,8 +308,8 @@ const HandNoiseDistortion = () => {
   }
 
   return (
-    <mesh ref={meshRef} material={shaderMaterial}>
-      <planeGeometry args={[2, 2]} />
+    <mesh ref={meshRef} material={shaderMaterial} position={[0, 0, 0]} renderOrder={-1}>
+      <planeGeometry args={[20000, 20000, 1, 1]} />
     </mesh>
   );
 };
