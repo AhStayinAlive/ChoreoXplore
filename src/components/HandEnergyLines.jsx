@@ -101,7 +101,9 @@ const vertexShader = `
     vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
     vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
     float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
-    return 2.2 * n_xyz;
+    // Noise amplitude scaling factor (increases range to approximately [-2.2, 2.2])
+    const float NOISE_SCALE = 2.2;
+    return NOISE_SCALE * n_xyz;
   }
   
   void main() {
@@ -119,7 +121,8 @@ const vertexShader = `
     
     // Apply noise-based distortion to create organic, wavy lightning effect
     // Use different noise coordinates per segment to create unique waves
-    float noiseOffset = position.z * 0.5; // Use z as line index offset
+    const float LINE_VARIATION_FACTOR = 0.5; // Controls how different each line looks
+    float noiseOffset = position.z * LINE_VARIATION_FACTOR; // Use z as line index offset
     vec3 noiseCoord = vec3(
       basePosition.xy * uNoiseScale + noiseOffset,
       uTime * 0.5
@@ -146,8 +149,9 @@ const vertexShader = `
     vec3 finalPosition = vec3(basePosition.xy + offset, basePosition.z);
     
     // Convert from normalized coordinates (0-1) to world space
-    // Scale to match the project's coordinate system
-    finalPosition.xy = (finalPosition.xy - 0.5) * 2000.0; // Scale to world units
+    // Scale to match the project's coordinate system (SimpleSkeleton default scale)
+    const float WORLD_SCALE = 2000.0;
+    finalPosition.xy = (finalPosition.xy - 0.5) * WORLD_SCALE;
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPosition, 1.0);
   }
@@ -193,10 +197,11 @@ const fragmentShader = `
     float intensityFactor = vDistanceFactor * uIntensity;
     
     // Sparkle effect when hands are very close
+    const float SPARKLE_THRESHOLD = 0.8; // Distance factor threshold for sparkle activation
     float sparkle = 0.0;
-    if (vDistanceFactor > 0.8) {
+    if (vDistanceFactor > SPARKLE_THRESHOLD) {
       sparkle = sin(uTime * 10.0) * 0.5 + 0.5;
-      sparkle *= pow(vDistanceFactor - 0.8, 2.0) * 5.0; // Exponential burst
+      sparkle *= pow(vDistanceFactor - SPARKLE_THRESHOLD, 2.0) * 5.0; // Exponential burst
       sparkle *= uSparkleIntensity;
     }
     
@@ -275,7 +280,10 @@ const HandEnergyLines = ({
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      linewidth: 2, // Note: linewidth only works in some browsers
+      // Note: linewidth is not supported in most WebGL contexts (ANGLE on Windows, most mobile)
+      // For consistent line thickness across platforms, consider using instanced geometry
+      // with cylindrical segments or billboarded quads in future iterations
+      linewidth: 2,
     });
   }, [leftHand.x, leftHand.y, rightHand.x, rightHand.y, colorNear, colorFar, intensity, noiseScale, amplitude, sparkleIntensity]);
   
