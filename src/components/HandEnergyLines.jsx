@@ -155,8 +155,8 @@ const vertexShader = `
     vec3 finalPosition = vec3(basePosition.xy + offset, basePosition.z);
     
     // Convert from normalized coordinates (0-1) to world space
-    // Scale to match the project's coordinate system (20000 units like HandNoiseDistortion)
-    const float WORLD_SCALE = 20000.0;
+    // Use same scale as other effects (19500 width to match Lines1D_Irina viewport)
+    const float WORLD_SCALE = 19500.0;
     finalPosition.xy = (finalPosition.xy - 0.5) * WORLD_SCALE;
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPosition, 1.0);
@@ -328,14 +328,20 @@ const HandEnergyLines = () => {
     mat.uniforms.uSparkleIntensity.value = sparkleIntensity;
   });
   
-  // Don't render if no hands are enabled or ChoreoXplore is not active
-  // For energy lines, we need both hands (it connects them)
-  if (handSelection === 'none' || handSelection === 'left' || handSelection === 'right' || !isActive) {
+  // Don't render if ChoreoXplore is not active
+  if (!isActive) {
+    return null;
+  }
+  
+  // For energy lines, render when both hands are selected
+  // TODO: Add support for edge connections when only one hand is visible
+  const bothHandsEnabled = handSelection === 'both';
+  if (!bothHandsEnabled) {
     return null;
   }
   
   return (
-    <lineSegments ref={groupRef} geometry={geometry} material={material} position={[0, 0, 0]} />
+    <lineSegments ref={groupRef} geometry={geometry} material={material} position={[0, 0, 2]} />
   );
 };
 
