@@ -986,40 +986,37 @@ float noise(vec2 p) {
 void main() {
   vec2 uv = vUv;
   
-  // Create flowing silk with depth - multi-octave noise for organic waves
-  float wave1 = noise(vec2(uv.x * 2.5 + uTime * 0.25, uv.y * 2.5 - uTime * 0.15));
-  float wave2 = noise(vec2(uv.x * 3.5 - uTime * 0.2, uv.y * 3.5 + uTime * 0.1)) * 0.5;
-  float wave3 = noise(vec2(uv.x * 1.5 + uTime * 0.3, uv.y * 1.5)) * 0.3;
+  // Large flowing organic waves
+  float n1 = noise(vec2(uv.x * 4.0 + uTime * 0.4, uv.y * 4.0 - uTime * 0.3));
+  float n2 = noise(vec2(uv.x * 6.0 - uTime * 0.3, uv.y * 6.0 + uTime * 0.2));
+  float n3 = noise(vec2(uv.x * 2.5 + uTime * 0.5, uv.y * 2.5));
   
-  // Combine waves to simulate 3D displacement
-  float displacement = (wave1 + wave2 + wave3) * uTurbulence;
+  // Combine for organic silk flow
+  float waves = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
   
-  // Create lighting effect based on displacement gradient (simulating surface normals)
-  float dx = noise(vec2(uv.x * 2.5 + 0.01 + uTime * 0.25, uv.y * 2.5 - uTime * 0.15)) - wave1;
-  float dy = noise(vec2(uv.x * 2.5 + uTime * 0.25, uv.y * 2.5 + 0.01 - uTime * 0.15)) - wave1;
+  // Calculate gradient for lighting effect
+  float offset = 0.01;
+  float dX = noise(vec2(uv.x * 4.0 + offset + uTime * 0.4, uv.y * 4.0 - uTime * 0.3)) - n1;
+  float dY = noise(vec2(uv.x * 4.0 + uTime * 0.4, uv.y * 4.0 + offset - uTime * 0.3)) - n1;
+  float gradient = dX + dY;
   
-  // Simulate lighting from displacement (valleys darker, peaks lighter)
-  float lighting = 0.5 + displacement * 0.8 - (dx + dy) * 0.3;
+  // Create lighting based on wave height and gradient
+  float lighting = waves - gradient * 0.5;
   
-  // Fresnel-like shimmer (viewing angle effect)
-  float centerDist = length(uv - 0.5);
-  float fresnel = smoothstep(0.8, 0.2, centerDist) * 0.4;
+  // Add fine shimmer
+  float shimmer = noise(uv * 12.0 + uTime * 0.8) * 0.15;
   
-  // Fine shimmer detail
-  float shimmer = noise(uv * 8.0 + uTime * uShimmer * 0.5) * 0.2;
+  // Combine all
+  float value = lighting + shimmer;
   
-  // Combine lighting effects
-  float pattern = lighting + fresnel + shimmer;
+  // Map to colors with strong contrast
+  vec3 color = mix(
+    uBgColor * 0.7,
+    uAssetColor * 1.3,
+    smoothstep(0.2, 0.8, value)
+  );
   
-  // Mix colors with smooth blending based on lighting
-  vec3 baseColor = mix(uBgColor, uAssetColor, 0.4);
-  vec3 highlightColor = mix(uAssetColor, vec3(1.0), 0.3);
-  vec3 color = mix(baseColor, highlightColor, smoothstep(0.3, 0.8, pattern));
-  
-  // Soft constant alpha for translucent silk
-  float alpha = uIntensity * 0.75;
-  
-  gl_FragColor = vec4(color, alpha);
+  gl_FragColor = vec4(color, uIntensity);
 }
 `;
   
@@ -1040,8 +1037,8 @@ void main(){
         uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
         uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
         uIntensity: { value: params.intensity || 0.8 },
-        uTurbulence: { value: 0.5 },
-        uShimmer: { value: 1.0 }
+        uTurbulence: { value: 1.5 },
+        uShimmer: { value: 1.5 }
       },
       transparent: true,
       side: THREE.DoubleSide
@@ -1055,8 +1052,8 @@ void main(){
     material.uniforms.uIntensity.value = params.intensity || 0.8;
     
     const energy = (music?.energy ?? 0) * params.musicReact;
-    material.uniforms.uTurbulence.value = 0.3 + energy * 0.5;
-    material.uniforms.uShimmer.value = 1.0 + energy * 2.0;
+    material.uniforms.uTurbulence.value = 1.2 + energy * 0.8;
+    material.uniforms.uShimmer.value = 1.5 + energy * 2.0;
     
     const rgb = hexToRGB(userColors.assetColor);
     material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
