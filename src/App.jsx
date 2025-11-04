@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import React from "react";
 import Canvas3D from "./render/Canvas3D";
 import MotionInputPanel from "./components/MotionInputPanel";
-import AmbientAnimationControlPanel from "./components/AmbientAnimationControlPanel";
 import ChoreoXploreControlPanel from "./components/ChoreoXploreControlPanel";
 import HandEffectsPanel from "./components/HandEffectsPanel";
 import HandEffectQuickView from "./components/HandEffectQuickView";
@@ -185,28 +184,6 @@ function AppContent({
       }}>
         <MotionInputPanel />
       </div>
-
-      {/* Single persistent AmbientAnimationControlPanel - visible when background image exists, hidden in performance mode */}
-      {backgroundImage && mode !== "performance" && (
-        <div className="glass-scrollbar" style={{ 
-          position: "absolute", 
-          right: 12, 
-          bottom: 12, 
-          width: 320, 
-          height: "auto", 
-          maxHeight: "50vh", 
-          background: "rgba(0,0,0,.4)", 
-          backdropFilter: "blur(10px)", 
-          padding: 12, 
-          borderRadius: 12, 
-          overflow: "hidden", 
-          zIndex: 10
-        }}>
-          <AmbientAnimationControlPanel 
-            isVisible={true}
-          />
-        </div>
-      )}
 
       {mode === "choreoxplore" && (
         <>
