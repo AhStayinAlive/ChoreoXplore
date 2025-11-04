@@ -27,6 +27,9 @@ const AmbientBackgroundAnimation = ({
   const audioDataRef = useRef({ rms: 0, bands: [0, 0, 0], centroid: 0 });
   const lastAudioUpdateRef = useRef({ bass: 0, mid: 0, high: 0, rms: 0 });
   
+  // Audio update threshold - only update GPU when values change by more than this amount
+  const AUDIO_UPDATE_THRESHOLD = 0.01;
+  
   // Subscribe to audio data
   useEffect(() => {
     const subscription = audio$.subscribe((audioData) => {
@@ -904,13 +907,12 @@ const AmbientBackgroundAnimation = ({
           const high = audioData.bands[2] || 0;
           const rms = audioData.rms || 0;
           
-          // Only update if values changed significantly (threshold: 0.01) to reduce GPU updates
-          const threshold = 0.01;
+          // Only update if values changed significantly to reduce GPU updates
           const last = lastAudioUpdateRef.current;
-          if (Math.abs(bass - last.bass) > threshold ||
-              Math.abs(mid - last.mid) > threshold ||
-              Math.abs(high - last.high) > threshold ||
-              Math.abs(rms - last.rms) > threshold) {
+          if (Math.abs(bass - last.bass) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(mid - last.mid) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(high - last.high) > AUDIO_UPDATE_THRESHOLD ||
+              Math.abs(rms - last.rms) > AUDIO_UPDATE_THRESHOLD) {
             shaderMaterial.uniforms.u_audio_bass.value = bass;
             shaderMaterial.uniforms.u_audio_mid.value = mid;
             shaderMaterial.uniforms.u_audio_high.value = high;

@@ -10,7 +10,12 @@ const AmbientAnimationControlPanel = ({
   const setParameters = useStore(s => s.setAmbientAnimationParams);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Helper function to format parameter values consistently
+  /**
+   * Format parameter value for display with consistent decimal places
+   * @param {number} value - The parameter value to format
+   * @param {number} defaultValue - The default value to use if parameter is undefined
+   * @returns {string} Formatted value with 2 decimal places
+   */
   const formatValue = (value, defaultValue) => {
     return (value ?? defaultValue).toFixed(2);
   };
