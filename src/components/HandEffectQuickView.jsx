@@ -14,6 +14,7 @@ import SilkVeilMode from '../modes/SilkVeil/SilkVeilMode';
 import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
 import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
 import InkWaterMode from '../modes/InkWater/InkWaterMode';
+import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
 
 // Constants for positioning and animation
 const PREVIEW_WIDTH = 400;
@@ -64,6 +65,8 @@ function PreviewBackgroundVisual() {
       return <StainedGlassRoseMode />;
     case 'ink_water':
       return <InkWaterMode />;
+    case 'opaline_wave':
+      return <OpalineWaveMode />;
     // Other modes use QuandCest as preview
     case 'water_ripple':
     case 'heat_wave':
