@@ -509,9 +509,9 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 12 }}>
               <Slider
                 label="Particle Size"
-                value={handEffect.particleTrail?.particleSize || 0.15}
+                value={handEffect.particleTrail?.particleSize || 0.25}
                 min={0.05}
-                max={0.3}
+                max={1.0}
                 step={0.01}
                 showValue={false}
                 onChange={(val) => handleEffectChange({
@@ -524,8 +524,8 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 12 }}>
               <Slider
                 label="Trail Length"
-                value={handEffect.particleTrail?.trailLength || 50}
-                min={10}
+                value={handEffect.particleTrail?.trailLength || 30}
+                min={5}
                 max={100}
                 step={5}
                 showValue={false}
@@ -539,9 +539,9 @@ export default function HandEffectsPanel() {
             <div style={{ marginBottom: 12 }}>
               <Slider
                 label="Fade Speed"
-                value={handEffect.particleTrail?.fadeSpeed || 0.95}
+                value={handEffect.particleTrail?.fadeSpeed || 1.0}
                 min={0.8}
-                max={0.99}
+                max={1.0}
                 step={0.01}
                 showValue={false}
                 onChange={(val) => handleEffectChange({

@@ -54,9 +54,9 @@ const useVisStore = create((set, get) => ({
       particleTrail: {
         color: '#00ffff',
         intensity: 0.8,
-        particleSize: 0.15,
-        trailLength: 50,
-        fadeSpeed: 0.95
+        particleSize: 0.25,
+        trailLength: 30,
+        fadeSpeed: 1.0
       }
     }
   },

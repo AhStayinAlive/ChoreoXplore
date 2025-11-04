@@ -21,11 +21,11 @@ const HandParticleTrailEffect = () => {
   const leftSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   const rightSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   
-  const trailLength = Math.floor(particleSettings.trailLength || 50);
-  const particleSize = particleSettings.particleSize || 0.15;
+  const trailLength = Math.floor(particleSettings.trailLength || 30);
+  const particleSize = particleSettings.particleSize || 0.25;
   const color = particleSettings.color || '#00ffff';
   const intensity = particleSettings.intensity || 0.8;
-  const fadeSpeed = particleSettings.fadeSpeed || 0.95;
+  const fadeSpeed = particleSettings.fadeSpeed || 1.0;
   const smoothness = particleSettings.smoothness || 0.15; // Lower = less responsive, more smoothing; Higher = more responsive, less smoothing
   
   // Animation constants for smoother trail rendering
