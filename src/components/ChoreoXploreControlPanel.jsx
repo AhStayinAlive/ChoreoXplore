@@ -2,7 +2,6 @@ import { useVisStore } from "../state/useVisStore";
 import useStore from "../core/store";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
-import { useState } from "react";
 
 export default function ChoreoXploreControlPanel() {
   const music = useVisStore(s => s.music);
@@ -13,11 +12,6 @@ export default function ChoreoXploreControlPanel() {
   const setIsActive = useVisStore(s => s.setIsActive);
   const userColors = useStore(s => s.userColors);
   const setUserColors = useStore(s => s.setUserColors);
-  
-  // Ambient animation parameters
-  const ambientParams = useStore(s => s.ambientAnimationParams);
-  const setAmbientParams = useStore(s => s.setAmbientAnimationParams);
-  const [audioExpanded, setAudioExpanded] = useState(false);
 
   const handleParamChange = (param, value) => {
     setParams({ [param]: value });
@@ -143,6 +137,10 @@ export default function ChoreoXploreControlPanel() {
               <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
               <option value="pulsating_circle" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Circle</option>
               <option value="vertical_lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Raindrop</option>
+              <option value="water_ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Water Ripple</option>
+              <option value="heat_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Heat Wave</option>
+              <option value="flowing" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Flowing</option>
+              <option value="gentle_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Gentle Wave</option>
             </select>
           </div>
         </div>
@@ -185,176 +183,6 @@ export default function ChoreoXploreControlPanel() {
             format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('musicReact', value)}
           />
-        </div>
-
-        {/* Audio-Reactive Background Animation */}
-        <div style={{ marginBottom: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <h4 style={{ color: "white", fontSize: "12px", margin: 0, fontWeight: 600 }}>Audio-Reactive Background</h4>
-            <button
-              onClick={() => setAudioExpanded(!audioExpanded)}
-              style={{
-                padding: "4px 10px",
-                backgroundColor: "rgba(107,114,128,0.6)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "6px",
-                color: "white",
-                fontSize: "11px",
-                cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}
-            >
-              {audioExpanded ? '−' : '+'}
-            </button>
-          </div>
-
-          {/* Ambient Animation Toggle */}
-          <div style={{ marginBottom: 12 }}>
-            <ToggleButton
-              label="Animation"
-              selected={ambientParams?.isActive ?? true}
-              onChange={(value) => setAmbientParams({ ...ambientParams, isActive: value })}
-            />
-          </div>
-
-          {/* Effect Type Selection */}
-          <div style={{ marginBottom: 12 }}>
-            <h5 style={{ color: "rgba(255,255,255,0.8)", fontSize: "11px", margin: "0 0 6px 0" }}>Effect Type</h5>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-              {[
-                { value: 'waterRipple', label: 'Water Ripple' },
-                { value: 'heatWave', label: 'Heat Wave' },
-                { value: 'flowingDistortion', label: 'Flowing' },
-                { value: 'gentleWave', label: 'Gentle Wave' }
-              ].map((effect) => (
-                <button
-                  key={effect.value}
-                  onClick={() => setAmbientParams({ ...ambientParams, effectType: effect.value })}
-                  style={{
-                    padding: "6px 8px",
-                    backgroundColor: ambientParams?.effectType === effect.value ? "rgba(59,130,246,0.6)" : "rgba(107,114,128,0.4)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: "6px",
-                    color: "white",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease"
-                  }}
-                >
-                  {effect.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Audio Reactive Toggle */}
-          <div style={{ marginBottom: 12 }}>
-            <ToggleButton
-              label="Audio Reactive"
-              selected={ambientParams?.audioReactive ?? true}
-              onChange={(value) => setAmbientParams({ ...ambientParams, audioReactive: value })}
-            />
-          </div>
-
-          {/* Expanded Controls */}
-          {audioExpanded && (
-            <>
-              {/* Speed */}
-              <div style={{ marginBottom: 12 }}>
-                <Slider
-                  label="Speed"
-                  value={ambientParams?.speed ?? 1.0}
-                  min={0.1}
-                  max={3.0}
-                  step={0.1}
-                  format={(v) => `${v.toFixed(1)}x`}
-                  onChange={(value) => setAmbientParams({ ...ambientParams, speed: value })}
-                />
-              </div>
-
-              {/* Amplitude */}
-              <div style={{ marginBottom: 12 }}>
-                <Slider
-                  label="Amplitude"
-                  value={ambientParams?.amplitude ?? 0.5}
-                  min={0.0}
-                  max={1.0}
-                  step={0.05}
-                  format={(v) => v.toFixed(2)}
-                  onChange={(value) => setAmbientParams({ ...ambientParams, amplitude: value })}
-                />
-              </div>
-
-              {/* Intensity */}
-              <div style={{ marginBottom: 12 }}>
-                <Slider
-                  label="Intensity"
-                  value={ambientParams?.intensity ?? 0.3}
-                  min={0.0}
-                  max={1.0}
-                  step={0.05}
-                  format={(v) => v.toFixed(2)}
-                  onChange={(value) => setAmbientParams({ ...ambientParams, intensity: value })}
-                />
-              </div>
-
-              {/* Audio Sensitivity - only show when audio reactive is on */}
-              {ambientParams?.audioReactive && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <Slider
-                      label="Audio Sensitivity"
-                      value={ambientParams?.audioSensitivity ?? 0.5}
-                      min={0.0}
-                      max={2.0}
-                      step={0.1}
-                      format={(v) => v.toFixed(1)}
-                      onChange={(value) => setAmbientParams({ ...ambientParams, audioSensitivity: value })}
-                    />
-                  </div>
-
-                  {/* Bass Influence */}
-                  <div style={{ marginBottom: 12 }}>
-                    <Slider
-                      label="Bass Influence"
-                      value={ambientParams?.audioBassInfluence ?? 0.7}
-                      min={0.0}
-                      max={1.0}
-                      step={0.1}
-                      format={(v) => v.toFixed(1)}
-                      onChange={(value) => setAmbientParams({ ...ambientParams, audioBassInfluence: value })}
-                    />
-                  </div>
-
-                  {/* Mid Influence */}
-                  <div style={{ marginBottom: 12 }}>
-                    <Slider
-                      label="Mid Influence"
-                      value={ambientParams?.audioMidInfluence ?? 0.5}
-                      min={0.0}
-                      max={1.0}
-                      step={0.1}
-                      format={(v) => v.toFixed(1)}
-                      onChange={(value) => setAmbientParams({ ...ambientParams, audioMidInfluence: value })}
-                    />
-                  </div>
-
-                  {/* High Influence */}
-                  <div style={{ marginBottom: 12 }}>
-                    <Slider
-                      label="High Influence"
-                      value={ambientParams?.audioHighInfluence ?? 0.3}
-                      min={0.0}
-                      max={1.0}
-                      step={0.1}
-                      format={(v) => v.toFixed(1)}
-                      onChange={(value) => setAmbientParams({ ...ambientParams, audioHighInfluence: value })}
-                    />
-                  </div>
-                </>
-              )}
-            </>
-          )}
         </div>
 
       </div>
