@@ -255,6 +255,8 @@ export const clearFragmentShader = `
 `;
 
 // Copy Shader - copies one texture to another
+// Note: Currently unused but available for future enhancements like
+// texture resizing or render target copying
 export const copyFragmentShader = `
   precision mediump float;
   precision mediump sampler2D;

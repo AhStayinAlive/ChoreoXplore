@@ -230,7 +230,7 @@ const HandWebGLFluid = () => {
 
   // Create a full-screen quad for rendering
   const quadGeometry = useMemo(() => {
-    return new THREE.PlaneGeometry(20000, 20000); // Match other effects
+    return new THREE.PlaneGeometry(2, 2); // Full-screen quad in normalized device coordinates
   }, []);
 
   // Render a shader pass
@@ -287,7 +287,7 @@ const HandWebGLFluid = () => {
 
     // Clear pressure
     materials.clear.uniforms.uTexture.value = renderTargets.pressure.read.texture;
-    materials.clear.uniforms.value.value = fluidSettings.pressure;
+    materials.clear.uniforms.value.value = 0.0; // Clear to zero for pressure initialization
     renderShader(materials.clear, renderTargets.pressure.write);
     renderTargets.pressure.swap();
 
