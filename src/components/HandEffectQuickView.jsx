@@ -54,25 +54,26 @@ function PreviewBackgroundVisual() {
       return <PreviewVerticalLinesMode />;
     case 'lines':
       return <PreviewLines1DMode />;
+    case 'water_ripple':
+      return <PreviewWaterRippleMode />;
+    case 'heat_wave':
+      return <PreviewHeatWaveMode />;
+    case 'flowing':
+      return <PreviewFlowingMode />;
+    case 'gentle_wave':
+      return <PreviewGentleWaveMode />;
+    case 'silk_veil':
+      return <PreviewSilkVeilMode />;
+    case 'lotus_bloom':
+      return <PreviewLotusBloomMode />;
+    case 'stained_glass_rose':
+      return <PreviewStainedGlassRoseMode />;
+    case 'ink_water':
+      return <PreviewInkWaterMode />;
+    case 'opaline_wave':
+      return <PreviewOpalineWaveMode />;
     case 'empty':
       return null; // Empty mode renders nothing
-    // New modes - render actual modes
-    case 'silk_veil':
-      return <SilkVeilMode />;
-    case 'lotus_bloom':
-      return <LotusBloomMode />;
-    case 'stained_glass_rose':
-      return <StainedGlassRoseMode />;
-    case 'ink_water':
-      return <InkWaterMode />;
-    case 'opaline_wave':
-      return <OpalineWaveMode />;
-    // Other modes use QuandCest as preview
-    case 'water_ripple':
-    case 'heat_wave':
-    case 'flowing':
-    case 'gentle_wave':
-      return <PreviewQuandCestMode />;
     default:
       return <PreviewQuandCestMode />; // Default to quand_cest
   }
@@ -219,19 +220,1322 @@ void main(){
 /**
  * Simplified preview versions of other visual modes
  */
+/**
+ * Pulsating Circle visual mode for preview
+ */
 function PreviewPulsatingCircleMode() {
-  // Simplified pulsating circle for preview
-  return null; // TODO: Implement if needed
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uEnergy;
+uniform float uMotion;
+uniform float uIntensity;
+uniform float uBeat;
+uniform float uRms;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  float t = uTime;
+  
+  // Create a circle centered in the middle
+  vec2 center = vec2(0.5, 0.5);
+  float dist = distance(uv, center);
+  
+  // Base radius with audio-reactive pulsing
+  float baseRadius = 0.15;
+  float energyPulse = uEnergy * 0.3;
+  float beatPulse = uBeat * 0.2;
+  float rmsPulse = uRms * 0.25;
+  
+  // Audio-reactive pulsation
+  float audioThreshold = 0.01;
+  float isMusicPlaying = step(audioThreshold, uEnergy + uRms + uBeat);
+  
+  float audioLoudness = uEnergy + uRms + uBeat;
+  float pulsationSize = audioLoudness * 0.4;
+  
+  float radius = baseRadius + pulsationSize;
+  
+  // Create smooth circle edge
+  float circle = 1.0 - smoothstep(radius - 0.05, radius, dist);
+  
+  // Inner glow
+  float innerGlow = 1.0 - smoothstep(radius * 0.3, radius * 0.7, dist);
+  innerGlow *= 0.3;
+  
+  // Outer glow
+  float outerGlow = 1.0 - smoothstep(radius, radius + 0.1 + pulsationSize * 0.8, dist);
+  outerGlow *= 0.2 * uIntensity;
+  
+  float pattern = circle + innerGlow + outerGlow;
+  
+  // Wave distortion
+  float waveDistortion = sin(dist * 20.0 + t * 3.0) * 0.01 * uEnergy * isMusicPlaying;
+  pattern += waveDistortion;
+  
+  vec3 accent = uColor;
+  
+  // Color variation
+  vec3 colorVariation = vec3(
+    sin(t + uEnergy * 2.0) * 0.2 * isMusicPlaying,
+    cos(t + uBeat * 1.5) * 0.2 * isMusicPlaying,
+    sin(t * 1.5 + uRms * 2.5) * 0.2 * isMusicPlaying
+  );
+  
+  vec3 finalColor = accent + colorVariation;
+  vec3 col = finalColor * pattern * uIntensity;
+  
+  float brightness = 1.0 + uEnergy * 0.5 + uBeat * 0.3 + uRms * 0.4;
+  col *= brightness;
+  
+  float visibility = mix(0.3, 1.0, isMusicPlaying);
+  col *= visibility;
+  
+  gl_FragColor = vec4(col, pattern * uIntensity);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
+        uEnergy: { value: 0 },
+        uMotion: { value: 0 },
+        uIntensity: { value: 0.8 },
+        uBeat: { value: 0 },
+        uRms: { value: 0 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+  }, []);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    const rgb = hexToRGB(userColors?.assetColor || '#0096ff');
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
+    material.uniforms.uIntensity.value = params.intensity;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    const rms = (music?.rms ?? 0) * params.musicReact;
+    const beat = (music?.onset ?? false) ? 1.0 : 0.0;
+
+    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
+      material.uniforms.uEnergy.value, energy, 0.3
+    );
+    material.uniforms.uRms.value = THREE.MathUtils.lerp(
+      material.uniforms.uRms.value, rms, 0.4
+    );
+    material.uniforms.uBeat.value = THREE.MathUtils.lerp(
+      material.uniforms.uBeat.value, beat, 0.6
+    );
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
 }
 
+/**
+ * Vertical Lines visual mode for preview
+ */
 function PreviewVerticalLinesMode() {
-  // Simplified vertical lines for preview
-  return null; // TODO: Implement if needed
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uEnergy;
+uniform float uRms;
+uniform float uBeat;
+uniform float uIntensity;
+varying vec2 vUv;
+
+// Hash function for pseudo-random values
+float hash(float n) {
+  return fract(sin(n) * 43758.5453123);
 }
 
+void main() {
+  vec2 uv = vUv;
+  float t = uTime;
+  
+  // Number of drops and parameters - MUCH shorter lines like screenshot
+  float numDrops = 200.0;
+  float segmentHeight = 0.08; // Much shorter - was 0.5
+  float fallSpeed = 0.15;
+  
+  vec3 col = vec3(0.0);
+  float alpha = 0.0;
+  
+  // Create vertical rain drops
+  for (float i = 0.0; i < 200.0; i++) {
+    if (i >= numDrops) break;
+    
+    // Use hash for consistent random positioning
+    float xPos = hash(i * 12.9898);
+    float yOffset = hash(i * 78.233);
+    
+    // Falling position with constant speed
+    float yPos = mod(yOffset - t * fallSpeed, 1.0);
+    
+    // Distance from drop center
+    float dx = abs(uv.x - xPos);
+    float dy = abs(uv.y - yPos);
+    
+    // Vertical line shape - thinner lines
+    float lineWidth = 0.001; // Thinner - was 0.002
+    if (dx < lineWidth && dy < segmentHeight * 0.5) {
+      // Fade at top and bottom
+      float fade = smoothstep(0.0, 0.02, dy) * smoothstep(segmentHeight * 0.5, segmentHeight * 0.3, dy);
+      col += uColor * fade;
+      alpha += fade;
+    }
+  }
+  
+  // Apply intensity
+  col *= uIntensity;
+  alpha = clamp(alpha * uIntensity * 0.3, 0.0, 1.0); // Reduced alpha multiplier
+  
+  gl_FragColor = vec4(col, alpha);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
+        uEnergy: { value: 0 },
+        uRms: { value: 0 },
+        uBeat: { value: 0 },
+        uIntensity: { value: 0.8 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+  }, []);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    const rgb = hexToRGB(userColors?.assetColor || '#0096ff');
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
+    material.uniforms.uIntensity.value = params.intensity;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    const rms = (music?.rms ?? 0) * params.musicReact;
+    const beat = (music?.onset ?? false) ? 1.0 : 0.0;
+
+    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
+      material.uniforms.uEnergy.value, energy, 0.25
+    );
+    material.uniforms.uRms.value = THREE.MathUtils.lerp(
+      material.uniforms.uRms.value, rms, 0.3
+    );
+    material.uniforms.uBeat.value = THREE.MathUtils.lerp(
+      material.uniforms.uBeat.value, beat, 0.5
+    );
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Lines 1D (Irina) visual mode for preview
+ */
 function PreviewLines1DMode() {
-  // Simplified lines 1D for preview
-  return null; // TODO: Implement if needed
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const motion = useVisStore(s => s.motion);
+  const userColors = useStore(s => s.userColors);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uEnergy;
+uniform float uMotion;
+uniform float uIntensity;
+varying vec2 vUv;
+
+float angleField(vec2 p, float a){
+  float s = sin(a), c = cos(a);
+  mat2 R = mat2(c,-s,s,c);
+  p = R * p;
+  vec2 q = abs(fract(p*4.0)-0.5);
+  float d1 = abs(q.x - q.y);
+  float d2 = min(abs(q.x), abs(q.y));
+  return mix(d1, d2, 0.2);
+}
+
+void main() {
+  vec2 uv = vUv*2.0-1.0;
+  uv *= 0.1;
+  float t = uTime;
+  
+  float musicBoost = uEnergy * 3.0;
+  float musicPulse = sin(t * 4.0 + uEnergy * 10.0) * musicBoost;
+  
+  float ang = 1.5708 * (0.25 + 0.75*fract(t*0.07 + uMotion*0.4 + musicPulse*0.5));
+  float f = angleField(uv*1.2, ang);
+  f = min(f, angleField(uv*1.2 + vec2(0.17,0.11)*sin(t*0.3+uMotion + musicPulse), ang+1.047));
+  f = min(f, angleField(uv*1.2 + vec2(-0.2,0.07)*cos(t*0.23 + musicPulse*0.8), ang+2.094));
+  
+  float thickness = mix(0.05, 0.35, clamp(uEnergy*2.0 + musicBoost*0.5 + 0.2, 0.0, 1.0));
+  float line = 1.0 - smoothstep(thickness*0.8, thickness, f);
+  
+  vec3 base = vec3(0.0);
+  vec3 accent = uColor;
+  
+  float musicIntensity = uIntensity * (1.0 + musicBoost * 2.0);
+  vec3 col = mix(base, accent, line * musicIntensity);
+  
+  float musicAlpha = line * uIntensity * (0.4 + musicBoost * 0.8);
+  
+  gl_FragColor = vec4(col, musicAlpha);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
+        uEnergy: { value: 0 },
+        uMotion: { value: 0 },
+        uIntensity: { value: 0.8 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+  }, []);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    const rgb = hexToRGB(userColors?.assetColor || '#0096ff');
+    material.uniforms.uColor.value.set(rgb.r, rgb.g, rgb.b);
+    material.uniforms.uIntensity.value = params.intensity;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    const sharp = (motion?.sharpness ?? 0) * params.motionReact;
+
+    material.uniforms.uEnergy.value = THREE.MathUtils.lerp(
+      material.uniforms.uEnergy.value, energy, 0.2
+    );
+    material.uniforms.uMotion.value = THREE.MathUtils.lerp(
+      material.uniforms.uMotion.value, sharp, 0.15
+    );
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Water Ripple visual mode for preview
+ */
+function PreviewWaterRippleMode() {
+  const params = useVisStore(s =>  s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float u_time;
+uniform vec3 u_bgColor;
+uniform vec3 u_assetColor;
+uniform float u_intensity;
+uniform float u_speed;
+uniform float u_energy;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 center = vec2(0.5, 0.5);
+  float dist = distance(uv, center);
+  
+  // Amplify energy for stronger reactivity
+  float energyBoost = u_energy * 15.0;
+  
+  // Audio modulation
+  float audioMod = 1.0 + energyBoost * 0.5;
+  float amplitude = 0.02 * (1.0 + energyBoost * 2.0);
+  
+  // Create water ripple effect
+  float ripple1 = sin(dist * 20.0 * audioMod - u_time * u_speed * 2.0) * amplitude;
+  float ripple2 = sin(dist * 35.0 * audioMod - u_time * u_speed * 1.5) * amplitude * 0.75;
+  float ripple3 = sin(dist * 50.0 * audioMod - u_time * u_speed * 1.2) * amplitude * 0.5;
+  
+  float pulse = sin(dist * 10.0 - u_time * u_speed * 3.0 + energyBoost) * amplitude * energyBoost * 0.5;
+  
+  float totalRipple = (ripple1 + ripple2 + ripple3 + pulse) * u_intensity;
+  
+  float colorMix = abs(totalRipple) * 15.0 * (1.0 + energyBoost * 0.5);
+  vec3 color = mix(u_bgColor, u_assetColor, colorMix);
+  
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        u_time: { value: 0 },
+        u_bgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        u_assetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        u_intensity: { value: params.intensity || 0.8 },
+        u_speed: { value: params.speed || 1.0 },
+        u_energy: { value: 0.0 }
+      },
+      transparent: false,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.u_time.value += dt * (0.6 + params.speed);
+    material.uniforms.u_intensity.value = params.intensity || 0.8;
+    material.uniforms.u_speed.value = params.speed || 1.0;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.u_energy.value = energy;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.u_assetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.u_bgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Heat Wave visual mode for preview
+ */
+function PreviewHeatWaveMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float u_time;
+uniform vec3 u_bgColor;
+uniform vec3 u_assetColor;
+uniform float u_intensity;
+uniform float u_speed;
+uniform float u_energy;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Amplify energy for stronger reactivity
+  float energyBoost = u_energy * 18.0;
+  
+  // Audio modulation
+  float waveStrength = 0.02 * (1.0 + energyBoost * 3.0);
+  float speedMod = 1.0 + energyBoost * 0.5;
+  
+  // Create heat wave effect
+  float heat1 = sin(uv.x * 15.0 + u_time * u_speed * 3.0 * speedMod) * waveStrength;
+  float heat2 = sin(uv.x * 25.0 + u_time * u_speed * 2.0 * speedMod) * waveStrength * 0.75;
+  float heat3 = sin(uv.y * 10.0 + u_time * u_speed * 1.5 * speedMod) * waveStrength * 0.5;
+  
+  float shimmer = sin(uv.x * 40.0 + u_time * u_speed * 5.0) * energyBoost * 0.01;
+  float verticalPulse = sin(uv.y * 8.0 - u_time * u_speed * 2.0 + energyBoost) * waveStrength * energyBoost * 0.3;
+  
+  float totalHeat = (heat1 + heat2 + heat3 + shimmer + verticalPulse) * u_intensity;
+  
+  float colorMix = abs(totalHeat) * 12.0 * (1.0 + energyBoost * 0.3);
+  vec3 color = mix(u_bgColor, u_assetColor, colorMix);
+  
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        u_time: { value: 0 },
+        u_bgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        u_assetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        u_intensity: { value: params.intensity || 0.8 },
+        u_speed: { value: params.speed || 1.0 },
+        u_energy: { value: 0.0 }
+      },
+      transparent: false,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.u_time.value += dt * (0.6 + params.speed);
+    material.uniforms.u_intensity.value = params.intensity || 0.8;
+    material.uniforms.u_speed.value = params.speed || 1.0;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.u_energy.value = energy;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.u_assetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.u_bgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Flowing visual mode for preview
+ */
+function PreviewFlowingMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float u_time;
+uniform vec3 u_bgColor;
+uniform vec3 u_assetColor;
+uniform float u_intensity;
+uniform float u_speed;
+uniform float u_energy;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 center = vec2(0.5, 0.5);
+  
+  // Amplify energy for stronger reactivity
+  float energyBoost = u_energy * 16.0;
+  
+  // Audio modulation
+  float flowIntensity = 1.0 + energyBoost * 2.0;
+  float amplitude = 0.02 * flowIntensity;
+  
+  // Create flowing distortion patterns
+  float flow1 = sin(uv.x * 12.0 + uv.y * 8.0 + u_time * u_speed * 2.5) * amplitude;
+  float flow2 = sin(uv.x * 18.0 - uv.y * 12.0 + u_time * u_speed * 1.8) * amplitude * 0.75;
+  
+  // Circular flow
+  float angle = atan(uv.y - center.y, uv.x - center.x);
+  float radius = distance(uv, center);
+  float circularFlow = sin(angle * 8.0 + radius * 20.0 + u_time * u_speed * 2.0) * amplitude * 0.5;
+  
+  float swirl = sin(angle * 4.0 + u_time * u_speed * 3.0 + energyBoost) * amplitude * energyBoost * 0.4;
+  float organic = sin(uv.x * 20.0 + sin(uv.y * 15.0 + u_time * u_speed)) * amplitude * 0.3;
+  
+  float totalFlow = (flow1 + flow2 + circularFlow + swirl + organic) * u_intensity;
+  
+  float colorMix = abs(totalFlow) * 14.0 * (1.0 + energyBoost * 0.4);
+  vec3 color = mix(u_bgColor, u_assetColor, colorMix);
+  
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        u_time: { value: 0 },
+        u_bgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        u_assetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        u_intensity: { value: params.intensity || 0.8 },
+        u_speed: { value: params.speed || 1.0 },
+        u_energy: { value: 0.0 }
+      },
+      transparent: false,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.u_time.value += dt * (0.6 + params.speed);
+    material.uniforms.u_intensity.value = params.intensity || 0.8;
+    material.uniforms.u_speed.value = params.speed || 1.0;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.u_energy.value = energy;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.u_assetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.u_bgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Gentle Wave visual mode for preview
+ */
+function PreviewGentleWaveMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float u_time;
+uniform vec3 u_bgColor;
+uniform vec3 u_assetColor;
+uniform float u_intensity;
+uniform float u_speed;
+uniform float u_energy;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Amplify energy but keep it gentler
+  float energyBoost = u_energy * 12.0;
+  
+  // Audio modulation - subtle
+  float waveAmp = 0.015 * (1.0 + energyBoost * 1.5);
+  
+  // Create gentle wave effect
+  float wave1 = sin(uv.x * 8.0 + u_time * u_speed * 1.5) * waveAmp;
+  float wave2 = sin(uv.y * 6.0 + u_time * u_speed * 1.2) * waveAmp * 0.8;
+  float wave3 = sin((uv.x + uv.y) * 10.0 + u_time * u_speed * 1.8) * waveAmp * 0.5;
+  
+  float pulse = sin(uv.x * 4.0 + uv.y * 4.0 - u_time * u_speed * 2.0 + energyBoost * 0.5) * waveAmp * energyBoost * 0.3;
+  float diagonal = sin((uv.x - uv.y) * 12.0 + u_time * u_speed * 2.2) * waveAmp * 0.4;
+  
+  float totalWave = (wave1 + wave2 + wave3 + pulse + diagonal) * u_intensity;
+  
+  float colorMix = abs(totalWave) * 20.0 * (1.0 + energyBoost * 0.3);
+  vec3 color = mix(u_bgColor, u_assetColor, colorMix);
+  
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        u_time: { value: 0 },
+        u_bgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        u_assetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        u_intensity: { value: params.intensity || 0.8 },
+        u_speed: { value: params.speed || 1.0 },
+        u_energy: { value: 0.0 }
+      },
+      transparent: false,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.u_time.value += dt * (0.6 + params.speed);
+    material.uniforms.u_intensity.value = params.intensity || 0.8;
+    material.uniforms.u_speed.value = params.speed || 1.0;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.u_energy.value = energy;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.u_assetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.u_bgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Silk Veil visual mode for preview
+ */
+function PreviewSilkVeilMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uTurbulence;
+uniform float uShimmer;
+varying vec2 vUv;
+
+// Simplified noise for flowing silk
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Create flowing silk with depth - multi-octave noise for organic waves
+  float wave1 = noise(vec2(uv.x * 2.5 + uTime * 0.25, uv.y * 2.5 - uTime * 0.15));
+  float wave2 = noise(vec2(uv.x * 3.5 - uTime * 0.2, uv.y * 3.5 + uTime * 0.1)) * 0.5;
+  float wave3 = noise(vec2(uv.x * 1.5 + uTime * 0.3, uv.y * 1.5)) * 0.3;
+  
+  // Combine waves to simulate 3D displacement
+  float displacement = (wave1 + wave2 + wave3) * uTurbulence;
+  
+  // Create lighting effect based on displacement gradient (simulating surface normals)
+  float dx = noise(vec2(uv.x * 2.5 + 0.01 + uTime * 0.25, uv.y * 2.5 - uTime * 0.15)) - wave1;
+  float dy = noise(vec2(uv.x * 2.5 + uTime * 0.25, uv.y * 2.5 + 0.01 - uTime * 0.15)) - wave1;
+  
+  // Simulate lighting from displacement (valleys darker, peaks lighter)
+  float lighting = 0.5 + displacement * 0.8 - (dx + dy) * 0.3;
+  
+  // Fresnel-like shimmer (viewing angle effect)
+  float centerDist = length(uv - 0.5);
+  float fresnel = smoothstep(0.8, 0.2, centerDist) * 0.4;
+  
+  // Fine shimmer detail
+  float shimmer = noise(uv * 8.0 + uTime * uShimmer * 0.5) * 0.2;
+  
+  // Combine lighting effects
+  float pattern = lighting + fresnel + shimmer;
+  
+  // Mix colors with smooth blending based on lighting
+  vec3 baseColor = mix(uBgColor, uAssetColor, 0.4);
+  vec3 highlightColor = mix(uAssetColor, vec3(1.0), 0.3);
+  vec3 color = mix(baseColor, highlightColor, smoothstep(0.3, 0.8, pattern));
+  
+  // Soft constant alpha for translucent silk
+  float alpha = uIntensity * 0.75;
+  
+  gl_FragColor = vec4(color, alpha);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: params.intensity || 0.8 },
+        uTurbulence: { value: 0.5 },
+        uShimmer: { value: 1.0 }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uTurbulence.value = 0.3 + energy * 0.5;
+    material.uniforms.uShimmer.value = 1.0 + energy * 2.0;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Lotus Bloom visual mode for preview
+ */
+function PreviewLotusBloomMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+#define PI 3.14159265359
+
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uPetalScale;
+uniform float uRotation;
+varying vec2 vUv;
+
+// Distance field for petal shape (heart-shaped)
+float petalSDF(vec2 p, float size) {
+  float a = atan(p.y, p.x);
+  float r = length(p);
+  float shape = size * (sin(a) + 0.5 * sin(3.0 * a));
+  return r - abs(shape);
+}
+
+void main() {
+  // Center coordinates
+  vec2 uv = (vUv - 0.5) * 4.0; // Adjust scale for visibility
+  
+  // Apply rotation
+  float angle = uRotation + uTime * 0.15;
+  mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+  uv = rot * uv;
+  
+  float radius = length(uv);
+  float theta = atan(uv.y, uv.x);
+  
+  // 8-fold symmetry for lotus
+  int symmetry = 8;
+  float symmetryAngle = 2.0 * PI / float(symmetry);
+  float petalIndex = floor((theta + PI) / symmetryAngle);
+  float petalAngle = mod(theta, symmetryAngle) - symmetryAngle * 0.5;
+  
+  // Individual petal animation
+  float petalPhase = sin(uTime * 2.0 + petalIndex * 0.5) * 0.5 + 0.5;
+  float animatedScale = uPetalScale * (0.8 + petalPhase * 0.4);
+  
+  // Petal rotation per petal
+  float petalRotation = sin(uTime * 1.5 + petalIndex * 0.7) * 0.15;
+  float ca = cos(petalRotation);
+  float sa = sin(petalRotation);
+  mat2 petalRot = mat2(ca, -sa, sa, ca);
+  
+  // Create petal coordinates
+  vec2 petalPos = vec2(cos(petalAngle), sin(petalAngle)) * radius;
+  petalPos = petalRot * petalPos;
+  
+  // Petal distance field
+  float petalDist = petalSDF(petalPos, 0.6 * animatedScale);
+  
+  // Petal fill and outline
+  float petal = smoothstep(0.05, -0.05, petalDist);
+  float outline = smoothstep(0.02, 0.0, abs(petalDist + 0.03));
+  
+  // Subdivision rings
+  float ringDist = mod(radius, 0.4);
+  float ring = smoothstep(0.05, 0.0, abs(ringDist - 0.2)) * 0.5;
+  
+  // Center glow
+  float centerGlow = smoothstep(1.0, 0.0, radius) * 0.6;
+  
+  // Combine all elements
+  float pattern = max(petal * 0.4, outline * 1.5) + ring + centerGlow;
+  pattern = clamp(pattern, 0.0, 1.0);
+  
+  // Color mixing
+  vec3 color = mix(uBgColor, uAssetColor, pattern);
+  
+  // Additive rim lighting on petals
+  color += outline * 2.0 * uAssetColor;
+  
+  float alpha = pattern * uIntensity;
+  
+  gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: params.intensity || 0.8 },
+        uPetalScale: { value: 1.0 },
+        uRotation: { value: 0 }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uPetalScale.value = 0.8 + energy * 0.4;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Stained Glass Rose visual mode for preview
+ */
+function PreviewStainedGlassRoseMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+#define PI 3.14159265359
+
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uBloom;
+uniform float uRayLength;
+varying vec2 vUv;
+
+void main() {
+  vec2 uv = (vUv - 0.5) * 4.0;
+  
+  // Rotating rosette
+  float angle = uTime * 0.1;
+  mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+  uv = rot * uv;
+  
+  float radius = length(uv);
+  float theta = atan(uv.y, uv.x);
+  
+  // 12-petal rosette
+  float petals = 12.0;
+  float petalAngle = PI * 2.0 / petals;
+  float localAngle = mod(theta + PI / petals, petalAngle) - petalAngle * 0.5;
+  float petalShape = cos(localAngle * petals * 0.5) * 0.5 + 0.5;
+  petalShape = pow(petalShape, 2.0);
+  
+  float pattern = petalShape * (1.0 - smoothstep(0.5, 2.0, radius));
+  
+  // Radial bands
+  float bands = smoothstep(0.05, 0.0, abs(fract(radius * 0.5) - 0.5));
+  pattern = max(pattern, bands * 0.5);
+  
+  // God rays
+  vec2 dir = vUv - vec2(0.5);
+  float rayDist = length(dir);
+  float ray = (1.0 - rayDist) * uRayLength * 0.3;
+  
+  vec3 color = mix(uBgColor, uAssetColor, pattern);
+  color += ray * uAssetColor * uBloom;
+  
+  gl_FragColor = vec4(color, (pattern + ray * 0.5) * uIntensity);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: params.intensity || 0.8 },
+        uBloom: { value: 0.5 },
+        uRayLength: { value: 0.5 }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uBloom.value = 0.3 + energy * 0.7;
+    material.uniforms.uRayLength.value = 0.3 + energy * 0.5;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Ink & Water visual mode for preview
+ */
+function PreviewInkWaterMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uDiffusion;
+varying vec2 vUv;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Lava lamp blob movement
+  vec2 blob1Pos = vec2(
+    0.5 + sin(uTime * 0.15) * 0.25,
+    0.5 + cos(uTime * 0.12) * 0.25
+  );
+  
+  vec2 blob2Pos = vec2(
+    0.5 - sin(uTime * 0.18) * 0.2,
+    0.5 + sin(uTime * 0.16) * 0.2
+  );
+  
+  float noise1 = noise(uv * 3.0 + uTime * 0.1);
+  float noise2 = noise(uv * 5.0 - uTime * 0.15);
+  
+  float dist1 = length(uv - blob1Pos) - noise1 * 0.08;
+  float dist2 = length(uv - blob2Pos) - noise2 * 0.06;
+  
+  float size1 = 0.15 + uDiffusion * 0.1;
+  float size2 = 0.12 + uDiffusion * 0.08;
+  
+  float blob1 = smoothstep(size1 + 0.1, size1 - 0.05, dist1);
+  float blob2 = smoothstep(size2 + 0.1, size2 - 0.05, dist2);
+  
+  float blobs = smoothstep(0.3, 0.8, blob1 + blob2);
+  
+  vec3 color = mix(uBgColor, uAssetColor, blobs);
+  
+  gl_FragColor = vec4(color, blobs * uIntensity);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: params.intensity || 0.8 },
+        uDiffusion: { value: 1.0 }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uDiffusion.value = 0.8 + energy * 0.4;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Opaline Wave visual mode for preview
+ */
+function PreviewOpalineWaveMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uFlowSpeed;
+uniform float uShimmer;
+varying vec2 vUv;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+vec2 rotate2D(vec2 p, float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Swirling flow
+  vec2 center = vec2(0.5);
+  vec2 toCenter = uv - center;
+  float dist = length(toCenter);
+  float angle = atan(toCenter.y, toCenter.x);
+  
+  float swirlAngle = uFlowSpeed * (1.0 - dist) * sin(uTime * 0.3);
+  vec2 swirled = center + rotate2D(toCenter, swirlAngle);
+  
+  // Layered noise for oil-on-water effect
+  float pattern1 = noise(swirled * 2.0 + uTime * 0.1);
+  float pattern2 = noise(swirled * 3.0 - uTime * 0.08);
+  
+  float thickness = smoothstep(0.2, 0.8, pattern1 * 0.6 + pattern2 * 0.4);
+  
+  // Shimmer detail
+  float shimmer = noise(swirled * 8.0 + uTime * uShimmer * 2.0) * 0.2;
+  thickness += shimmer;
+  
+  // Iridescent edges
+  float edge = smoothstep(0.4, 0.6, abs(pattern1 - pattern2)) * 0.3;
+  
+  vec3 color = mix(uBgColor, uAssetColor, thickness + edge);
+  
+  gl_FragColor = vec4(color, uIntensity);
+}
+`;
+  
+  const vertexShader = `
+varying vec2 vUv;
+void main(){ 
+  vUv = uv; 
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+}
+`;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      fragmentShader,
+      vertexShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Vector3(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Vector3(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: params.intensity || 0.8 },
+        uFlowSpeed: { value: 1.0 },
+        uShimmer: { value: 1.0 }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (0.6 + params.speed);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    
+    const energy = (music?.energy ?? 0) * params.musicReact;
+    material.uniforms.uFlowSpeed.value = 1.0 + energy * 1.5;
+    material.uniforms.uShimmer.value = 1.0 + energy * 2.0;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
 }
 
 /**
