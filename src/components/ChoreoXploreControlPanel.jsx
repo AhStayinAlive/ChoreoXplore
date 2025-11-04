@@ -180,6 +180,7 @@ export default function ChoreoXploreControlPanel() {
             step={0.01}
             format={(v) => Math.round(v * 100).toString()}
             onChange={(value) => handleParamChange('speed', value)}
+            showValue={false}
           />
         </div>
 
@@ -193,6 +194,7 @@ export default function ChoreoXploreControlPanel() {
             step={0.05}
             format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('intensity', value)}
+            showValue={false}
           />
         </div>
 
@@ -207,6 +209,7 @@ export default function ChoreoXploreControlPanel() {
             step={0.05}
             format={(v) => v.toFixed(2)}
             onChange={(value) => handleParamChange('musicReact', value)}
+            showValue={false}
           />
         </div>
 
