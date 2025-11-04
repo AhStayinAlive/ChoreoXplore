@@ -9,6 +9,7 @@ import WaterRippleMode from './WaterRippleMode';
 import HeatWaveMode from './HeatWaveMode';
 import FlowingMode from './FlowingMode';
 import GentleWaveMode from './GentleWaveMode';
+import EmptyMode from './EmptyMode';
 
 export default function ChoreoXploreSystem() {
   const motion = useVisStore(s => s.motion);
@@ -34,6 +35,8 @@ export default function ChoreoXploreSystem() {
       return <FlowingMode />;
     case 'gentle_wave':
       return <GentleWaveMode />;
+    case 'empty':
+      return <EmptyMode />;
     default:
       return <ChoreoXplore />;
   }

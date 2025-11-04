@@ -152,7 +152,7 @@ export default function ChoreoXploreControlPanel() {
                 e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
               }}
             >
-              <option value="lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lines</option>
+              <option value="empty" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Empty</option>
               <option value="quand_cest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Quand C'est</option>
               <option value="pulsating_circle" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Pulsating Circle</option>
               <option value="vertical_lines" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Raindrop</option>
