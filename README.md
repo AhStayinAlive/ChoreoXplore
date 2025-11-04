@@ -7,6 +7,11 @@ A real-time motion tracking and visual effects application that combines pose de
 - **Real-time Pose Tracking**: MediaPipe-powered skeleton detection with responsive avatar
 - **AI-Powered Analysis**: Sentiment analysis and visual recommendations for song lyrics
 - **3D Visualizations**: Three.js-powered 3D canvas with motion-reactive effects
+- **Hand Effects**: Advanced hand tracking effects including:
+  - **WebGL Fluid Simulation**: Real-time fluid dynamics mapped to hand movements
+  - **Ripple Effects**: Animated water-like ripples following hands
+  - **Smoke Trails**: Particle-based smoke effects
+  - **Fluid Distortion**: Post-processing fluid distortion
 - **Multiple Input Sources**: YouTube links, file uploads, and manual lyrics input
 - **Dynamic Scaling**: Avatar automatically scales based on distance from camera
 - **Clean Interface**: Intuitive controls for motion sensitivity and visual effects
@@ -88,6 +93,24 @@ A real-time motion tracking and visual effects application that combines pose de
 2. **Adjust parameters** using the sliders
 3. **Enable reactivity** to make effects respond to your movements
 4. **Experiment** with different presets and settings
+
+### Hand Effects
+
+ChoreoXplore includes advanced hand tracking effects that follow your hand movements:
+
+1. **WebGL Fluid Simulation** - Real-time fluid dynamics with physics-based simulation
+   - See [WEBGL_FLUID_INTEGRATION.md](WEBGL_FLUID_INTEGRATION.md) for detailed documentation
+   - Adapted from [Pavel Dogreat's WebGL Fluid Simulation](https://github.com/PavelDoGreat/WebGL-Fluid-Simulation)
+   - Features: Curl/vorticity, pressure solving, advection, colorful mode
+2. **Ripple Effect** - Animated water-like ripples
+3. **Smoke Effect** - Particle-based smoke trails
+4. **Fluid Distortion** - Post-processing fluid distortion effect
+
+To use hand effects:
+1. Open the **Hand Effects Panel** on the right side
+2. Select an **Effect Type** from the dropdown
+3. Choose which hand(s) to track: Left, Right, or Both
+4. Adjust parameters to customize the effect
 
 ## 🔧 Advanced Setup
 
