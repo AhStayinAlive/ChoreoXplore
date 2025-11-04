@@ -5,6 +5,7 @@ import "@xyflow/react/dist/style.css";
 import App from "./App.jsx";
 import { wireThemeToStore } from "./integrations/themeToStore";
 import { initSpotifyDrivenTheme } from "./integrations/spotifyThemeBootstrap";
+import { initAutoThrottle } from "./utils/autoThrottle";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) console.error("No #root div found in index.html");
@@ -18,3 +19,4 @@ createRoot(rootEl).render(
 // Initialize integrations after render
 wireThemeToStore();
 initSpotifyDrivenTheme();
+initAutoThrottle();

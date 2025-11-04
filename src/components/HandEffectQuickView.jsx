@@ -9,6 +9,13 @@ import {
   handRippleUniforms
 } from '../shaders/handRippleShader';
 
+// Import actual mode components
+import SilkVeilMode from '../modes/SilkVeil/SilkVeilMode';
+import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
+import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
+import InkWaterMode from '../modes/InkWater/InkWaterMode';
+import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
+
 // Constants for positioning and animation
 const PREVIEW_WIDTH = 400;
 const PREVIEW_HEIGHT = 300;
@@ -49,6 +56,23 @@ function PreviewBackgroundVisual() {
       return <PreviewLines1DMode />;
     case 'empty':
       return null; // Empty mode renders nothing
+    // New modes - render actual modes
+    case 'silk_veil':
+      return <SilkVeilMode />;
+    case 'lotus_bloom':
+      return <LotusBloomMode />;
+    case 'stained_glass_rose':
+      return <StainedGlassRoseMode />;
+    case 'ink_water':
+      return <InkWaterMode />;
+    case 'opaline_wave':
+      return <OpalineWaveMode />;
+    // Other modes use QuandCest as preview
+    case 'water_ripple':
+    case 'heat_wave':
+    case 'flowing':
+    case 'gentle_wave':
+      return <PreviewQuandCestMode />;
     default:
       return <PreviewQuandCestMode />; // Default to quand_cest
   }
