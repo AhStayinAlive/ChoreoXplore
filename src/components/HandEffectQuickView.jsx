@@ -15,6 +15,12 @@ import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
 import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
 import InkWaterMode from '../modes/InkWater/InkWaterMode';
 import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
+import PulsatingCircleMode from './PulsatingCircleMode';
+import VerticalLinesMode from './VerticalLinesMode';
+import WaterRippleMode from './WaterRippleMode';
+import HeatWaveMode from './HeatWaveMode';
+import FlowingMode from './FlowingMode';
+import GentleWaveMode from './GentleWaveMode';
 
 // Constants for positioning and animation
 const PREVIEW_WIDTH = 400;
@@ -49,14 +55,17 @@ function PreviewBackgroundVisual() {
     case 'quand_cest':
       return <PreviewQuandCestMode />;
     case 'pulsating_circle':
-      return <PreviewPulsatingCircleMode />;
+      return <PulsatingCircleMode />;
     case 'vertical_lines':
-      return <PreviewVerticalLinesMode />;
-    case 'lines':
-      return <PreviewLines1DMode />;
-    case 'empty':
-      return null; // Empty mode renders nothing
-    // New modes - render actual modes
+      return <VerticalLinesMode />;
+    case 'water_ripple':
+      return <WaterRippleMode />;
+    case 'heat_wave':
+      return <HeatWaveMode />;
+    case 'flowing':
+      return <FlowingMode />;
+    case 'gentle_wave':
+      return <GentleWaveMode />;
     case 'silk_veil':
       return <SilkVeilMode />;
     case 'lotus_bloom':
@@ -67,12 +76,8 @@ function PreviewBackgroundVisual() {
       return <InkWaterMode />;
     case 'opaline_wave':
       return <OpalineWaveMode />;
-    // Other modes use QuandCest as preview
-    case 'water_ripple':
-    case 'heat_wave':
-    case 'flowing':
-    case 'gentle_wave':
-      return <PreviewQuandCestMode />;
+    case 'empty':
+      return null; // Empty mode renders nothing
     default:
       return <PreviewQuandCestMode />; // Default to quand_cest
   }
@@ -214,24 +219,6 @@ void main(){
   });
 
   return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
-}
-
-/**
- * Simplified preview versions of other visual modes
- */
-function PreviewPulsatingCircleMode() {
-  // Simplified pulsating circle for preview
-  return null; // TODO: Implement if needed
-}
-
-function PreviewVerticalLinesMode() {
-  // Simplified vertical lines for preview
-  return null; // TODO: Implement if needed
-}
-
-function PreviewLines1DMode() {
-  // Simplified lines 1D for preview
-  return null; // TODO: Implement if needed
 }
 
 /**
