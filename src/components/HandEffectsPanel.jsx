@@ -1,7 +1,6 @@
 import { useVisStore } from "../state/useVisStore";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
-import { useEffect, useState } from "react";
 
 export default function HandEffectsPanel() {
   // Subscribe to the entire store state to ensure we catch all updates
@@ -43,6 +42,18 @@ export default function HandEffectsPanel() {
         ...handEffect, 
         fluidDistortion: { 
           ...(handEffect.fluidDistortion || {}),  // Safe fallback
+          ...updates 
+        } 
+      } 
+    });
+  };
+
+  const handleLightningChange = (updates) => {
+    setParams({ 
+      handEffect: { 
+        ...handEffect, 
+        lightning: { 
+          ...(handEffect.lightning || {}),  // Safe fallback
           ...updates 
         } 
       } 
@@ -123,6 +134,7 @@ export default function HandEffectsPanel() {
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
             <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Particle Trail</option>
+            <option value="lightning" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lightning Effect</option>
           </select>
         </div>
 
@@ -564,6 +576,124 @@ export default function HandEffectsPanel() {
                 })}
               />
             </div>
+          </div>
+        )}
+        {/* Lightning Effect Settings */}
+        {handEffect.type === 'lightning' && handEffect.handSelection !== 'none' && (
+          <div style={{ marginBottom: 16 }}>
+            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Lightning Settings</h4>
+            
+            {/* Lightning Color */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', color: 'white', fontSize: '11px', marginBottom: '6px', fontWeight: '400' }}>
+                Lightning Color
+              </label>
+              <input
+                type="color"
+                value={handEffect.lightning?.color || '#00ffff'}
+                onChange={(e) => handleLightningChange({ color: e.target.value })}
+                style={{
+                  width: '100%',
+                  height: '32px',
+                  border: '1px solid rgba(0, 150, 255, 0.3)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: 'transparent'
+                }}
+              />
+            </div>
+
+            {/* Intensity */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Intensity"
+                value={handEffect.lightning?.intensity || 0.8}
+                min={0.1}
+                max={1}
+                step={0.05}
+                showValue={false}
+                onChange={(val) => handleLightningChange({ intensity: val })}
+              />
+            </div>
+
+            {/* Thickness */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Thickness"
+                value={handEffect.lightning?.thickness || 0.15}
+                min={0.05}
+                max={0.5}
+                step={0.05}
+                showValue={false}
+                onChange={(val) => handleLightningChange({ thickness: val })}
+              />
+            </div>
+
+            {/* Segments */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Segments"
+                value={handEffect.lightning?.segments || 20}
+                min={5}
+                max={50}
+                step={5}
+                showValue={false}
+                onChange={(val) => handleLightningChange({ segments: val })}
+              />
+            </div>
+
+            {/* Chaos/Jaggedness */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Chaos"
+                value={handEffect.lightning?.chaos || 0.5}
+                min={0.1}
+                max={2.0}
+                step={0.1}
+                showValue={false}
+                onChange={(val) => handleLightningChange({ chaos: val })}
+              />
+            </div>
+
+            {/* Flicker Speed */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Flicker Speed"
+                value={handEffect.lightning?.flickerSpeed || 1.0}
+                min={0.1}
+                max={5.0}
+                step={0.1}
+                showValue={false}
+                onChange={(val) => handleLightningChange({ flickerSpeed: val })}
+              />
+            </div>
+
+            {/* Edge Mode - only show in single hand mode */}
+            {handEffect.handSelection !== 'both' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', color: 'white', fontSize: '11px', marginBottom: '6px', fontWeight: '400' }}>
+                  Connection Target
+                </label>
+                <select
+                  value={handEffect.lightning?.edgeMode || 'corners'}
+                  onChange={(e) => handleLightningChange({ edgeMode: e.target.value })}
+                  style={dropdownStyle}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "rgba(0,150,255,0.6)";
+                    e.target.style.backgroundColor = "rgba(0,0,0,0.6)";
+                    e.target.style.boxShadow = "0 4px 12px rgba(0,150,255,0.2)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "rgba(0,150,255,0.3)";
+                    e.target.style.backgroundColor = "rgba(0,0,0,0.4)";
+                    e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+                  }}
+                >
+                  <option value="corners" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Nearest Corner</option>
+                  <option value="nearest" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Nearest Edge</option>
+                </select>
+              </div>
+            )}
           </div>
         )}
       </div>
