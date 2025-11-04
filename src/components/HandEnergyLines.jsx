@@ -1,6 +1,12 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useVisStore } from '../state/useVisStore';
+import usePoseDetection from '../hooks/usePoseDetection';
+import {
+  getLeftHandAnchor as getLeftHandPosition,
+  getRightHandAnchor as getRightHandPosition
+} from '../utils/handTracking';
 
 // Vertex shader with Perlin noise for lightning distortion
 const vertexShader = `
@@ -213,18 +219,36 @@ const fragmentShader = `
   }
 `;
 
-const HandEnergyLines = ({
-  leftHand = { x: 0.3, y: 0.5 },
-  rightHand = { x: 0.7, y: 0.6 },
-  colorNear = '#00ffff',
-  colorFar = '#ff00ff',
-  lineCount = 5,
-  intensity = 1.0,
-  noiseScale = 3.0,
-  amplitude = 0.05,
-  sparkleIntensity = 1.0
-}) => {
+const HandEnergyLines = () => {
   const groupRef = useRef();
+  const { poseData } = usePoseDetection();
+  const handEffect = useVisStore(s => s.params.handEffect);
+  const isActive = useVisStore(s => s.isActive);
+  
+  // Get energy lines settings with defaults
+  const energySettings = handEffect?.energyLines || {};
+  const colorNear = energySettings.colorNear || '#00ffff';
+  const colorFar = energySettings.colorFar || '#ff00ff';
+  const lineCount = energySettings.lineCount || 5;
+  const intensity = energySettings.intensity !== undefined ? energySettings.intensity : 1.0;
+  const noiseScale = energySettings.noiseScale || 3.0;
+  const amplitude = energySettings.amplitude !== undefined ? energySettings.amplitude : 0.05;
+  const sparkleIntensity = energySettings.sparkleIntensity !== undefined ? energySettings.sparkleIntensity : 1.0;
+
+  const handSelection = handEffect?.handSelection || 'none';
+  
+  // Get hand positions from pose detection
+  const leftHandPos = getLeftHandPosition(poseData?.landmarks);
+  const rightHandPos = getRightHandPosition(poseData?.landmarks);
+  
+  // Use detected positions or fallback to defaults
+  const leftHand = leftHandPos?.visibility > 0.3 
+    ? { x: leftHandPos.x, y: leftHandPos.y }
+    : { x: 0.3, y: 0.5 };
+    
+  const rightHand = rightHandPos?.visibility > 0.3
+    ? { x: rightHandPos.x, y: rightHandPos.y }
+    : { x: 0.7, y: 0.6 };
   
   // Calculate number of segments per line for smooth curves
   const segmentsPerLine = 64;
@@ -303,6 +327,12 @@ const HandEnergyLines = ({
     mat.uniforms.uAmplitude.value = amplitude;
     mat.uniforms.uSparkleIntensity.value = sparkleIntensity;
   });
+  
+  // Don't render if no hands are enabled or ChoreoXplore is not active
+  // For energy lines, we need both hands (it connects them)
+  if (handSelection === 'none' || handSelection === 'left' || handSelection === 'right' || !isActive) {
+    return null;
+  }
   
   return (
     <lineSegments ref={groupRef} geometry={geometry} material={material} />
