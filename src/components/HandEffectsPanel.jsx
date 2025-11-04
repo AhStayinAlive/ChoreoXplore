@@ -549,6 +549,21 @@ export default function HandEffectsPanel() {
                 })}
               />
             </div>
+
+            {/* Smoothness */}
+            <div style={{ marginBottom: 12 }}>
+              <Slider
+                label="Smoothness"
+                value={handEffect.particleTrail?.smoothness || 0.15}
+                min={0.05}
+                max={0.4}
+                step={0.01}
+                showValue={false}
+                onChange={(val) => handleEffectChange({
+                  particleTrail: { ...handEffect.particleTrail, smoothness: val }
+                })}
+              />
+            </div>
           </div>
         )}
       </div>
