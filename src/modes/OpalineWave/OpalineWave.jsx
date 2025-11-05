@@ -8,8 +8,10 @@
  * - high → shimmer speed (fine iridescent ripples)
  * 
  * Motion mapping (when motionReactive is true):
- * - hand positions → affects flow direction and swirl centers
- * - hand velocity → flow intensity and shimmer speed
+ * - hand positions → soft push/pull displacement (like moving fog on glass)
+ * - hand velocity → displacement strength and reach
+ * - NO rotation or vortices: strictly laminar (smooth, straight) drag
+ * - Hands translate, compress, and stretch the wave layer
  */
 
 import React, { useMemo, useRef } from 'react';
@@ -179,9 +181,9 @@ void main() {
   // Domain-warped coordinates for oil-on-water swirls with rotation
   vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5, swirlIntensity);
   
-  // Add hand-influenced swirl centers when in motion mode
+  // Add hand-influenced displacement when in motion mode
   if (uMotionReactive) {
-    // Create swirl effects around each hand position
+    // Hands act as soft push/pull brushes - no rotation, only displacement
     vec2 leftHandUV = vec2(uLeftHandPos.x, 1.0 - uLeftHandPos.y);
     vec2 rightHandUV = vec2(uRightHandPos.x, 1.0 - uRightHandPos.y);
     
@@ -191,50 +193,53 @@ void main() {
     float distLeft = length(toLeftHand);
     float distRight = length(toRightHand);
     
-    // Influence radius scales with swirl size and velocity
-    float leftRadius = 0.3 + uLeftHandVelocity * 0.4;
-    float rightRadius = 0.3 + uRightHandVelocity * 0.4;
+    // Influence radius scales with velocity
+    float leftRadius = 0.35 + uLeftHandVelocity * 0.3;
+    float rightRadius = 0.35 + uRightHandVelocity * 0.3;
     
     // Two-hand interactions: stretch/squeeze effect
     float handDist = uHandDistance;
     float stretchFactor = smoothstep(0.2, 0.6, handDist); // Hands far apart = stretch
     float squeezeFactor = 1.0 - smoothstep(0.1, 0.3, handDist); // Hands close = squeeze
     
-    // Apply hand-based swirls with smooth, elastic deformation
+    // Apply hand-based displacement with smooth, laminar flow
     vec2 finalWarpedUV = warpedUV;
     
-    // Left hand influence with trail memory
+    // Left hand influence with trail memory - push/pull only
     if (distLeft < leftRadius) {
       float leftInfluence = smoothstep(leftRadius, 0.0, distLeft); // Soft edge
       float leftVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uLeftHandVelocity));
       
-      // Swirl strength with afterglow (memory factor)
-      float leftSwirlStrength = leftInfluence * leftVelFactor * uTrailDecay;
+      // Displacement strength with afterglow (memory factor)
+      float leftDisplacementStrength = leftInfluence * leftVelFactor * uTrailDecay;
       
-      // Rotation with time variation for living, breathing quality
-      float leftRotation = leftSwirlStrength * (sin(uTime * 0.3) * 0.5 + 0.5) * 3.0;
-      vec2 leftSwirled = leftHandUV + rotate2D(toLeftHand, leftRotation);
+      // Smooth laminar displacement - like pushing fog on glass
+      // Push away from hand center (radial displacement)
+      vec2 displacementDir = normalize(toLeftHand);
+      float displacementAmount = leftDisplacementStrength * 0.15;
+      vec2 leftDisplaced = warpedUV + displacementDir * displacementAmount;
       
       // Gentle blend with elastic feel
-      float leftBlend = leftInfluence * 0.6 * uHandInfluence;
-      finalWarpedUV = mix(finalWarpedUV, leftSwirled, leftBlend);
+      float leftBlend = leftInfluence * 0.5 * uHandInfluence;
+      finalWarpedUV = mix(finalWarpedUV, leftDisplaced, leftBlend);
     }
     
-    // Right hand influence with trail memory
+    // Right hand influence with trail memory - push/pull only
     if (distRight < rightRadius) {
       float rightInfluence = smoothstep(rightRadius, 0.0, distRight); // Soft edge
       float rightVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uRightHandVelocity));
       
-      // Swirl strength with afterglow
-      float rightSwirlStrength = rightInfluence * rightVelFactor * uTrailDecay;
+      // Displacement strength with afterglow
+      float rightDisplacementStrength = rightInfluence * rightVelFactor * uTrailDecay;
       
-      // Rotation with time variation
-      float rightRotation = rightSwirlStrength * (sin(uTime * 0.35) * 0.5 + 0.5) * 3.0;
-      vec2 rightSwirled = rightHandUV + rotate2D(toRightHand, rightRotation);
+      // Smooth laminar displacement
+      vec2 displacementDir = normalize(toRightHand);
+      float displacementAmount = rightDisplacementStrength * 0.15;
+      vec2 rightDisplaced = warpedUV + displacementDir * displacementAmount;
       
       // Gentle blend
-      float rightBlend = rightInfluence * 0.6 * uHandInfluence;
-      finalWarpedUV = mix(finalWarpedUV, rightSwirled, rightBlend);
+      float rightBlend = rightInfluence * 0.5 * uHandInfluence;
+      finalWarpedUV = mix(finalWarpedUV, rightDisplaced, rightBlend);
     }
     
     // Apply stretch/squeeze between hands
