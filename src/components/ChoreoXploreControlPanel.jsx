@@ -2,6 +2,7 @@ import { useVisStore } from "../state/useVisStore";
 import useStore from "../core/store";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
+import OpalineFilmPanel from "../modes/OpalineFilm/OpalineFilmPanel";
 
 export default function ChoreoXploreControlPanel() {
   const music = useVisStore(s => s.music);
@@ -212,6 +213,9 @@ export default function ChoreoXploreControlPanel() {
             showValue={false}
           />
         </div>
+
+        {/* Mode-specific panels */}
+        {params.mode === 'opaline_film' && <OpalineFilmPanel />}
 
       </div>
     </div>

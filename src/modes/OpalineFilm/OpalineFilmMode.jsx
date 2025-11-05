@@ -365,6 +365,9 @@ const DEFAULT_PARAMS = {
   preset: null                   // 'pastel' | 'neon' | 'minimal'
 };
 
+// Performance constants
+const MAX_DELTA_TIME = 0.1; // Maximum delta time to clamp (100ms) - prevents huge jumps when tab is backgrounded
+
 export default function OpalineFilmMode() {
   const { gl } = useThree();
   const params = useVisStore(s => s.params);
@@ -403,18 +406,29 @@ export default function OpalineFilmMode() {
   const [renderTargets, setRenderTargets] = useState(null);
   
   useEffect(() => {
+    // Check for float texture support and fallback if necessary
+    const floatExt = gl.getExtension('OES_texture_float');
+    const halfFloatExt = gl.getExtension('OES_texture_half_float');
+    
+    let textureType = THREE.UnsignedByteType; // Safe fallback
+    if (floatExt) {
+      textureType = THREE.FloatType;
+    } else if (halfFloatExt) {
+      textureType = THREE.HalfFloatType;
+    }
+    
     const rt1 = new THREE.WebGLRenderTarget(resolution, resolution, {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
-      type: THREE.FloatType
+      type: textureType
     });
     
     const rt2 = new THREE.WebGLRenderTarget(resolution, resolution, {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
-      type: THREE.FloatType
+      type: textureType
     });
     
     // Initialize with some base thickness
@@ -625,7 +639,7 @@ export default function OpalineFilmMode() {
     // 2. Advection
     advectionMaterial.uniforms.uThickness.value = rt2.texture;
     advectionMaterial.uniforms.uTime.value = timeRef.current;
-    advectionMaterial.uniforms.uDeltaTime.value = Math.min(dt, 0.1);
+    advectionMaterial.uniforms.uDeltaTime.value = Math.min(dt, MAX_DELTA_TIME);
     advectionMaterial.uniforms.uBanding.value = banding;
     advectionMaterial.uniforms.uFlowSpeed.value = speed;
     advectionMaterial.uniforms.uHandLeft.value = leftHandUV;
