@@ -1,20 +1,25 @@
 /**
- * Opaline Wave Mode
- * Silky, pastel, oil-on-water swirls with iridescent rims
+ * Opaline Wave Mode - Cloudlet Physics System
+ * Field of separate cloud/swirl objects with light physics and interactions
  * 
- * Audio mapping (when motionReactive is false):
- * - low → base flow strength (big slow bends)
- * - mid → advection/scroll speed (overall motion)
- * - high → shimmer speed (fine iridescent ripples)
+ * Audio mapping:
+ * - Loudness → slight size/brightness breathing per cloudlet
+ * - Treble → brief shimmer on contact/collision
+ * - Beat → tiny settle/float pulses
  * 
  * Motion mapping (when motionReactive is true):
- * - hand positions → soft push/pull displacement (like moving fog on glass)
- * - hand velocity → displacement strength and reach
- * - NO rotation or vortices: strictly laminar (smooth, straight) drag
- * - Hands translate, compress, and stretch the wave layer
+ * - Tap/Hold → grab cloudlet softly
+ * - Drag → move individual cloudlet, nudge nearby ones on contact
+ * - Flick → gentle throw with drift and bumps
+ * - Two-hand herd → guide cluster without moving whole scene
+ * 
+ * Physics:
+ * - Each cloudlet is independent with position, velocity
+ * - Soft collisions with slight intermixing
+ * - No global plane warp - only objects move
  */
 
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
@@ -27,48 +32,55 @@ import {
   smoothHandPosition
 } from '../../utils/handTracking';
 
-// Simplified shader without FBOs
-const vertexShader = `
+// Cloudlet shader - soft circular blobs
+const cloudletVertexShader = `
+attribute vec3 instancePosition;
+attribute float instanceSize;
+attribute float instanceRotation;
+attribute vec3 instanceColor;
+attribute float instanceAlpha;
+
 varying vec2 vUv;
+varying vec3 vColor;
+varying float vAlpha;
 
 void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vUv = uv - 0.5;
+  vColor = instanceColor;
+  vAlpha = instanceAlpha;
+  
+  // Rotate and scale based on instance attributes
+  vec3 pos = position;
+  pos.xy *= instanceSize;
+  
+  // Apply rotation
+  float c = cos(instanceRotation);
+  float s = sin(instanceRotation);
+  pos.xy = vec2(pos.x * c - pos.y * s, pos.x * s + pos.y * c);
+  
+  // Translate to instance position
+  pos += instancePosition;
+  
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }
 `;
 
-const fragmentShader = `
+const cloudletFragmentShader = `
 uniform float uTime;
-uniform float uLowFreq;
-uniform float uMidFreq;
-uniform float uHighFreq;
-uniform float uMusicReact;
-uniform vec3 uBgColor;
-uniform vec3 uAssetColor;
-uniform float uTransparency;
 uniform bool uRainbowMode;
-uniform float uColorSpread;
-uniform float uShimmerSpeed;
-uniform bool uMotionReactive;
-uniform vec2 uLeftHandPos;
-uniform vec2 uRightHandPos;
-uniform float uLeftHandVelocity;
-uniform float uRightHandVelocity;
-uniform float uHandInfluence;         // How much hands affect vs music (0-1)
-uniform float uTrailDecay;            // How fast trails fade (0-1)
-uniform float uHandDistance;          // Distance between hands
-uniform float uSmoothness;            // Overall smoothness factor
+uniform float uShimmer;
 
 varying vec2 vUv;
+varying vec3 vColor;
+varying float vAlpha;
 
-// Hash for noise
+// Simple noise for soft blob texture
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
   return fract(p.x * p.y);
 }
 
-// Smooth noise
 float noise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
@@ -82,245 +94,170 @@ float noise(vec2 p) {
   return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-// Fractal noise
-float fbm(vec2 p, int octaves) {
-  float value = 0.0;
-  float amplitude = 0.5;
-  float frequency = 1.0;
-  
-  for(int i = 0; i < 4; i++) {
-    if(i >= octaves) break;
-    value += amplitude * noise(p * frequency);
-    frequency *= 2.0;
-    amplitude *= 0.5;
-  }
-  
-  return value;
-}
-
-// HSV to RGB
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-// Rotation matrix for swirls
-vec2 rotate2D(vec2 p, float angle) {
-  float c = cos(angle);
-  float s = sin(angle);
-  return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
-}
-
-// Domain warping for oil-on-water effect with swirl
-vec2 domainWarp(vec2 p, float time, float strength, float swirlStrength) {
-  vec2 q = vec2(
-    fbm(p + vec2(0.0, 0.0), 4),
-    fbm(p + vec2(5.2, 1.3), 4)
-  );
-  
-  // Add swirling motion
-  vec2 center = vec2(0.5, 0.5);
-  vec2 toCenter = p - center;
-  float dist = length(toCenter);
-  float angle = atan(toCenter.y, toCenter.x);
-  
-  // Spiral swirl based on distance and time
-  float swirlAngle = swirlStrength * (1.0 - dist) * (sin(time * 0.3) * 0.5 + 0.5);
-  vec2 swirled = center + rotate2D(toCenter, swirlAngle);
-  
-  vec2 r = vec2(
-    fbm(swirled + 4.0 * q + vec2(1.7 + time * 0.15, 9.2), 4),
-    fbm(swirled + 4.0 * q + vec2(8.3 + time * 0.12, 2.8), 4)
-  );
-  
-  return p + strength * r;
-}
-
 void main() {
-  vec2 uv = vUv;
+  // Soft circular falloff
+  float dist = length(vUv);
+  float alpha = smoothstep(0.5, 0.2, dist);
   
-  // Base parameters from music (always present)
-  float musicFlowScale = 2.0 + uLowFreq * 2.0;
-  float musicFlowSpeed = 0.3 + uMidFreq * 0.5;
-  float musicShimmer = uHighFreq;
-  float musicSwirlIntensity = 1.5 + uMidFreq * 2.0;
+  // Add soft noise texture
+  float noiseVal = noise(vUv * 4.0 + uTime * 0.1) * 0.3 + 0.7;
+  alpha *= noiseVal;
   
-  float flowScale, flowSpeed, shimmer, swirlIntensity;
+  // Shimmer effect on edges
+  float shimmerEdge = smoothstep(0.3, 0.4, dist) * (1.0 - smoothstep(0.4, 0.5, dist));
+  vec3 color = vColor + shimmerEdge * uShimmer * vec3(0.3);
   
-  if (uMotionReactive) {
-    // Smooth velocity calculation with viscosity effect
-    // Slow movements = thick/syrupy, fast movements = light/splashy
-    float avgVelocity = (uLeftHandVelocity + uRightHandVelocity) * 0.5;
-    float viscosity = 1.0 - smoothstep(0.0, 0.5, avgVelocity); // Higher when slower
-    
-    // Hand-driven parameters with trail memory and smoothness
-    float handFlowScale = 2.0 + avgVelocity * (2.0 + viscosity);
-    float handFlowSpeed = 0.2 + avgVelocity * (0.4 - viscosity * 0.2);
-    float handShimmer = avgVelocity * (1.5 + viscosity * 0.5);
-    float handSwirlIntensity = 1.0 + avgVelocity * (2.0 + viscosity);
-    
-    // Blend music and hand parameters based on hand influence
-    // When hands are active, they take priority; when still, music returns
-    float blendFactor = uHandInfluence * smoothstep(0.0, 0.1, avgVelocity);
-    flowScale = mix(musicFlowScale, handFlowScale, blendFactor);
-    flowSpeed = mix(musicFlowSpeed, handFlowSpeed, blendFactor);
-    shimmer = mix(musicShimmer, handShimmer, blendFactor);
-    swirlIntensity = mix(musicSwirlIntensity, handSwirlIntensity, blendFactor);
-  } else {
-    // Pure audio-reactive mode
-    flowScale = musicFlowScale;
-    flowSpeed = musicFlowSpeed;
-    shimmer = musicShimmer;
-    swirlIntensity = musicSwirlIntensity;
-  }
+  // Fade based on instance alpha
+  alpha *= vAlpha;
   
-  // Apply smoothness to flow speed (gentler, more liquid feel)
-  flowSpeed *= uSmoothness;
+  if (alpha < 0.01) discard;
   
-  // Domain-warped coordinates for oil-on-water swirls with rotation
-  vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5, swirlIntensity);
-  
-  // Add hand-influenced displacement when in motion mode
-  if (uMotionReactive) {
-    // Hands act as soft push/pull brushes - no rotation, only displacement
-    vec2 leftHandUV = vec2(uLeftHandPos.x, 1.0 - uLeftHandPos.y);
-    vec2 rightHandUV = vec2(uRightHandPos.x, 1.0 - uRightHandPos.y);
-    
-    // Calculate distance from each hand with softer falloff
-    vec2 toLeftHand = warpedUV - leftHandUV;
-    vec2 toRightHand = warpedUV - rightHandUV;
-    float distLeft = length(toLeftHand);
-    float distRight = length(toRightHand);
-    
-    // Influence radius scales with velocity
-    float leftRadius = 0.35 + uLeftHandVelocity * 0.3;
-    float rightRadius = 0.35 + uRightHandVelocity * 0.3;
-    
-    // Two-hand interactions: stretch/squeeze effect
-    float handDist = uHandDistance;
-    float stretchFactor = smoothstep(0.2, 0.6, handDist); // Hands far apart = stretch
-    float squeezeFactor = 1.0 - smoothstep(0.1, 0.3, handDist); // Hands close = squeeze
-    
-    // Apply hand-based displacement with smooth, laminar flow
-    vec2 finalWarpedUV = warpedUV;
-    
-    // Left hand influence with trail memory - push/pull only
-    if (distLeft < leftRadius) {
-      float leftInfluence = smoothstep(leftRadius, 0.0, distLeft); // Soft edge
-      float leftVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uLeftHandVelocity));
-      
-      // Displacement strength with afterglow (memory factor)
-      float leftDisplacementStrength = leftInfluence * leftVelFactor * uTrailDecay;
-      
-      // Smooth laminar displacement - like pushing fog on glass
-      // Push away from hand center (radial displacement)
-      vec2 displacementDir = normalize(toLeftHand);
-      float displacementAmount = leftDisplacementStrength * 0.15;
-      vec2 leftDisplaced = warpedUV + displacementDir * displacementAmount;
-      
-      // Gentle blend with elastic feel
-      float leftBlend = leftInfluence * 0.5 * uHandInfluence;
-      finalWarpedUV = mix(finalWarpedUV, leftDisplaced, leftBlend);
-    }
-    
-    // Right hand influence with trail memory - push/pull only
-    if (distRight < rightRadius) {
-      float rightInfluence = smoothstep(rightRadius, 0.0, distRight); // Soft edge
-      float rightVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uRightHandVelocity));
-      
-      // Displacement strength with afterglow
-      float rightDisplacementStrength = rightInfluence * rightVelFactor * uTrailDecay;
-      
-      // Smooth laminar displacement
-      vec2 displacementDir = normalize(toRightHand);
-      float displacementAmount = rightDisplacementStrength * 0.15;
-      vec2 rightDisplaced = warpedUV + displacementDir * displacementAmount;
-      
-      // Gentle blend
-      float rightBlend = rightInfluence * 0.5 * uHandInfluence;
-      finalWarpedUV = mix(finalWarpedUV, rightDisplaced, rightBlend);
-    }
-    
-    // Apply stretch/squeeze between hands
-    if (stretchFactor > 0.01 || squeezeFactor > 0.01) {
-      vec2 midPoint = (leftHandUV + rightHandUV) * 0.5;
-      vec2 toMid = warpedUV - midPoint;
-      float distToMid = length(toMid);
-      
-      // Stretch: thin the center
-      if (stretchFactor > 0.01 && distToMid < 0.4) {
-        float stretchInfluence = smoothstep(0.4, 0.0, distToMid) * stretchFactor;
-        vec2 stretched = midPoint + toMid * (1.0 + stretchInfluence * 0.3);
-        finalWarpedUV = mix(finalWarpedUV, stretched, stretchInfluence * 0.5);
-      }
-      
-      // Squeeze: thicken the center
-      if (squeezeFactor > 0.01 && distToMid < 0.3) {
-        float squeezeInfluence = smoothstep(0.3, 0.0, distToMid) * squeezeFactor;
-        vec2 squeezed = midPoint + toMid * (1.0 - squeezeInfluence * 0.3);
-        finalWarpedUV = mix(finalWarpedUV, squeezed, squeezeInfluence * 0.6);
-      }
-    }
-    
-    warpedUV = finalWarpedUV;
-  } else {
-    // Add additional rotational flow field (audio mode)
-    vec2 center = vec2(0.5, 0.5);
-    vec2 toCenter = warpedUV - center;
-    float dist = length(toCenter);
-    float rotationSpeed = 0.2 + uLowFreq * 0.3;
-    warpedUV = center + rotate2D(toCenter, uTime * rotationSpeed * (1.0 - dist * 0.5));
-  }
-  
-  // Create layered, flowing patterns (reduced octaves for performance)
-  float pattern1 = fbm(warpedUV + uTime * 0.1, 3);
-  float pattern2 = fbm(warpedUV * 1.5 - uTime * 0.08, 2);
-  
-  // Combine patterns for creamy fluid look
-  float thickness = (pattern1 * 0.6 + pattern2 * 0.4);
-  thickness = smoothstep(0.2, 0.8, thickness);
-  
-  // Add shimmer detail
-  float detail = noise(warpedUV * 8.0 + uTime * shimmer * 2.0) * 0.1;
-  thickness += detail;
-  
-  vec3 color;
-  
-  if(uRainbowMode) {
-    // Rainbow iridescent mode
-    float hue = fract(thickness * uColorSpread + uTime * uShimmerSpeed);
-    vec3 iridescent = hsv2rgb(vec3(hue, 0.7 + shimmer * 0.2, 0.9));
-    // Mix with white for pastel effect
-    color = mix(iridescent, vec3(1.0), 0.3);
-  } else {
-    // Music mode - blend bg and asset colors based on thickness
-    color = mix(uBgColor, uAssetColor, thickness);
-  }
-  
-  // Pearlescent rim effect (edges glow)
-  float edge = abs(thickness - 0.5) * 2.0;
-  float rim = smoothstep(0.7, 1.0, edge);
-  color += rim * 0.15;
-  
-  // Soft overall glow
-  color += vec3(0.05) * (1.0 - thickness);
-  
-  gl_FragColor = vec4(color, uTransparency * (0.7 + thickness * 0.3));
+  gl_FragColor = vec4(color, alpha * 0.7);
 }
 `;
 
-// Default parameters - simplified
+// Default parameters
 const DEFAULT_PARAMS = {
+  motionReactive: true,
+  handReactivity: 0.7,
+  cloudCount: 15,      // Few to Many (5-30)
+  bounciness: 0.5,     // Soft to Springy (0-1)
+  blendAmount: 0.6,    // Minimal to Lush (0-1)
   rainbowMode: false,
   colorSpread: 0.9,
-  shimmerSpeed: 0.25,
-  motionReactive: true,  // Enable motion-reactive mode by default
-  handReactivity: 0.7,   // 0-1: How strongly hands affect the visual
-  trailMemory: 0.6,      // 0-1: How long hand traces linger
-  swirlSize: 0.5,        // 0-1: Size of circular gestures
-  handVsMusic: 0.7       // 0-1: 0=music priority, 1=hand priority
+  shimmerSpeed: 0.25
 };
+
+// Cloudlet class - represents a single cloud object
+class Cloudlet {
+  constructor(index, worldBounds) {
+    this.id = index;
+    
+    // Position and physics
+    this.position = new THREE.Vector3(
+      (Math.random() - 0.5) * worldBounds.x,
+      (Math.random() - 0.5) * worldBounds.y,
+      (Math.random() - 0.5) * 100 + index * 2 // Slight depth variation
+    );
+    this.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 20,
+      0
+    );
+    this.acceleration = new THREE.Vector3();
+    
+    // Visual properties
+    this.baseSize = 100 + Math.random() * 150;
+    this.size = this.baseSize;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+    
+    // Color
+    this.color = new THREE.Color();
+    this.baseColor = new THREE.Color();
+    this.alpha = 0.7 + Math.random() * 0.3;
+    
+    // Interaction
+    this.grabbed = false;
+    this.grabbedBy = null; // 'left' or 'right'
+    this.mass = 0.8 + Math.random() * 0.4;
+    
+    // Music reactivity
+    this.breathPhase = Math.random() * Math.PI * 2;
+    this.shimmer = 0;
+  }
+  
+  update(dt, worldBounds, bounciness, damping) {
+    if (this.grabbed) {
+      // When grabbed, reduce velocity significantly
+      this.velocity.multiplyScalar(0.8);
+      return;
+    }
+    
+    // Apply physics
+    this.velocity.add(this.acceleration.clone().multiplyScalar(dt));
+    this.velocity.multiplyScalar(damping); // Air resistance
+    this.position.add(this.velocity.clone().multiplyScalar(dt));
+    this.acceleration.set(0, 0, 0);
+    
+    // Rotation
+    this.rotation += this.rotationSpeed * dt;
+    
+    // Bounce off boundaries (soft)
+    const margin = this.size * 0.5;
+    if (Math.abs(this.position.x) > worldBounds.x * 0.5 - margin) {
+      this.position.x = THREE.MathUtils.clamp(
+        this.position.x,
+        -worldBounds.x * 0.5 + margin,
+        worldBounds.x * 0.5 - margin
+      );
+      this.velocity.x *= -bounciness;
+    }
+    if (Math.abs(this.position.y) > worldBounds.y * 0.5 - margin) {
+      this.position.y = THREE.MathUtils.clamp(
+        this.position.y,
+        -worldBounds.y * 0.5 + margin,
+        worldBounds.y * 0.5 - margin
+      );
+      this.velocity.y *= -bounciness;
+    }
+    
+    // Gradually reduce shimmer
+    this.shimmer *= 0.95;
+  }
+  
+  applyForce(force) {
+    this.acceleration.add(force.clone().divideScalar(this.mass));
+  }
+  
+  checkCollision(other) {
+    const dist = this.position.distanceTo(other.position);
+    const minDist = (this.size + other.size) * 0.5;
+    return dist < minDist;
+  }
+  
+  resolveCollision(other, blendAmount) {
+    const dir = new THREE.Vector3().subVectors(this.position, other.position);
+    const dist = dir.length();
+    const minDist = (this.size + other.size) * 0.5;
+    
+    if (dist < minDist && dist > 0) {
+      // Separate
+      dir.normalize();
+      const overlap = minDist - dist;
+      const separation = dir.multiplyScalar(overlap * 0.5);
+      
+      if (!this.grabbed) this.position.add(separation);
+      if (!other.grabbed) other.position.sub(separation);
+      
+      // Velocity exchange (soft collision)
+      if (!this.grabbed && !other.grabbed) {
+        const relVel = new THREE.Vector3().subVectors(this.velocity, other.velocity);
+        const velAlongNormal = relVel.dot(dir);
+        
+        if (velAlongNormal < 0) {
+          const impulse = dir.clone().multiplyScalar(velAlongNormal * 0.5);
+          this.velocity.sub(impulse.clone().divideScalar(this.mass));
+          other.velocity.add(impulse.clone().divideScalar(other.mass));
+        }
+      }
+      
+      // Color blending on collision
+      if (blendAmount > 0) {
+        const blendFactor = blendAmount * 0.1;
+        this.color.lerp(other.color, blendFactor);
+        other.color.lerp(this.color, blendFactor);
+      }
+      
+      // Shimmer on collision
+      this.shimmer = Math.max(this.shimmer, 0.5);
+      other.shimmer = Math.max(other.shimmer, 0.5);
+      
+      return true;
+    }
+    return false;
+  }
+}
 
 export default function OpalineWaveMode() {
   const params = useVisStore(s => s.params);
@@ -330,249 +267,258 @@ export default function OpalineWaveMode() {
   
   // Get mode-specific params or use defaults
   const opalineParams = params.opalineWave || DEFAULT_PARAMS;
-  
-  // Check if we should use motion-reactive mode (based on opalineParams or handEffect settings)
   const motionReactive = opalineParams.motionReactive ?? true;
+  const handReactivity = opalineParams.handReactivity ?? DEFAULT_PARAMS.handReactivity;
+  const cloudCount = Math.floor(opalineParams.cloudCount ?? DEFAULT_PARAMS.cloudCount);
+  const bounciness = opalineParams.bounciness ?? DEFAULT_PARAMS.bounciness;
+  const blendAmount = opalineParams.blendAmount ?? DEFAULT_PARAMS.blendAmount;
   
-  const lastEnergyRef = useRef(0);
+  // World bounds
+  const worldBounds = useMemo(() => ({ x: 20000, y: 10000 }), []);
   
-  // Hand tracking refs for motion-reactive mode
+  // Cloudlets array
+  const cloudletsRef = useRef([]);
+  
+  // Initialize cloudlets
+  useEffect(() => {
+    cloudletsRef.current = Array.from({ length: cloudCount }, (_, i) => 
+      new Cloudlet(i, worldBounds)
+    );
+  }, [cloudCount, worldBounds]);
+  
+  // Hand tracking refs
   const leftHandRefs = {
     lastPosition: useRef({ x: 0.5, y: 0.5 }),
     smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
     velocity: useRef(0),
-    velocitySmoothed: useRef(0)
+    worldPosition: useRef(new THREE.Vector3())
   };
 
   const rightHandRefs = {
     lastPosition: useRef({ x: 0.5, y: 0.5 }),
     smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
     velocity: useRef(0),
-    velocitySmoothed: useRef(0)
+    worldPosition: useRef(new THREE.Vector3())
   };
   
-  // Track hand influence decay
-  const handInfluenceRef = useRef(0);
-  const lastGestureTimeRef = useRef(0);
+  const grabbedCloudletRef = useRef({ left: null, right: null });
   
-  // Create material with uniforms
+  // Create instanced mesh
+  const instancedMeshRef = useRef();
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+  
   const material = useMemo(() => {
     return new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
+      vertexShader: cloudletVertexShader,
+      fragmentShader: cloudletFragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uLowFreq: { value: 0 },
-        uMidFreq: { value: 0 },
-        uHighFreq: { value: 0 },
-        uMusicReact: { value: 1 },
-        uBgColor: { value: new THREE.Color() },
-        uAssetColor: { value: new THREE.Color() },
-        uTransparency: { value: 0.8 },
         uRainbowMode: { value: false },
-        uColorSpread: { value: DEFAULT_PARAMS.colorSpread },
-        uShimmerSpeed: { value: DEFAULT_PARAMS.shimmerSpeed },
-        uMotionReactive: { value: false },
-        uLeftHandPos: { value: new THREE.Vector2(0.3, 0.5) },
-        uRightHandPos: { value: new THREE.Vector2(0.7, 0.5) },
-        uLeftHandVelocity: { value: 0 },
-        uRightHandVelocity: { value: 0 },
-        uHandInfluence: { value: 0 },
-        uTrailDecay: { value: 1.0 },
-        uHandDistance: { value: 0.5 },
-        uSmoothness: { value: 0.8 }
+        uShimmer: { value: 0 }
       },
       transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      side: THREE.DoubleSide
     });
   }, []);
   
   useFrame((state, dt) => {
-    // Get user-configurable parameters
-    const handReactivity = opalineParams.handReactivity ?? DEFAULT_PARAMS.handReactivity;
-    const trailMemory = opalineParams.trailMemory ?? DEFAULT_PARAMS.trailMemory;
-    const handVsMusic = opalineParams.handVsMusic ?? DEFAULT_PARAMS.handVsMusic;
+    const cloudlets = cloudletsRef.current;
+    if (!cloudlets.length || !instancedMeshRef.current) return;
     
-    // Update motion reactive mode
-    material.uniforms.uMotionReactive.value = motionReactive;
+    // Update colors from user settings
+    const bgRGB = hexToRGB(userColors.bgColor);
+    const assetRGB = hexToRGB(userColors.assetColor);
+    const rainbowMode = opalineParams.rainbowMode ?? false;
+    material.uniforms.uRainbowMode.value = rainbowMode;
+    material.uniforms.uTime.value = state.clock.elapsedTime;
     
+    // Music reactivity
+    const loudness = music?.energy ?? 0;
+    const treble = music?.centroid ? Math.min(music.centroid / 5000, 1) : 0;
+    const beatPulse = music?.rms ?? 0;
+    
+    // Hand tracking
     if (motionReactive) {
-      // Motion-reactive mode: use hand tracking
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
       
-      let hasActiveHand = false;
-      let combinedVelocity = 0;
-      
-      // Update left hand with heavier smoothing (liquid silk feel)
+      // Update left hand
       if (leftHandPos) {
-        // Extra smooth position tracking (α=0.15 for buttery smooth motion)
-        const smoothingFactor = 0.15 + (1 - handReactivity) * 0.1;
-        const smoothedLeft = smoothHandPosition(leftHandPos, leftHandRefs.smoothedPosition.current, smoothingFactor);
-        leftHandRefs.smoothedPosition.current = smoothedLeft;
+        const smoothed = smoothHandPosition(leftHandPos, leftHandRefs.smoothedPosition.current, 0.15);
+        leftHandRefs.smoothedPosition.current = smoothed;
         
-        // Calculate velocity with damping
-        const leftVelocity = calculateHandVelocity(smoothedLeft, leftHandRefs.lastPosition.current, dt);
+        // Convert to world coordinates
+        const worldX = (smoothed.x - 0.5) * worldBounds.x;
+        const worldY = (0.5 - smoothed.y) * worldBounds.y;
+        leftHandRefs.worldPosition.current.set(worldX, worldY, 0);
         
-        // Smooth velocity changes for gentle, elastic feel
-        const velocitySmoothing = 0.2;
-        leftHandRefs.velocitySmoothed.current = THREE.MathUtils.lerp(
-          leftHandRefs.velocitySmoothed.current,
-          leftVelocity,
-          velocitySmoothing
-        );
-        
-        leftHandRefs.velocity.current = leftVelocity;
-        leftHandRefs.lastPosition.current = smoothedLeft;
-        
-        material.uniforms.uLeftHandPos.value.set(smoothedLeft.x, smoothedLeft.y);
-        material.uniforms.uLeftHandVelocity.value = leftHandRefs.velocitySmoothed.current;
-        
-        hasActiveHand = true;
-        combinedVelocity += leftHandRefs.velocitySmoothed.current;
-      } else {
-        // No hand detected - gentle fade with trail memory
-        const decayRate = 0.92 - trailMemory * 0.15; // Slower decay = longer trails
-        leftHandRefs.velocitySmoothed.current *= decayRate;
-        material.uniforms.uLeftHandVelocity.value = leftHandRefs.velocitySmoothed.current;
+        const velocity = calculateHandVelocity(smoothed, leftHandRefs.lastPosition.current, dt);
+        leftHandRefs.velocity.current = velocity;
+        leftHandRefs.lastPosition.current = smoothed;
       }
       
-      // Update right hand with same smoothing
+      // Update right hand
       if (rightHandPos) {
-        const smoothingFactor = 0.15 + (1 - handReactivity) * 0.1;
-        const smoothedRight = smoothHandPosition(rightHandPos, rightHandRefs.smoothedPosition.current, smoothingFactor);
-        rightHandRefs.smoothedPosition.current = smoothedRight;
+        const smoothed = smoothHandPosition(rightHandPos, rightHandRefs.smoothedPosition.current, 0.15);
+        rightHandRefs.smoothedPosition.current = smoothed;
         
-        const rightVelocity = calculateHandVelocity(smoothedRight, rightHandRefs.lastPosition.current, dt);
+        const worldX = (smoothed.x - 0.5) * worldBounds.x;
+        const worldY = (0.5 - smoothed.y) * worldBounds.y;
+        rightHandRefs.worldPosition.current.set(worldX, worldY, 0);
         
-        const velocitySmoothing = 0.2;
-        rightHandRefs.velocitySmoothed.current = THREE.MathUtils.lerp(
-          rightHandRefs.velocitySmoothed.current,
-          rightVelocity,
-          velocitySmoothing
-        );
-        
-        rightHandRefs.velocity.current = rightVelocity;
-        rightHandRefs.lastPosition.current = smoothedRight;
-        
-        material.uniforms.uRightHandPos.value.set(smoothedRight.x, smoothedRight.y);
-        material.uniforms.uRightHandVelocity.value = rightHandRefs.velocitySmoothed.current;
-        
-        hasActiveHand = true;
-        combinedVelocity += rightHandRefs.velocitySmoothed.current;
-      } else {
-        const decayRate = 0.92 - trailMemory * 0.15;
-        rightHandRefs.velocitySmoothed.current *= decayRate;
-        material.uniforms.uRightHandVelocity.value = rightHandRefs.velocitySmoothed.current;
+        const velocity = calculateHandVelocity(smoothed, rightHandRefs.lastPosition.current, dt);
+        rightHandRefs.velocity.current = velocity;
+        rightHandRefs.lastPosition.current = smoothed;
       }
       
-      // Calculate hand distance for two-hand interactions
-      if (leftHandPos && rightHandPos) {
-        const dx = leftHandRefs.smoothedPosition.current.x - rightHandRefs.smoothedPosition.current.x;
-        const dy = leftHandRefs.smoothedPosition.current.y - rightHandRefs.smoothedPosition.current.y;
-        const handDistance = Math.sqrt(dx * dx + dy * dy);
-        material.uniforms.uHandDistance.value = handDistance;
-      }
+      // Hand interaction - grab nearest cloudlet
+      const grabRadius = 300 * handReactivity;
       
-      // Hand influence decay system: hands take priority for ~1 second after gesture
-      if (hasActiveHand && combinedVelocity > 0.05) {
-        // Active gesture detected
-        lastGestureTimeRef.current = state.clock.elapsedTime;
-        handInfluenceRef.current = handVsMusic; // Use user-configured balance
-      } else {
-        // No active gesture - decay hand influence over ~1 second
-        const timeSinceGesture = state.clock.elapsedTime - lastGestureTimeRef.current;
-        const decayTime = 1.0 + trailMemory * 0.5; // Trail memory extends decay time
-        const decayFactor = Math.max(0, 1 - timeSinceGesture / decayTime);
-        handInfluenceRef.current = handVsMusic * decayFactor;
-      }
-      
-      material.uniforms.uHandInfluence.value = handInfluenceRef.current;
-      material.uniforms.uTrailDecay.value = 0.7 + trailMemory * 0.3;
-      material.uniforms.uSmoothness.value = 0.7 + handReactivity * 0.3;
-    } else {
-      // Audio-reactive mode: use music data
-      const musicReact = params.musicReact || 0;
-      const audioMode = params.audioMode || 'frequencies';
-      const energy = (music?.energy ?? 0);
-      const rms = (music?.rms ?? 0);
-      const centroid = music?.centroid ?? 0;
-      
-      let lowBand, midBand, highBand;
-      
-      // Different audio modes drive visuals differently
-      switch(audioMode) {
-        case 'energy':
-          // Energy mode: all bands driven by overall energy with slight variation
-          lowBand = energy * 0.8 * musicReact;
-          midBand = energy * 1.0 * musicReact;
-          highBand = energy * 0.6 * musicReact;
-          break;
-        case 'rms':
-          // RMS mode: volume-based with smooth changes
-          lowBand = rms * 0.9 * musicReact;
-          midBand = rms * 1.1 * musicReact;
-          highBand = rms * 0.7 * musicReact;
-          break;
-        case 'beat': {
-          // Beat mode: detect strong energy changes for rhythmic pulses
-          const energyChange = Math.abs(energy - lastEnergyRef.current);
-          const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
-          lowBand = beatPulse * musicReact;
-          midBand = beatPulse * 0.8 * musicReact;
-          highBand = beatPulse * 0.6 * musicReact;
-          lastEnergyRef.current = energy;
-          break;
+      ['left', 'right'].forEach(hand => {
+        const handRef = hand === 'left' ? leftHandRefs : rightHandRefs;
+        const handPos = hand === 'left' ? leftHandPos : rightHandPos;
+        
+        if (!handPos) {
+          // Release if hand disappeared
+          if (grabbedCloudletRef.current[hand] !== null) {
+            const cloudlet = cloudlets[grabbedCloudletRef.current[hand]];
+            if (cloudlet) {
+              cloudlet.grabbed = false;
+              cloudlet.grabbedBy = null;
+              
+              // Apply flick velocity if hand was moving
+              if (handRef.velocity.current > 0.2) {
+                const vel = new THREE.Vector3(
+                  (Math.random() - 0.5) * 100,
+                  (Math.random() - 0.5) * 100,
+                  0
+                );
+                vel.multiplyScalar(handRef.velocity.current * 500);
+                cloudlet.velocity.add(vel);
+              }
+            }
+            grabbedCloudletRef.current[hand] = null;
+          }
+          return;
         }
-        case 'frequencies':
-        default:
-          // Frequencies mode: separate low/mid/high bands based on centroid
-          lowBand = energy * (1 - Math.min(centroid / 5000, 1)) * musicReact;
-          midBand = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2) * musicReact;
-          highBand = energy * Math.min(centroid / 5000, 1) * musicReact;
-          break;
-      }
-      
-      // Update audio reactivity with lerping for smoothness
-      material.uniforms.uLowFreq.value = THREE.MathUtils.lerp(
-        material.uniforms.uLowFreq.value,
-        lowBand,
-        audioMode === 'beat' ? 0.3 : 0.1
-      );
-      material.uniforms.uMidFreq.value = THREE.MathUtils.lerp(
-        material.uniforms.uMidFreq.value,
-        midBand,
-        audioMode === 'beat' ? 0.3 : 0.1
-      );
-      material.uniforms.uHighFreq.value = THREE.MathUtils.lerp(
-        material.uniforms.uHighFreq.value,
-        highBand,
-        audioMode === 'beat' ? 0.3 : 0.1
-      );
+        
+        // Check if already grabbing
+        if (grabbedCloudletRef.current[hand] !== null) {
+          const cloudlet = cloudlets[grabbedCloudletRef.current[hand]];
+          if (cloudlet && cloudlet.grabbed) {
+            // Move grabbed cloudlet
+            const targetPos = handRef.worldPosition.current;
+            cloudlet.position.lerp(targetPos, 0.3);
+            return;
+          }
+        }
+        
+        // Try to grab nearest cloudlet
+        let nearestCloudlet = null;
+        let nearestDist = grabRadius;
+        
+        cloudlets.forEach((cloudlet, idx) => {
+          if (cloudlet.grabbed) return; // Skip already grabbed
+          const dist = cloudlet.position.distanceTo(handRef.worldPosition.current);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestCloudlet = idx;
+          }
+        });
+        
+        if (nearestCloudlet !== null) {
+          cloudlets[nearestCloudlet].grabbed = true;
+          cloudlets[nearestCloudlet].grabbedBy = hand;
+          grabbedCloudletRef.current[hand] = nearestCloudlet;
+        }
+      });
     }
     
-    // Update time
-    material.uniforms.uTime.value += dt * (0.5 + params.speed * 0.5);
+    // Update each cloudlet
+    const damping = 0.98;
+    cloudlets.forEach((cloudlet, i) => {
+      // Update physics
+      cloudlet.update(dt, worldBounds, bounciness, damping);
+      
+      // Music breathing effect
+      cloudlet.breathPhase += dt * 2;
+      const breathScale = 1.0 + Math.sin(cloudlet.breathPhase) * loudness * 0.1;
+      cloudlet.size = cloudlet.baseSize * breathScale;
+      
+      // Beat pulse
+      if (beatPulse > 0.7) {
+        cloudlet.size += 20 * beatPulse;
+      }
+      
+      // Update color
+      if (rainbowMode) {
+        const hue = (i / cloudlets.length + state.clock.elapsedTime * 0.1) % 1;
+        cloudlet.color.setHSL(hue, 0.7, 0.7);
+      } else {
+        cloudlet.baseColor.setRGB(
+          THREE.MathUtils.lerp(bgRGB.r, assetRGB.r, (i / cloudlets.length)),
+          THREE.MathUtils.lerp(bgRGB.g, assetRGB.g, (i / cloudlets.length)),
+          THREE.MathUtils.lerp(bgRGB.b, assetRGB.b, (i / cloudlets.length))
+        );
+        cloudlet.color.copy(cloudlet.baseColor);
+      }
+      
+      // Shimmer on treble
+      if (treble > 0.5) {
+        cloudlet.shimmer = Math.max(cloudlet.shimmer, treble * 0.5);
+      }
+    });
     
-    // Update colors
-    const bgRGB = hexToRGB(userColors.bgColor);
-    const assetRGB = hexToRGB(userColors.assetColor);
-    material.uniforms.uBgColor.value.set(bgRGB.r, bgRGB.g, bgRGB.b);
-    material.uniforms.uAssetColor.value.set(assetRGB.r, assetRGB.g, assetRGB.b);
+    // Check collisions
+    for (let i = 0; i < cloudlets.length; i++) {
+      for (let j = i + 1; j < cloudlets.length; j++) {
+        if (cloudlets[i].checkCollision(cloudlets[j])) {
+          cloudlets[i].resolveCollision(cloudlets[j], blendAmount);
+        }
+      }
+    }
     
-    // Update transparency
-    material.uniforms.uTransparency.value = params.intensity || 0.8;
+    // Update instance attributes
+    const mesh = instancedMeshRef.current;
+    const positionArray = new Float32Array(cloudlets.length * 3);
+    const sizeArray = new Float32Array(cloudlets.length);
+    const rotationArray = new Float32Array(cloudlets.length);
+    const colorArray = new Float32Array(cloudlets.length * 3);
+    const alphaArray = new Float32Array(cloudlets.length);
     
-    // Update rainbow mode
-    material.uniforms.uRainbowMode.value = opalineParams.rainbowMode ?? false;
-    material.uniforms.uColorSpread.value = opalineParams.colorSpread ?? DEFAULT_PARAMS.colorSpread;
-    material.uniforms.uShimmerSpeed.value = opalineParams.shimmerSpeed ?? DEFAULT_PARAMS.shimmerSpeed;
+    let avgShimmer = 0;
+    cloudlets.forEach((cloudlet, i) => {
+      positionArray[i * 3] = cloudlet.position.x;
+      positionArray[i * 3 + 1] = cloudlet.position.y;
+      positionArray[i * 3 + 2] = cloudlet.position.z;
+      
+      sizeArray[i] = cloudlet.size;
+      rotationArray[i] = cloudlet.rotation;
+      
+      colorArray[i * 3] = cloudlet.color.r;
+      colorArray[i * 3 + 1] = cloudlet.color.g;
+      colorArray[i * 3 + 2] = cloudlet.color.b;
+      
+      alphaArray[i] = cloudlet.alpha;
+      avgShimmer += cloudlet.shimmer;
+    });
+    
+    material.uniforms.uShimmer.value = avgShimmer / cloudlets.length;
+    
+    mesh.geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positionArray, 3));
+    mesh.geometry.setAttribute('instanceSize', new THREE.InstancedBufferAttribute(sizeArray, 1));
+    mesh.geometry.setAttribute('instanceRotation', new THREE.InstancedBufferAttribute(rotationArray, 1));
+    mesh.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(colorArray, 3));
+    mesh.geometry.setAttribute('instanceAlpha', new THREE.InstancedBufferAttribute(alphaArray, 1));
   });
   
   return (
-    <mesh position={[0, 0, 1]} material={material}>
-      <planeGeometry args={[25000, 13000]} />
-    </mesh>
+    <instancedMesh 
+      ref={instancedMeshRef}
+      args={[geometry, material, cloudCount]}
+      position={[0, 0, 1]}
+    />
   );
 }
