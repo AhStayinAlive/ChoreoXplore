@@ -146,8 +146,8 @@ class Cloudlet {
     );
     this.acceleration = new THREE.Vector3();
     
-    // Visual properties
-    this.baseSize = 100 + Math.random() * 150;
+    // Visual properties - larger sizes for better visibility
+    this.baseSize = 300 + Math.random() * 400;
     this.size = this.baseSize;
     this.rotation = Math.random() * Math.PI * 2;
     this.rotationSpeed = (Math.random() - 0.5) * 0.1;
@@ -273,17 +273,46 @@ export default function OpalineWaveMode() {
   const bounciness = opalineParams.bounciness ?? DEFAULT_PARAMS.bounciness;
   const blendAmount = opalineParams.blendAmount ?? DEFAULT_PARAMS.blendAmount;
   
-  // World bounds
-  const worldBounds = useMemo(() => ({ x: 20000, y: 10000 }), []);
+  // World bounds - smaller for better visibility
+  const worldBounds = useMemo(() => ({ x: 15000, y: 8000 }), []);
   
   // Cloudlets array
   const cloudletsRef = useRef([]);
   
   // Initialize cloudlets
   useEffect(() => {
-    cloudletsRef.current = Array.from({ length: cloudCount }, (_, i) => 
+    const newCloudlets = Array.from({ length: cloudCount }, (_, i) => 
       new Cloudlet(i, worldBounds)
     );
+    cloudletsRef.current = newCloudlets;
+    
+    // Initialize geometry with dummy attributes to ensure rendering works
+    if (instancedMeshRef.current) {
+      const mesh = instancedMeshRef.current;
+      const dummyPositions = new Float32Array(cloudCount * 3);
+      const dummySizes = new Float32Array(cloudCount);
+      const dummyRotations = new Float32Array(cloudCount);
+      const dummyColors = new Float32Array(cloudCount * 3);
+      const dummyAlphas = new Float32Array(cloudCount);
+      
+      newCloudlets.forEach((cloudlet, i) => {
+        dummyPositions[i * 3] = cloudlet.position.x;
+        dummyPositions[i * 3 + 1] = cloudlet.position.y;
+        dummyPositions[i * 3 + 2] = cloudlet.position.z;
+        dummySizes[i] = cloudlet.size;
+        dummyRotations[i] = cloudlet.rotation;
+        dummyColors[i * 3] = 0.8;
+        dummyColors[i * 3 + 1] = 0.8;
+        dummyColors[i * 3 + 2] = 1.0;
+        dummyAlphas[i] = cloudlet.alpha;
+      });
+      
+      mesh.geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(dummyPositions, 3));
+      mesh.geometry.setAttribute('instanceSize', new THREE.InstancedBufferAttribute(dummySizes, 1));
+      mesh.geometry.setAttribute('instanceRotation', new THREE.InstancedBufferAttribute(dummyRotations, 1));
+      mesh.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(dummyColors, 3));
+      mesh.geometry.setAttribute('instanceAlpha', new THREE.InstancedBufferAttribute(dummyAlphas, 1));
+    }
   }, [cloudCount, worldBounds]);
   
   // Hand tracking refs
@@ -512,6 +541,13 @@ export default function OpalineWaveMode() {
     mesh.geometry.setAttribute('instanceRotation', new THREE.InstancedBufferAttribute(rotationArray, 1));
     mesh.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(colorArray, 3));
     mesh.geometry.setAttribute('instanceAlpha', new THREE.InstancedBufferAttribute(alphaArray, 1));
+    
+    // Mark attributes as needing update
+    mesh.geometry.attributes.instancePosition.needsUpdate = true;
+    mesh.geometry.attributes.instanceSize.needsUpdate = true;
+    mesh.geometry.attributes.instanceRotation.needsUpdate = true;
+    mesh.geometry.attributes.instanceColor.needsUpdate = true;
+    mesh.geometry.attributes.instanceAlpha.needsUpdate = true;
   });
   
   return (
