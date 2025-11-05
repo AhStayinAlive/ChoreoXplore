@@ -352,7 +352,7 @@ export default function OpalineWaveMode() {
           midBand = rms * 1.1 * musicReact;
           highBand = rms * 0.7 * musicReact;
           break;
-        case 'beat':
+        case 'beat': {
           // Beat mode: detect strong energy changes for rhythmic pulses
           const energyChange = Math.abs(energy - lastEnergyRef.current);
           const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
@@ -361,6 +361,7 @@ export default function OpalineWaveMode() {
           highBand = beatPulse * 0.6 * musicReact;
           lastEnergyRef.current = energy;
           break;
+        }
         case 'frequencies':
         default:
           // Frequencies mode: separate low/mid/high bands based on centroid
