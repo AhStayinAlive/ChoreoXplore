@@ -160,24 +160,31 @@ void main() {
     vec2 leftHandUV = vec2(uLeftHandPos.x, 1.0 - uLeftHandPos.y);
     vec2 rightHandUV = vec2(uRightHandPos.x, 1.0 - uRightHandPos.y);
     
-    // Calculate distance and angle from each hand
+    // Calculate distance from each hand
     vec2 toLeftHand = warpedUV - leftHandUV;
     vec2 toRightHand = warpedUV - rightHandUV;
     float distLeft = length(toLeftHand);
     float distRight = length(toRightHand);
     
     // Apply hand-based swirls (stronger when hands are moving)
+    // Blend both hand effects instead of overwriting
+    vec2 finalWarpedUV = warpedUV;
+    
     if (distLeft < 0.5) {
       float leftSwirlStrength = (0.5 - distLeft) * uLeftHandVelocity * 2.0;
-      float angleLeft = atan(toLeftHand.y, toLeftHand.x);
-      warpedUV = leftHandUV + rotate2D(toLeftHand, leftSwirlStrength * sin(uTime * 0.5));
+      vec2 leftSwirled = leftHandUV + rotate2D(toLeftHand, leftSwirlStrength * sin(uTime * 0.5));
+      float leftWeight = (0.5 - distLeft) / 0.5; // 0 to 1 based on distance
+      finalWarpedUV = mix(finalWarpedUV, leftSwirled, leftWeight * 0.7);
     }
     
     if (distRight < 0.5) {
       float rightSwirlStrength = (0.5 - distRight) * uRightHandVelocity * 2.0;
-      float angleRight = atan(toRightHand.y, toRightHand.x);
-      warpedUV = rightHandUV + rotate2D(toRightHand, rightSwirlStrength * sin(uTime * 0.5));
+      vec2 rightSwirled = rightHandUV + rotate2D(toRightHand, rightSwirlStrength * sin(uTime * 0.5));
+      float rightWeight = (0.5 - distRight) / 0.5; // 0 to 1 based on distance
+      finalWarpedUV = mix(finalWarpedUV, rightSwirled, rightWeight * 0.7);
     }
+    
+    warpedUV = finalWarpedUV;
   } else {
     // Add additional rotational flow field (audio mode)
     vec2 center = vec2(0.5, 0.5);
@@ -242,7 +249,7 @@ export default function OpalineWaveMode() {
   const opalineParams = params.opalineWave || DEFAULT_PARAMS;
   
   // Check if we should use motion-reactive mode (based on opalineParams or handEffect settings)
-  const motionReactive = opalineParams.motionReactive ?? false;
+  const motionReactive = opalineParams.motionReactive ?? true;
   
   const lastEnergyRef = useRef(0);
   
