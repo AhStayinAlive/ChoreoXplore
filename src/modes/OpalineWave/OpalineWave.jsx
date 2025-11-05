@@ -52,6 +52,10 @@ uniform vec2 uLeftHandPos;
 uniform vec2 uRightHandPos;
 uniform float uLeftHandVelocity;
 uniform float uRightHandVelocity;
+uniform float uHandInfluence;         // How much hands affect vs music (0-1)
+uniform float uTrailDecay;            // How fast trails fade (0-1)
+uniform float uHandDistance;          // Distance between hands
+uniform float uSmoothness;            // Overall smoothness factor
 
 varying vec2 vUv;
 
@@ -134,22 +138,43 @@ vec2 domainWarp(vec2 p, float time, float strength, float swirlStrength) {
 void main() {
   vec2 uv = vUv;
   
+  // Base parameters from music (always present)
+  float musicFlowScale = 2.0 + uLowFreq * 2.0;
+  float musicFlowSpeed = 0.3 + uMidFreq * 0.5;
+  float musicShimmer = uHighFreq;
+  float musicSwirlIntensity = 1.5 + uMidFreq * 2.0;
+  
   float flowScale, flowSpeed, shimmer, swirlIntensity;
   
   if (uMotionReactive) {
-    // Motion-reactive mode: use hand movements
+    // Smooth velocity calculation with viscosity effect
+    // Slow movements = thick/syrupy, fast movements = light/splashy
     float avgVelocity = (uLeftHandVelocity + uRightHandVelocity) * 0.5;
-    flowScale = 2.0 + avgVelocity * 3.0;
-    flowSpeed = 0.3 + avgVelocity * 0.7;
-    shimmer = avgVelocity * 2.0;
-    swirlIntensity = 1.5 + avgVelocity * 3.0;
+    float viscosity = 1.0 - smoothstep(0.0, 0.5, avgVelocity); // Higher when slower
+    
+    // Hand-driven parameters with trail memory and smoothness
+    float handFlowScale = 2.0 + avgVelocity * (2.0 + viscosity);
+    float handFlowSpeed = 0.2 + avgVelocity * (0.4 - viscosity * 0.2);
+    float handShimmer = avgVelocity * (1.5 + viscosity * 0.5);
+    float handSwirlIntensity = 1.0 + avgVelocity * (2.0 + viscosity);
+    
+    // Blend music and hand parameters based on hand influence
+    // When hands are active, they take priority; when still, music returns
+    float blendFactor = uHandInfluence * smoothstep(0.0, 0.1, avgVelocity);
+    flowScale = mix(musicFlowScale, handFlowScale, blendFactor);
+    flowSpeed = mix(musicFlowSpeed, handFlowSpeed, blendFactor);
+    shimmer = mix(musicShimmer, handShimmer, blendFactor);
+    swirlIntensity = mix(musicSwirlIntensity, handSwirlIntensity, blendFactor);
   } else {
-    // Audio-reactive mode: use music data
-    flowScale = 2.0 + uLowFreq * 2.0;
-    flowSpeed = 0.3 + uMidFreq * 0.5;
-    shimmer = uHighFreq;
-    swirlIntensity = 1.5 + uMidFreq * 2.0;
+    // Pure audio-reactive mode
+    flowScale = musicFlowScale;
+    flowSpeed = musicFlowSpeed;
+    shimmer = musicShimmer;
+    swirlIntensity = musicSwirlIntensity;
   }
+  
+  // Apply smoothness to flow speed (gentler, more liquid feel)
+  flowSpeed *= uSmoothness;
   
   // Domain-warped coordinates for oil-on-water swirls with rotation
   vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5, swirlIntensity);
@@ -160,28 +185,77 @@ void main() {
     vec2 leftHandUV = vec2(uLeftHandPos.x, 1.0 - uLeftHandPos.y);
     vec2 rightHandUV = vec2(uRightHandPos.x, 1.0 - uRightHandPos.y);
     
-    // Calculate distance from each hand
+    // Calculate distance from each hand with softer falloff
     vec2 toLeftHand = warpedUV - leftHandUV;
     vec2 toRightHand = warpedUV - rightHandUV;
     float distLeft = length(toLeftHand);
     float distRight = length(toRightHand);
     
-    // Apply hand-based swirls (stronger when hands are moving)
-    // Blend both hand effects instead of overwriting
+    // Influence radius scales with swirl size and velocity
+    float leftRadius = 0.3 + uLeftHandVelocity * 0.4;
+    float rightRadius = 0.3 + uRightHandVelocity * 0.4;
+    
+    // Two-hand interactions: stretch/squeeze effect
+    float handDist = uHandDistance;
+    float stretchFactor = smoothstep(0.2, 0.6, handDist); // Hands far apart = stretch
+    float squeezeFactor = 1.0 - smoothstep(0.1, 0.3, handDist); // Hands close = squeeze
+    
+    // Apply hand-based swirls with smooth, elastic deformation
     vec2 finalWarpedUV = warpedUV;
     
-    if (distLeft < 0.5) {
-      float leftSwirlStrength = (0.5 - distLeft) * uLeftHandVelocity * 2.0;
-      vec2 leftSwirled = leftHandUV + rotate2D(toLeftHand, leftSwirlStrength * sin(uTime * 0.5));
-      float leftWeight = (0.5 - distLeft) / 0.5; // 0 to 1 based on distance
-      finalWarpedUV = mix(finalWarpedUV, leftSwirled, leftWeight * 0.7);
+    // Left hand influence with trail memory
+    if (distLeft < leftRadius) {
+      float leftInfluence = smoothstep(leftRadius, 0.0, distLeft); // Soft edge
+      float leftVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uLeftHandVelocity));
+      
+      // Swirl strength with afterglow (memory factor)
+      float leftSwirlStrength = leftInfluence * leftVelFactor * uTrailDecay;
+      
+      // Rotation with time variation for living, breathing quality
+      float leftRotation = leftSwirlStrength * (sin(uTime * 0.3) * 0.5 + 0.5) * 3.0;
+      vec2 leftSwirled = leftHandUV + rotate2D(toLeftHand, leftRotation);
+      
+      // Gentle blend with elastic feel
+      float leftBlend = leftInfluence * 0.6 * uHandInfluence;
+      finalWarpedUV = mix(finalWarpedUV, leftSwirled, leftBlend);
     }
     
-    if (distRight < 0.5) {
-      float rightSwirlStrength = (0.5 - distRight) * uRightHandVelocity * 2.0;
-      vec2 rightSwirled = rightHandUV + rotate2D(toRightHand, rightSwirlStrength * sin(uTime * 0.5));
-      float rightWeight = (0.5 - distRight) / 0.5; // 0 to 1 based on distance
-      finalWarpedUV = mix(finalWarpedUV, rightSwirled, rightWeight * 0.7);
+    // Right hand influence with trail memory
+    if (distRight < rightRadius) {
+      float rightInfluence = smoothstep(rightRadius, 0.0, distRight); // Soft edge
+      float rightVelFactor = mix(0.3, 1.0, smoothstep(0.0, 0.3, uRightHandVelocity));
+      
+      // Swirl strength with afterglow
+      float rightSwirlStrength = rightInfluence * rightVelFactor * uTrailDecay;
+      
+      // Rotation with time variation
+      float rightRotation = rightSwirlStrength * (sin(uTime * 0.35) * 0.5 + 0.5) * 3.0;
+      vec2 rightSwirled = rightHandUV + rotate2D(toRightHand, rightRotation);
+      
+      // Gentle blend
+      float rightBlend = rightInfluence * 0.6 * uHandInfluence;
+      finalWarpedUV = mix(finalWarpedUV, rightSwirled, rightBlend);
+    }
+    
+    // Apply stretch/squeeze between hands
+    if (stretchFactor > 0.01 || squeezeFactor > 0.01) {
+      vec2 midPoint = (leftHandUV + rightHandUV) * 0.5;
+      vec2 toMid = warpedUV - midPoint;
+      float distToMid = length(toMid);
+      
+      // Stretch: thin the center
+      if (stretchFactor > 0.01 && distToMid < 0.4) {
+        float stretchInfluence = smoothstep(0.4, 0.0, distToMid) * stretchFactor;
+        vec2 stretched = midPoint + toMid * (1.0 + stretchInfluence * 0.3);
+        finalWarpedUV = mix(finalWarpedUV, stretched, stretchInfluence * 0.5);
+      }
+      
+      // Squeeze: thicken the center
+      if (squeezeFactor > 0.01 && distToMid < 0.3) {
+        float squeezeInfluence = smoothstep(0.3, 0.0, distToMid) * squeezeFactor;
+        vec2 squeezed = midPoint + toMid * (1.0 - squeezeInfluence * 0.3);
+        finalWarpedUV = mix(finalWarpedUV, squeezed, squeezeInfluence * 0.6);
+      }
     }
     
     warpedUV = finalWarpedUV;
@@ -236,7 +310,11 @@ const DEFAULT_PARAMS = {
   rainbowMode: false,
   colorSpread: 0.9,
   shimmerSpeed: 0.25,
-  motionReactive: true  // Enable motion-reactive mode by default
+  motionReactive: true,  // Enable motion-reactive mode by default
+  handReactivity: 0.7,   // 0-1: How strongly hands affect the visual
+  trailMemory: 0.6,      // 0-1: How long hand traces linger
+  swirlSize: 0.5,        // 0-1: Size of circular gestures
+  handVsMusic: 0.7       // 0-1: 0=music priority, 1=hand priority
 };
 
 export default function OpalineWaveMode() {
@@ -257,14 +335,20 @@ export default function OpalineWaveMode() {
   const leftHandRefs = {
     lastPosition: useRef({ x: 0.5, y: 0.5 }),
     smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
-    velocity: useRef(0)
+    velocity: useRef(0),
+    velocitySmoothed: useRef(0)
   };
 
   const rightHandRefs = {
     lastPosition: useRef({ x: 0.5, y: 0.5 }),
     smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
-    velocity: useRef(0)
+    velocity: useRef(0),
+    velocitySmoothed: useRef(0)
   };
+  
+  // Track hand influence decay
+  const handInfluenceRef = useRef(0);
+  const lastGestureTimeRef = useRef(0);
   
   // Create material with uniforms
   const material = useMemo(() => {
@@ -287,7 +371,11 @@ export default function OpalineWaveMode() {
         uLeftHandPos: { value: new THREE.Vector2(0.3, 0.5) },
         uRightHandPos: { value: new THREE.Vector2(0.7, 0.5) },
         uLeftHandVelocity: { value: 0 },
-        uRightHandVelocity: { value: 0 }
+        uRightHandVelocity: { value: 0 },
+        uHandInfluence: { value: 0 },
+        uTrailDecay: { value: 1.0 },
+        uHandDistance: { value: 0.5 },
+        uSmoothness: { value: 0.8 }
       },
       transparent: true,
       side: THREE.DoubleSide,
@@ -296,6 +384,11 @@ export default function OpalineWaveMode() {
   }, []);
   
   useFrame((state, dt) => {
+    // Get user-configurable parameters
+    const handReactivity = opalineParams.handReactivity ?? DEFAULT_PARAMS.handReactivity;
+    const trailMemory = opalineParams.trailMemory ?? DEFAULT_PARAMS.trailMemory;
+    const handVsMusic = opalineParams.handVsMusic ?? DEFAULT_PARAMS.handVsMusic;
+    
     // Update motion reactive mode
     material.uniforms.uMotionReactive.value = motionReactive;
     
@@ -304,37 +397,95 @@ export default function OpalineWaveMode() {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
       
-      // Update left hand
+      let hasActiveHand = false;
+      let combinedVelocity = 0;
+      
+      // Update left hand with heavier smoothing (liquid silk feel)
       if (leftHandPos) {
-        const smoothedLeft = smoothHandPosition(leftHandPos, leftHandRefs.smoothedPosition.current, 0.3);
+        // Extra smooth position tracking (α=0.15 for buttery smooth motion)
+        const smoothingFactor = 0.15 + (1 - handReactivity) * 0.1;
+        const smoothedLeft = smoothHandPosition(leftHandPos, leftHandRefs.smoothedPosition.current, smoothingFactor);
         leftHandRefs.smoothedPosition.current = smoothedLeft;
         
+        // Calculate velocity with damping
         const leftVelocity = calculateHandVelocity(smoothedLeft, leftHandRefs.lastPosition.current, dt);
+        
+        // Smooth velocity changes for gentle, elastic feel
+        const velocitySmoothing = 0.2;
+        leftHandRefs.velocitySmoothed.current = THREE.MathUtils.lerp(
+          leftHandRefs.velocitySmoothed.current,
+          leftVelocity,
+          velocitySmoothing
+        );
+        
         leftHandRefs.velocity.current = leftVelocity;
         leftHandRefs.lastPosition.current = smoothedLeft;
         
         material.uniforms.uLeftHandPos.value.set(smoothedLeft.x, smoothedLeft.y);
-        material.uniforms.uLeftHandVelocity.value = leftVelocity;
+        material.uniforms.uLeftHandVelocity.value = leftHandRefs.velocitySmoothed.current;
+        
+        hasActiveHand = true;
+        combinedVelocity += leftHandRefs.velocitySmoothed.current;
       } else {
-        // No hand detected - reduce velocity smoothly
-        material.uniforms.uLeftHandVelocity.value *= 0.95;
+        // No hand detected - gentle fade with trail memory
+        const decayRate = 0.92 - trailMemory * 0.15; // Slower decay = longer trails
+        leftHandRefs.velocitySmoothed.current *= decayRate;
+        material.uniforms.uLeftHandVelocity.value = leftHandRefs.velocitySmoothed.current;
       }
       
-      // Update right hand
+      // Update right hand with same smoothing
       if (rightHandPos) {
-        const smoothedRight = smoothHandPosition(rightHandPos, rightHandRefs.smoothedPosition.current, 0.3);
+        const smoothingFactor = 0.15 + (1 - handReactivity) * 0.1;
+        const smoothedRight = smoothHandPosition(rightHandPos, rightHandRefs.smoothedPosition.current, smoothingFactor);
         rightHandRefs.smoothedPosition.current = smoothedRight;
         
         const rightVelocity = calculateHandVelocity(smoothedRight, rightHandRefs.lastPosition.current, dt);
+        
+        const velocitySmoothing = 0.2;
+        rightHandRefs.velocitySmoothed.current = THREE.MathUtils.lerp(
+          rightHandRefs.velocitySmoothed.current,
+          rightVelocity,
+          velocitySmoothing
+        );
+        
         rightHandRefs.velocity.current = rightVelocity;
         rightHandRefs.lastPosition.current = smoothedRight;
         
         material.uniforms.uRightHandPos.value.set(smoothedRight.x, smoothedRight.y);
-        material.uniforms.uRightHandVelocity.value = rightVelocity;
+        material.uniforms.uRightHandVelocity.value = rightHandRefs.velocitySmoothed.current;
+        
+        hasActiveHand = true;
+        combinedVelocity += rightHandRefs.velocitySmoothed.current;
       } else {
-        // No hand detected - reduce velocity smoothly
-        material.uniforms.uRightHandVelocity.value *= 0.95;
+        const decayRate = 0.92 - trailMemory * 0.15;
+        rightHandRefs.velocitySmoothed.current *= decayRate;
+        material.uniforms.uRightHandVelocity.value = rightHandRefs.velocitySmoothed.current;
       }
+      
+      // Calculate hand distance for two-hand interactions
+      if (leftHandPos && rightHandPos) {
+        const dx = leftHandRefs.smoothedPosition.current.x - rightHandRefs.smoothedPosition.current.x;
+        const dy = leftHandRefs.smoothedPosition.current.y - rightHandRefs.smoothedPosition.current.y;
+        const handDistance = Math.sqrt(dx * dx + dy * dy);
+        material.uniforms.uHandDistance.value = handDistance;
+      }
+      
+      // Hand influence decay system: hands take priority for ~1 second after gesture
+      if (hasActiveHand && combinedVelocity > 0.05) {
+        // Active gesture detected
+        lastGestureTimeRef.current = state.clock.elapsedTime;
+        handInfluenceRef.current = handVsMusic; // Use user-configured balance
+      } else {
+        // No active gesture - decay hand influence over ~1 second
+        const timeSinceGesture = state.clock.elapsedTime - lastGestureTimeRef.current;
+        const decayTime = 1.0 + trailMemory * 0.5; // Trail memory extends decay time
+        const decayFactor = Math.max(0, 1 - timeSinceGesture / decayTime);
+        handInfluenceRef.current = handVsMusic * decayFactor;
+      }
+      
+      material.uniforms.uHandInfluence.value = handInfluenceRef.current;
+      material.uniforms.uTrailDecay.value = 0.7 + trailMemory * 0.3;
+      material.uniforms.uSmoothness.value = 0.7 + handReactivity * 0.3;
     } else {
       // Audio-reactive mode: use music data
       const musicReact = params.musicReact || 0;
