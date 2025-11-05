@@ -3,9 +3,9 @@ import useStore from '../core/store';
 
 const STEPS = [
   { id: 1, label: 'Choose Song', icon: '🎵' },
-  { id: 2, label: 'Enable Visuals', icon: '✨' },
+  { id: 2, label: 'Select Visuals', icon: '✨' },
   { id: 3, label: 'Start Motion', icon: '📹' },
-  { id: 4, label: 'Hand Effects', icon: '✋' },
+  { id: 4, label: 'Select Hand Effects', icon: '✋' },
   { id: 5, label: 'Dance!', icon: '💃' }
 ];
 
@@ -142,10 +142,10 @@ const SetupWizard = () => {
               lineHeight: '1.5',
               margin: 0
             }}>
-              {currentStep === 1 && '👇 Search and play a song to begin'}
-              {currentStep === 2 && '👈 Click "Enable Visuals" on the left'}
-              {currentStep === 3 && '👆 Click "Start" to begin tracking'}
-              {currentStep === 4 && '👈 Choose a hand effect from the left panel'}
+              {currentStep === 1 && 'Search and play a song to begin'}
+              {currentStep === 2 && 'Click "Enable Visuals" on the left'}
+              {currentStep === 3 && 'Click "Start" to begin tracking'}
+              {currentStep === 4 && 'Choose a hand effect from the left panel'}
             </p>
           </div>
         )}

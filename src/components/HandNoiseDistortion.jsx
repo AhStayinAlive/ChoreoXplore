@@ -216,8 +216,8 @@ const HandNoiseDistortion = () => {
   const color1 = noiseSettings.color1 || '#00ffff';
   const color2 = noiseSettings.color2 || '#ff00ff';
   const intensity = noiseSettings.intensity !== undefined ? noiseSettings.intensity : 0.8;
-  const distortionStrength = noiseSettings.distortionStrength !== undefined ? noiseSettings.distortionStrength : 0.2;
-  const distortionRadius = noiseSettings.distortionRadius !== undefined ? noiseSettings.distortionRadius : 0.5;
+  const distortionStrength = noiseSettings.distortionStrength !== undefined ? noiseSettings.distortionStrength : 0.5;
+  const distortionRadius = noiseSettings.distortionRadius !== undefined ? noiseSettings.distortionRadius : 0.2;
 
   const handSelection = handEffect?.handSelection || 'none';
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';

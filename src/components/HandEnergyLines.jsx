@@ -276,9 +276,9 @@ const HandEnergyLines = () => {
   const colorNear = energySettings.colorNear || '#00ffff';
   const colorFar = energySettings.colorFar || '#ff00ff';
   const lineCount = energySettings.lineCount || 5;
-  const intensity = energySettings.intensity !== undefined ? energySettings.intensity : 1.0;
+  const intensity = energySettings.intensity !== undefined ? energySettings.intensity : 0.4;
   const noiseScale = energySettings.noiseScale || 3.0;
-  const amplitude = energySettings.amplitude !== undefined ? energySettings.amplitude : 0.05;
+  const amplitude = energySettings.amplitude !== undefined ? energySettings.amplitude : 0.0;
   const sparkleIntensity = energySettings.sparkleIntensity !== undefined ? energySettings.sparkleIntensity : 1.0;
 
   const handSelection = handEffect?.handSelection || 'none';
