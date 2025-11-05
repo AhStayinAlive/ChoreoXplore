@@ -15,6 +15,7 @@ import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
 import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
 import InkWaterMode from '../modes/InkWater/InkWaterMode';
 import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
+import OpalineFilmMode from '../modes/OpalineFilm/OpalineFilmMode';
 
 // Constants for positioning and animation
 const PREVIEW_WIDTH = 400;
@@ -72,6 +73,8 @@ function PreviewBackgroundVisual() {
       return <PreviewInkWaterMode />;
     case 'opaline_wave':
       return <PreviewOpalineWaveMode />;
+    case 'opaline_film':
+      return <PreviewOpalineFilmMode />;
     case 'empty':
       return null; // Empty mode renders nothing
     default:
@@ -1525,6 +1528,147 @@ void main(){
     const energy = (music?.energy ?? 0) * params.musicReact;
     material.uniforms.uFlowSpeed.value = 1.0 + energy * 1.5;
     material.uniforms.uShimmer.value = 1.0 + energy * 2.0;
+    
+    const rgb = hexToRGB(userColors.assetColor);
+    material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);
+    const bgRgb = hexToRGB(userColors.bgColor);
+    material.uniforms.uBgColor.value.set(bgRgb.r, bgRgb.g, bgRgb.b);
+  });
+
+  return <mesh geometry={geom} material={material} position={[0, 0, -1]} />;
+}
+
+/**
+ * Opaline Film Mode Preview - simplified continuous film preview
+ */
+function PreviewOpalineFilmMode() {
+  const params = useVisStore(s => s.params);
+  const music = useVisStore(s => s.music);
+  const userColors = useStore(s => s.userColors);
+  
+  const bgColor = useMemo(() => hexToRGB(userColors.bgColor), [userColors.bgColor]);
+  const assetColor = useMemo(() => hexToRGB(userColors.assetColor), [userColors.assetColor]);
+  
+  const filmParams = params.opalineFilm || {};
+  const rainbowMode = filmParams.rainbowMode ?? false;
+  
+  const fragmentShader = `
+uniform float uTime;
+uniform vec3 uBgColor;
+uniform vec3 uAssetColor;
+uniform float uIntensity;
+uniform float uBanding;
+uniform bool uRainbowMode;
+varying vec2 vUv;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+vec2 curlNoise(vec2 p) {
+  float e = 0.05;
+  float n1 = noise(p + vec2(e, 0.0));
+  float n2 = noise(p + vec2(0.0, e));
+  float n3 = noise(p - vec2(e, 0.0));
+  float n4 = noise(p - vec2(0.0, e));
+  return vec2(n2 - n4, n3 - n1) / (2.0 * e);
+}
+
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+  vec2 uv = vUv;
+  
+  // Continuous film pattern with banding
+  float flowScale = mix(3.0, 10.0, uBanding);
+  vec2 flow = curlNoise(uv * flowScale + uTime * 0.3);
+  
+  // Create smooth continuous bands
+  float thickness = 0.5 + 0.3 * sin(uv.y * 5.0 + flow.x * 2.0 + uTime);
+  thickness = smoothstep(0.2, 0.8, thickness);
+  
+  // Add flowing detail
+  float detail = noise(uv * 8.0 + flow + uTime * 0.2);
+  thickness = mix(thickness, detail, 0.3);
+  
+  // Calculate gradient for iridescence
+  float dx = thickness - (0.5 + 0.3 * sin((uv.y + 0.01) * 5.0 + flow.x * 2.0 + uTime));
+  float gradient = abs(dx) * 20.0;
+  float edge = smoothstep(0.1, 0.5, gradient);
+  
+  // Color
+  vec3 color;
+  if (uRainbowMode) {
+    float hue = fract(thickness * 0.5 + uTime * 0.1);
+    color = hsv2rgb(vec3(hue, 0.7, 0.9));
+  } else {
+    color = mix(uBgColor, uAssetColor, thickness);
+  }
+  
+  // Iridescent edges
+  vec3 iridescentColor = vec3(
+    0.5 + 0.5 * sin(gradient * 10.0 + uTime * 2.0),
+    0.5 + 0.5 * sin(gradient * 10.0 + uTime * 2.0 + 2.0),
+    0.5 + 0.5 * sin(gradient * 10.0 + uTime * 2.0 + 4.0)
+  );
+  color = mix(color, iridescentColor, edge * 0.4);
+  
+  float alpha = thickness * uIntensity;
+  alpha = smoothstep(0.0, 0.3, alpha);
+  
+  gl_FragColor = vec4(color, alpha);
+}
+  `;
+  
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uBgColor: { value: new THREE.Color(bgColor.r, bgColor.g, bgColor.b) },
+        uAssetColor: { value: new THREE.Color(assetColor.r, assetColor.g, assetColor.b) },
+        uIntensity: { value: 0.8 },
+        uBanding: { value: 0.7 },
+        uRainbowMode: { value: rainbowMode }
+      },
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+  }, [bgColor, assetColor, fragmentShader, rainbowMode]);
+  
+  const geom = useMemo(() => new THREE.PlaneGeometry(8, 6, 1, 1), []);
+
+  useFrame((_, dt) => {
+    material.uniforms.uTime.value += dt * (params.speed || 1.0);
+    material.uniforms.uIntensity.value = params.intensity || 0.8;
+    material.uniforms.uBanding.value = filmParams.banding ?? 0.7;
+    material.uniforms.uRainbowMode.value = filmParams.rainbowMode ?? false;
     
     const rgb = hexToRGB(userColors.assetColor);
     material.uniforms.uAssetColor.value.set(rgb.r, rgb.g, rgb.b);

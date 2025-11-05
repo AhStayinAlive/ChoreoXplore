@@ -15,6 +15,7 @@ import LotusBloomMode from '../modes/LotusBloom/LotusBloomMode';
 import StainedGlassRoseMode from '../modes/StainedGlassRose/StainedGlassRoseMode';
 import InkWaterMode from '../modes/InkWater/InkWaterMode';
 import OpalineWaveMode from '../modes/OpalineWave/OpalineWave';
+import OpalineFilmMode from '../modes/OpalineFilm/OpalineFilmMode';
 
 export default function ChoreoXploreSystem() {
   const params = useVisStore(s => s.params);
@@ -48,6 +49,8 @@ export default function ChoreoXploreSystem() {
       return <InkWaterMode />;
     case 'opaline_wave':
       return <OpalineWaveMode />;
+    case 'opaline_film':
+      return <OpalineFilmMode />;
     case 'empty':
       return <EmptyMode />;
     default:

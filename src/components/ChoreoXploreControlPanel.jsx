@@ -165,6 +165,7 @@ export default function ChoreoXploreControlPanel() {
               <option value="stained_glass_rose" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Stained Glass Rose</option>
               <option value="ink_water" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ink & Water</option>
               <option value="opaline_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Opaline Wave</option>
+              <option value="opaline_film" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>🌈 Opaline Film</option>
             </select>
           </div>
         </div>

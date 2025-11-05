@@ -13,14 +13,17 @@ export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTextu
   
   const handEffect = params.handEffect || { type: 'none', handSelection: 'none' };
   
-  // Check if Opaline Wave is in motion-reactive mode
+  // Check if Opaline Wave or Opaline Film is in motion-reactive mode
   const isOpalineWaveMotionMode = params.mode === 'opaline_wave' && 
     (params.opalineWave?.motionReactive ?? true);
+  const isOpalineFilmMode = params.mode === 'opaline_film' &&
+    (params.opalineFilm?.handReactivity !== 'off');
   
   // Don't render hand effects if:
   // - no effect selected or visuals disabled
-  // - Opaline Wave is in motion-reactive mode (it uses hand tracking for the visual itself)
-  if (handEffect.type === 'none' || handEffect.handSelection === 'none' || !isActive || isOpalineWaveMotionMode) {
+  // - Opaline Wave/Film is in motion-reactive mode (it uses hand tracking for the visual itself)
+  if (handEffect.type === 'none' || handEffect.handSelection === 'none' || !isActive || 
+      isOpalineWaveMotionMode || isOpalineFilmMode) {
     return null;
   }
   
