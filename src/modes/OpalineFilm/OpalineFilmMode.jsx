@@ -407,8 +407,9 @@ export default function OpalineFilmMode() {
   
   useEffect(() => {
     // Check for float texture support and fallback if necessary
-    const floatExt = gl.getExtension('OES_texture_float');
-    const halfFloatExt = gl.getExtension('OES_texture_half_float');
+    const glContext = gl.getContext();
+    const floatExt = glContext.getExtension('OES_texture_float');
+    const halfFloatExt = glContext.getExtension('OES_texture_half_float');
     
     let textureType = THREE.UnsignedByteType; // Safe fallback
     if (floatExt) {
@@ -671,17 +672,16 @@ export default function OpalineFilmMode() {
     renderMaterial.uniforms.uMusicCentroid.value = musicCentroid;
     
     gl.setRenderTarget(null);
-    
-    // Update display mesh
-    if (meshRef.current) {
-      meshRef.current.material = renderMaterial;
-    }
   });
   
+  if (!renderTargets) {
+    // Don't render anything until render targets are initialized
+    return null;
+  }
+  
   return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
+    <mesh ref={meshRef} position={[0, 0, 0]} material={renderMaterial}>
       <planeGeometry args={[20, 12]} />
-      <meshBasicMaterial />
     </mesh>
   );
 }
