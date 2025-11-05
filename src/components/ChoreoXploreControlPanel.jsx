@@ -2,6 +2,7 @@ import { useVisStore } from "../state/useVisStore";
 import useStore from "../core/store";
 import Slider from "./reusables/Slider";
 import ToggleButton from "./reusables/ToggleButton";
+import OpalineFilmPanel from "../modes/OpalineFilm/OpalineFilmPanel";
 
 export default function ChoreoXploreControlPanel() {
   const music = useVisStore(s => s.music);
@@ -165,6 +166,7 @@ export default function ChoreoXploreControlPanel() {
               <option value="stained_glass_rose" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Stained Glass Rose</option>
               <option value="ink_water" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ink & Water</option>
               <option value="opaline_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Opaline Wave</option>
+              <option value="opaline_film" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>🌈 Opaline Film</option>
             </select>
           </div>
         </div>
@@ -211,6 +213,9 @@ export default function ChoreoXploreControlPanel() {
             showValue={false}
           />
         </div>
+
+        {/* Mode-specific panels */}
+        {params.mode === 'opaline_film' && <OpalineFilmPanel />}
 
       </div>
     </div>
