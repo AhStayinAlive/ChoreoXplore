@@ -13,8 +13,14 @@ export default function HandEffectRouter({ fluidTexture, fluidCanvas, smokeTextu
   
   const handEffect = params.handEffect || { type: 'none', handSelection: 'none' };
   
-  // Don't render if no effect selected or visuals disabled
-  if (handEffect.type === 'none' || handEffect.handSelection === 'none' || !isActive) {
+  // Check if Opaline Wave is in motion-reactive mode
+  const isOpalineWaveMotionMode = params.mode === 'opaline_wave' && 
+    (params.opalineWave?.motionReactive ?? true);
+  
+  // Don't render hand effects if:
+  // - no effect selected or visuals disabled
+  // - Opaline Wave is in motion-reactive mode (it uses hand tracking for the visual itself)
+  if (handEffect.type === 'none' || handEffect.handSelection === 'none' || !isActive || isOpalineWaveMotionMode) {
     return null;
   }
   

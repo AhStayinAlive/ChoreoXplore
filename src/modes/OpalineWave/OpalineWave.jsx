@@ -2,14 +2,14 @@
  * Opaline Wave Mode
  * Silky, pastel, oil-on-water swirls with iridescent rims
  * 
- * Audio mapping:
+ * Audio mapping (when motionReactive is false):
  * - low → base flow strength (big slow bends)
  * - mid → advection/scroll speed (overall motion)
  * - high → shimmer speed (fine iridescent ripples)
  * 
- * Motion mapping (optional):
- * - com.xy → affects flow direction
- * - bodyVelocity → flow intensity
+ * Motion mapping (when motionReactive is true):
+ * - hand positions → affects flow direction and swirl centers
+ * - hand velocity → flow intensity and shimmer speed
  */
 
 import React, { useMemo, useRef } from 'react';
@@ -17,6 +17,13 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useVisStore } from '../../state/useVisStore';
 import useStore, { hexToRGB } from '../../core/store';
+import usePoseDetection from '../../hooks/usePoseDetection';
+import { 
+  getRightHandAnchor as getRightHandPosition,
+  getLeftHandAnchor as getLeftHandPosition,
+  calculateHandVelocity,
+  smoothHandPosition
+} from '../../utils/handTracking';
 
 // Simplified shader without FBOs
 const vertexShader = `
@@ -40,6 +47,11 @@ uniform float uTransparency;
 uniform bool uRainbowMode;
 uniform float uColorSpread;
 uniform float uShimmerSpeed;
+uniform bool uMotionReactive;
+uniform vec2 uLeftHandPos;
+uniform vec2 uRightHandPos;
+uniform float uLeftHandVelocity;
+uniform float uRightHandVelocity;
 
 varying vec2 vUv;
 
@@ -122,21 +134,58 @@ vec2 domainWarp(vec2 p, float time, float strength, float swirlStrength) {
 void main() {
   vec2 uv = vUv;
   
-  // Audio-reactive flow
-  float flowScale = 2.0 + uLowFreq * 2.0;
-  float flowSpeed = 0.3 + uMidFreq * 0.5;
-  float shimmer = uHighFreq;
-  float swirlIntensity = 1.5 + uMidFreq * 2.0; // Swirl reacts to mid frequencies
+  float flowScale, flowSpeed, shimmer, swirlIntensity;
+  
+  if (uMotionReactive) {
+    // Motion-reactive mode: use hand movements
+    float avgVelocity = (uLeftHandVelocity + uRightHandVelocity) * 0.5;
+    flowScale = 2.0 + avgVelocity * 3.0;
+    flowSpeed = 0.3 + avgVelocity * 0.7;
+    shimmer = avgVelocity * 2.0;
+    swirlIntensity = 1.5 + avgVelocity * 3.0;
+  } else {
+    // Audio-reactive mode: use music data
+    flowScale = 2.0 + uLowFreq * 2.0;
+    flowSpeed = 0.3 + uMidFreq * 0.5;
+    shimmer = uHighFreq;
+    swirlIntensity = 1.5 + uMidFreq * 2.0;
+  }
   
   // Domain-warped coordinates for oil-on-water swirls with rotation
   vec2 warpedUV = domainWarp(uv * flowScale, uTime * flowSpeed, 0.5, swirlIntensity);
   
-  // Add additional rotational flow field
-  vec2 center = vec2(0.5, 0.5);
-  vec2 toCenter = warpedUV - center;
-  float dist = length(toCenter);
-  float rotationSpeed = 0.2 + uLowFreq * 0.3;
-  warpedUV = center + rotate2D(toCenter, uTime * rotationSpeed * (1.0 - dist * 0.5));
+  // Add hand-influenced swirl centers when in motion mode
+  if (uMotionReactive) {
+    // Create swirl effects around each hand position
+    vec2 leftHandUV = vec2(uLeftHandPos.x, 1.0 - uLeftHandPos.y);
+    vec2 rightHandUV = vec2(uRightHandPos.x, 1.0 - uRightHandPos.y);
+    
+    // Calculate distance and angle from each hand
+    vec2 toLeftHand = warpedUV - leftHandUV;
+    vec2 toRightHand = warpedUV - rightHandUV;
+    float distLeft = length(toLeftHand);
+    float distRight = length(toRightHand);
+    
+    // Apply hand-based swirls (stronger when hands are moving)
+    if (distLeft < 0.5) {
+      float leftSwirlStrength = (0.5 - distLeft) * uLeftHandVelocity * 2.0;
+      float angleLeft = atan(toLeftHand.y, toLeftHand.x);
+      warpedUV = leftHandUV + rotate2D(toLeftHand, leftSwirlStrength * sin(uTime * 0.5));
+    }
+    
+    if (distRight < 0.5) {
+      float rightSwirlStrength = (0.5 - distRight) * uRightHandVelocity * 2.0;
+      float angleRight = atan(toRightHand.y, toRightHand.x);
+      warpedUV = rightHandUV + rotate2D(toRightHand, rightSwirlStrength * sin(uTime * 0.5));
+    }
+  } else {
+    // Add additional rotational flow field (audio mode)
+    vec2 center = vec2(0.5, 0.5);
+    vec2 toCenter = warpedUV - center;
+    float dist = length(toCenter);
+    float rotationSpeed = 0.2 + uLowFreq * 0.3;
+    warpedUV = center + rotate2D(toCenter, uTime * rotationSpeed * (1.0 - dist * 0.5));
+  }
   
   // Create layered, flowing patterns (reduced octaves for performance)
   float pattern1 = fbm(warpedUV + uTime * 0.1, 3);
@@ -179,18 +228,36 @@ void main() {
 const DEFAULT_PARAMS = {
   rainbowMode: false,
   colorSpread: 0.9,
-  shimmerSpeed: 0.25
+  shimmerSpeed: 0.25,
+  motionReactive: true  // Enable motion-reactive mode by default
 };
 
 export default function OpalineWaveMode() {
   const params = useVisStore(s => s.params);
   const music = useVisStore(s => s.music);
   const userColors = useStore(s => s.userColors);
+  const { poseData } = usePoseDetection();
   
   // Get mode-specific params or use defaults
   const opalineParams = params.opalineWave || DEFAULT_PARAMS;
   
+  // Check if we should use motion-reactive mode (based on opalineParams or handEffect settings)
+  const motionReactive = opalineParams.motionReactive ?? false;
+  
   const lastEnergyRef = useRef(0);
+  
+  // Hand tracking refs for motion-reactive mode
+  const leftHandRefs = {
+    lastPosition: useRef({ x: 0.5, y: 0.5 }),
+    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    velocity: useRef(0)
+  };
+
+  const rightHandRefs = {
+    lastPosition: useRef({ x: 0.5, y: 0.5 }),
+    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    velocity: useRef(0)
+  };
   
   // Create material with uniforms
   const material = useMemo(() => {
@@ -208,7 +275,12 @@ export default function OpalineWaveMode() {
         uTransparency: { value: 0.8 },
         uRainbowMode: { value: false },
         uColorSpread: { value: DEFAULT_PARAMS.colorSpread },
-        uShimmerSpeed: { value: DEFAULT_PARAMS.shimmerSpeed }
+        uShimmerSpeed: { value: DEFAULT_PARAMS.shimmerSpeed },
+        uMotionReactive: { value: false },
+        uLeftHandPos: { value: new THREE.Vector2(0.3, 0.5) },
+        uRightHandPos: { value: new THREE.Vector2(0.7, 0.5) },
+        uLeftHandVelocity: { value: 0 },
+        uRightHandVelocity: { value: 0 }
       },
       transparent: true,
       side: THREE.DoubleSide,
@@ -217,65 +289,107 @@ export default function OpalineWaveMode() {
   }, []);
   
   useFrame((state, dt) => {
-    const musicReact = params.musicReact || 0;
-    const audioMode = params.audioMode || 'frequencies';
-    const energy = (music?.energy ?? 0);
-    const rms = (music?.rms ?? 0);
-    const centroid = music?.centroid ?? 0;
+    // Update motion reactive mode
+    material.uniforms.uMotionReactive.value = motionReactive;
     
-    let lowBand, midBand, highBand;
-    
-    // Different audio modes drive visuals differently
-    switch(audioMode) {
-      case 'energy':
-        // Energy mode: all bands driven by overall energy with slight variation
-        lowBand = energy * 0.8 * musicReact;
-        midBand = energy * 1.0 * musicReact;
-        highBand = energy * 0.6 * musicReact;
-        break;
-      case 'rms':
-        // RMS mode: volume-based with smooth changes
-        lowBand = rms * 0.9 * musicReact;
-        midBand = rms * 1.1 * musicReact;
-        highBand = rms * 0.7 * musicReact;
-        break;
-      case 'beat':
-        // Beat mode: detect strong energy changes for rhythmic pulses
-        const energyChange = Math.abs(energy - lastEnergyRef.current);
-        const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
-        lowBand = beatPulse * musicReact;
-        midBand = beatPulse * 0.8 * musicReact;
-        highBand = beatPulse * 0.6 * musicReact;
-        lastEnergyRef.current = energy;
-        break;
-      case 'frequencies':
-      default:
-        // Frequencies mode: separate low/mid/high bands based on centroid
-        lowBand = energy * (1 - Math.min(centroid / 5000, 1)) * musicReact;
-        midBand = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2) * musicReact;
-        highBand = energy * Math.min(centroid / 5000, 1) * musicReact;
-        break;
+    if (motionReactive) {
+      // Motion-reactive mode: use hand tracking
+      const leftHandPos = getLeftHandPosition(poseData?.landmarks);
+      const rightHandPos = getRightHandPosition(poseData?.landmarks);
+      
+      // Update left hand
+      if (leftHandPos) {
+        const smoothedLeft = smoothHandPosition(leftHandPos, leftHandRefs.smoothedPosition.current, 0.3);
+        leftHandRefs.smoothedPosition.current = smoothedLeft;
+        
+        const leftVelocity = calculateHandVelocity(smoothedLeft, leftHandRefs.lastPosition.current, dt);
+        leftHandRefs.velocity.current = leftVelocity;
+        leftHandRefs.lastPosition.current = smoothedLeft;
+        
+        material.uniforms.uLeftHandPos.value.set(smoothedLeft.x, smoothedLeft.y);
+        material.uniforms.uLeftHandVelocity.value = leftVelocity;
+      } else {
+        // No hand detected - reduce velocity smoothly
+        material.uniforms.uLeftHandVelocity.value *= 0.95;
+      }
+      
+      // Update right hand
+      if (rightHandPos) {
+        const smoothedRight = smoothHandPosition(rightHandPos, rightHandRefs.smoothedPosition.current, 0.3);
+        rightHandRefs.smoothedPosition.current = smoothedRight;
+        
+        const rightVelocity = calculateHandVelocity(smoothedRight, rightHandRefs.lastPosition.current, dt);
+        rightHandRefs.velocity.current = rightVelocity;
+        rightHandRefs.lastPosition.current = smoothedRight;
+        
+        material.uniforms.uRightHandPos.value.set(smoothedRight.x, smoothedRight.y);
+        material.uniforms.uRightHandVelocity.value = rightVelocity;
+      } else {
+        // No hand detected - reduce velocity smoothly
+        material.uniforms.uRightHandVelocity.value *= 0.95;
+      }
+    } else {
+      // Audio-reactive mode: use music data
+      const musicReact = params.musicReact || 0;
+      const audioMode = params.audioMode || 'frequencies';
+      const energy = (music?.energy ?? 0);
+      const rms = (music?.rms ?? 0);
+      const centroid = music?.centroid ?? 0;
+      
+      let lowBand, midBand, highBand;
+      
+      // Different audio modes drive visuals differently
+      switch(audioMode) {
+        case 'energy':
+          // Energy mode: all bands driven by overall energy with slight variation
+          lowBand = energy * 0.8 * musicReact;
+          midBand = energy * 1.0 * musicReact;
+          highBand = energy * 0.6 * musicReact;
+          break;
+        case 'rms':
+          // RMS mode: volume-based with smooth changes
+          lowBand = rms * 0.9 * musicReact;
+          midBand = rms * 1.1 * musicReact;
+          highBand = rms * 0.7 * musicReact;
+          break;
+        case 'beat':
+          // Beat mode: detect strong energy changes for rhythmic pulses
+          const energyChange = Math.abs(energy - lastEnergyRef.current);
+          const beatPulse = energyChange > 0.15 ? 1.0 : 0.0;
+          lowBand = beatPulse * musicReact;
+          midBand = beatPulse * 0.8 * musicReact;
+          highBand = beatPulse * 0.6 * musicReact;
+          lastEnergyRef.current = energy;
+          break;
+        case 'frequencies':
+        default:
+          // Frequencies mode: separate low/mid/high bands based on centroid
+          lowBand = energy * (1 - Math.min(centroid / 5000, 1)) * musicReact;
+          midBand = energy * (1 - Math.abs(centroid / 5000 - 0.5) * 2) * musicReact;
+          highBand = energy * Math.min(centroid / 5000, 1) * musicReact;
+          break;
+      }
+      
+      // Update audio reactivity with lerping for smoothness
+      material.uniforms.uLowFreq.value = THREE.MathUtils.lerp(
+        material.uniforms.uLowFreq.value,
+        lowBand,
+        audioMode === 'beat' ? 0.3 : 0.1
+      );
+      material.uniforms.uMidFreq.value = THREE.MathUtils.lerp(
+        material.uniforms.uMidFreq.value,
+        midBand,
+        audioMode === 'beat' ? 0.3 : 0.1
+      );
+      material.uniforms.uHighFreq.value = THREE.MathUtils.lerp(
+        material.uniforms.uHighFreq.value,
+        highBand,
+        audioMode === 'beat' ? 0.3 : 0.1
+      );
     }
     
     // Update time
     material.uniforms.uTime.value += dt * (0.5 + params.speed * 0.5);
-    
-    // Update audio reactivity with lerping for smoothness
-    material.uniforms.uLowFreq.value = THREE.MathUtils.lerp(
-      material.uniforms.uLowFreq.value,
-      lowBand,
-      audioMode === 'beat' ? 0.3 : 0.1
-    );
-    material.uniforms.uMidFreq.value = THREE.MathUtils.lerp(
-      material.uniforms.uMidFreq.value,
-      midBand,
-      audioMode === 'beat' ? 0.3 : 0.1
-    );
-    material.uniforms.uHighFreq.value = THREE.MathUtils.lerp(
-      material.uniforms.uHighFreq.value,
-      highBand,
-      audioMode === 'beat' ? 0.3 : 0.1
-    );
     
     // Update colors
     const bgRGB = hexToRGB(userColors.bgColor);
