@@ -66,7 +66,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   // Helpers
   function toSceneXY(lm, scale) {
     return new THREE.Vector3(
-      (lm.x - 0.5) * 200 * scale,
+      -(lm.x - 0.5) * 200 * scale, // INVERTED: negate X to mirror the skeleton
       (0.5 - lm.y) * 200 * scale,
       2 // keep in front
     );
@@ -189,8 +189,8 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     const landmarks = currentPose.landmarks;
     if (!landmarks || landmarks.length < 33) return;
 
-    // Fixed scale - larger base scale so avatar stays visible
-    let scale = 22 * modeScale;
+    // Fixed scale - adjusted for optimal visibility (was 22, now 38)
+    let scale = 38 * modeScale;
 
     // Reset pool indices to reuse existing objects
     const pool = poolRef.current;
@@ -246,27 +246,84 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       head.position.copy(headCenter);
     }
 
-    // Arms
+    // Arms (extended by 40% for better proportions)
+    const armExtensionFactor = 1.4; // Make arms 40% longer
+    
     if (L_ELB && L_WRI && L_SHO.visibility > 0.2 && L_ELB.visibility > 0.2) {
       const elbowPos = toSceneXY(L_ELB, scale);
-      addCapsule(vLS, elbowPos, armUpperR);
+      
+      // Extend upper arm (shoulder to elbow)
+      const upperArmVec = new THREE.Vector3().subVectors(elbowPos, vLS);
+      const extendedElbowPos = vLS.clone().add(upperArmVec.multiplyScalar(armExtensionFactor));
+      
+      addCapsule(vLS, extendedElbowPos, armUpperR);
       addJointSphere(vLS, armUpperR); // shoulder
-      addJointSphere(elbowPos, armUpperR); // elbow
+      addJointSphere(extendedElbowPos, armUpperR); // elbow
+      
       if (L_WRI.visibility > 0.2) {
         const wristPos = toSceneXY(L_WRI, scale);
-        addCapsule(elbowPos, wristPos, armLowerR);
-        addJointSphere(wristPos, armLowerR); // wrist
+        
+        // Extend forearm (elbow to wrist)
+        const forearmVec = new THREE.Vector3().subVectors(wristPos, elbowPos);
+        const extendedWristPos = extendedElbowPos.clone().add(forearmVec.multiplyScalar(armExtensionFactor));
+        
+        addCapsule(extendedElbowPos, extendedWristPos, armLowerR);
+        addJointSphere(extendedWristPos, armLowerR); // wrist
+        
+        // Add hand extension (wrist to index finger)
+        const L_INDEX = landmarks[19]; // Left index finger
+        if (L_INDEX && L_INDEX.visibility > 0.2) {
+          const indexPos = toSceneXY(L_INDEX, scale);
+          const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
+          const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
+          const handR = armLowerR * 0.7; // Slightly thinner than forearm
+          addCapsule(extendedWristPos, extendedIndexPos, handR);
+          addJointSphere(extendedIndexPos, handR * 0.8); // finger tip
+        } else {
+          // If no finger detected, extend hand by 40% of extended forearm length
+          const handExtension = extendedWristPos.clone().add(forearmVec.clone().normalize().multiplyScalar(forearmVec.length() * 0.4));
+          const handR = armLowerR * 0.7;
+          addCapsule(extendedWristPos, handExtension, handR);
+        }
       }
     }
+    
     if (R_ELB && R_WRI && R_SHO.visibility > 0.2 && R_ELB.visibility > 0.2) {
       const elbowPos = toSceneXY(R_ELB, scale);
-      addCapsule(vRS, elbowPos, armUpperR);
+      
+      // Extend upper arm (shoulder to elbow)
+      const upperArmVec = new THREE.Vector3().subVectors(elbowPos, vRS);
+      const extendedElbowPos = vRS.clone().add(upperArmVec.multiplyScalar(armExtensionFactor));
+      
+      addCapsule(vRS, extendedElbowPos, armUpperR);
       addJointSphere(vRS, armUpperR); // shoulder
-      addJointSphere(elbowPos, armUpperR); // elbow
+      addJointSphere(extendedElbowPos, armUpperR); // elbow
+      
       if (R_WRI.visibility > 0.2) {
         const wristPos = toSceneXY(R_WRI, scale);
-        addCapsule(elbowPos, wristPos, armLowerR);
-        addJointSphere(wristPos, armLowerR); // wrist
+        
+        // Extend forearm (elbow to wrist)
+        const forearmVec = new THREE.Vector3().subVectors(wristPos, elbowPos);
+        const extendedWristPos = extendedElbowPos.clone().add(forearmVec.multiplyScalar(armExtensionFactor));
+        
+        addCapsule(extendedElbowPos, extendedWristPos, armLowerR);
+        addJointSphere(extendedWristPos, armLowerR); // wrist
+        
+        // Add hand extension (wrist to index finger)
+        const R_INDEX = landmarks[20]; // Right index finger
+        if (R_INDEX && R_INDEX.visibility > 0.2) {
+          const indexPos = toSceneXY(R_INDEX, scale);
+          const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
+          const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
+          const handR = armLowerR * 0.7; // Slightly thinner than forearm
+          addCapsule(extendedWristPos, extendedIndexPos, handR);
+          addJointSphere(extendedIndexPos, handR * 0.8); // finger tip
+        } else {
+          // If no finger detected, extend hand by 40% of extended forearm length
+          const handExtension = extendedWristPos.clone().add(forearmVec.clone().normalize().multiplyScalar(forearmVec.length() * 0.4));
+          const handR = armLowerR * 0.7;
+          addCapsule(extendedWristPos, handExtension, handR);
+        }
       }
     }
 

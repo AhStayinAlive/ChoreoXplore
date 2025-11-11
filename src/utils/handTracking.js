@@ -123,19 +123,20 @@ export const calculateRippleParams = (handPos, velocity, visibility = 1) => {
 // This uses the same scale and radius math as the avatar so the effect lands
 // at the visible end of the hand.
 
-const SKELETON_SCALE = 22; // Keep in sync with SimpleSkeleton
+const SKELETON_SCALE = 38; // Keep in sync with SimpleSkeleton
+const ARM_EXTENSION_FACTOR = 1.4; // Keep in sync with SimpleSkeleton
 
 const toSceneXY = (lm, scale = SKELETON_SCALE) => {
   if (!lm) return { x: 0, y: 0 };
   return {
-    x: (lm.x - 0.5) * 200 * scale,
+    x: -(lm.x - 0.5) * 200 * scale, // Mirrored X coordinate
     y: (0.5 - lm.y) * 200 * scale
   };
 };
 
 const sceneToNormalized = (pt, scale = SKELETON_SCALE) => {
   return {
-    x: (pt.x / (200 * scale)) + 0.5,
+    x: 0.5 - (pt.x / (200 * scale)), // Reverse the mirrored X
     y: 0.5 - (pt.y / (200 * scale))
   };
 };
@@ -146,8 +147,10 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
   const isLeft = side === 'left';
   const SHO_L = landmarks[11];
   const SHO_R = landmarks[12];
+  const SHO = landmarks[isLeft ? 11 : 12];
   const ELB = landmarks[isLeft ? 13 : 14];
   const WRI = landmarks[isLeft ? 15 : 16];
+  const INDEX = landmarks[isLeft ? 19 : 20];
 
   if (!WRI || WRI.visibility < 0.2) return null;
 
@@ -161,21 +164,72 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
   // Same formula used in SimpleSkeleton for the lower arm radius
   const armLowerR = Math.max(shoulderW * 0.14, 7);
 
-  // If no elbow, just use wrist center to avoid jitter
-  if (!ELB || ELB.visibility < 0.2) {
+  // Calculate extended wrist position
+  if (!ELB || ELB.visibility < 0.2 || !SHO || SHO.visibility < 0.2) {
+    // Fallback: just use wrist center if we don't have full arm data
     return { x: WRI.x, y: WRI.y, z: WRI.z ?? 0, visibility: WRI.visibility };
   }
 
+  const pSho = toSceneXY(SHO);
   const pElb = toSceneXY(ELB);
   const pWri = toSceneXY(WRI);
-  const dirX = pWri.x - pElb.x;
-  const dirY = pWri.y - pElb.y;
-  const len = Math.hypot(dirX, dirY) || 1;
-  const nx = dirX / len;
-  const ny = dirY / len;
-
-  const endScene = { x: pWri.x + nx * armLowerR, y: pWri.y + ny * armLowerR };
-  const endNorm = sceneToNormalized(endScene);
+  
+  // Apply arm extension factor to get extended elbow position
+  const upperArmX = pElb.x - pSho.x;
+  const upperArmY = pElb.y - pSho.y;
+  const extendedElb = {
+    x: pSho.x + upperArmX * ARM_EXTENSION_FACTOR,
+    y: pSho.y + upperArmY * ARM_EXTENSION_FACTOR
+  };
+  
+  // Apply arm extension factor to get extended wrist position
+  const forearmX = pWri.x - pElb.x;
+  const forearmY = pWri.y - pElb.y;
+  const extendedWri = {
+    x: extendedElb.x + forearmX * ARM_EXTENSION_FACTOR,
+    y: extendedElb.y + forearmY * ARM_EXTENSION_FACTOR
+  };
+  
+  // Calculate extended hand endpoint (wrist to finger or fallback extension)
+  let handEndpoint = { ...extendedWri };
+  
+  if (INDEX && INDEX.visibility > 0.2) {
+    // Use index finger if available
+    const pIndex = toSceneXY(INDEX);
+    const handX = pIndex.x - pWri.x;
+    const handY = pIndex.y - pWri.y;
+    handEndpoint = {
+      x: extendedWri.x + handX * ARM_EXTENSION_FACTOR,
+      y: extendedWri.y + handY * ARM_EXTENSION_FACTOR
+    };
+  } else {
+    // Fallback: extend by 40% of extended forearm length
+    const forearmLen = Math.hypot(forearmX, forearmY) || 1;
+    const nx = forearmX / forearmLen;
+    const ny = forearmY / forearmLen;
+    const extensionDist = forearmLen * ARM_EXTENSION_FACTOR * 0.4;
+    handEndpoint = {
+      x: extendedWri.x + nx * extensionDist,
+      y: extendedWri.y + ny * extensionDist
+    };
+  }
+  
+  // Add wrist radius offset to get the outer edge of the hand
+  const handR = armLowerR * 0.7;
+  const dirToEnd = {
+    x: handEndpoint.x - extendedWri.x,
+    y: handEndpoint.y - extendedWri.y
+  };
+  const len = Math.hypot(dirToEnd.x, dirToEnd.y) || 1;
+  const nx = dirToEnd.x / len;
+  const ny = dirToEnd.y / len;
+  
+  const finalEndpoint = {
+    x: handEndpoint.x + nx * handR,
+    y: handEndpoint.y + ny * handR
+  };
+  
+  const endNorm = sceneToNormalized(finalEndpoint);
   const visibility = Math.min(WRI.visibility ?? 1, ELB.visibility ?? 1);
   return { x: endNorm.x, y: endNorm.y, z: WRI.z ?? 0, visibility };
 };

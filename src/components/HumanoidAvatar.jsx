@@ -184,7 +184,7 @@ const HumanoidAvatar = () => {
     if (!landmark) return { x: 0, y: 0, z: 0 };
     
     return {
-      x: (landmark.x - 0.5) * scale,
+      x: -(landmark.x - 0.5) * scale, // INVERTED: negate X to mirror the avatar
       y: (0.5 - landmark.y) * scale, // Flip Y for 3D space
       z: landmark.z * scale
     };

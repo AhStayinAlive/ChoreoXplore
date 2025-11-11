@@ -5,8 +5,8 @@ import { useVisStore } from '../state/useVisStore';
 import useStore, { hexToRGB } from '../core/store';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { 
-  getRightHandPosition,
-  getLeftHandPosition
+  getRightHandAnchor as getRightHandPosition,
+  getLeftHandAnchor as getLeftHandPosition
 } from '../utils/handTracking';
 
 const VerticalLinesMode = () => {
@@ -114,11 +114,11 @@ const VerticalLinesMode = () => {
     
     const lengthMul = 1; // fixed length for simple mode
 
-    // Hand positions (world coords)
-    const scale = 22;
+    // Hand positions (world coords, MIRRORED)
+    const scale = 38; // Match SimpleSkeleton
     const toWorld = (handPos) => {
       if (!handPos || handPos.visibility < 0.6) return null;
-      const x = (handPos.x - 0.5) * 200 * scale;
+      const x = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
       const y = (0.5 - handPos.y) * 200 * scale;
       return { x, y };
     };

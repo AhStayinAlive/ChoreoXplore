@@ -294,9 +294,9 @@ const HandEnergyLines = () => {
   // Convert hand positions to shader UV coordinates (matching HandNoiseDistortion approach)
   const convertToShaderCoords = (handPos, fallbackX, fallbackY) => {
     if (handPos?.visibility > 0.3) {
-      // Convert to SimpleSkeleton coordinate system
-      const scale = 22; // Match SimpleSkeleton default
-      const x = (handPos.x - 0.5) * 200 * scale;
+      // Convert to SimpleSkeleton coordinate system (MIRRORED)
+      const scale = 38; // Match SimpleSkeleton default
+      const x = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
       const y = (0.5 - handPos.y) * 200 * scale; // Invert Y axis
       
       // Convert to UV coordinates (0-1 range) for 19500-width viewport

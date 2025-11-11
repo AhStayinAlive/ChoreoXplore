@@ -87,9 +87,9 @@ const HandParticleTrailEffect = () => {
   const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef) => {
     if (!handPos || handPos.visibility < 0.3 || !particlesRef.current) return;
     
-    // Convert MediaPipe coords to SimpleSkeleton coordinate system
-    const scale = 22;
-    const x = (handPos.x - 0.5) * 200 * scale;
+    // Convert MediaPipe coords to SimpleSkeleton coordinate system (MIRRORED)
+    const scale = 38; // Match SimpleSkeleton
+    const x = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
     const y = (0.5 - handPos.y) * 200 * scale;
     
     // Smooth the position with configurable smoothness

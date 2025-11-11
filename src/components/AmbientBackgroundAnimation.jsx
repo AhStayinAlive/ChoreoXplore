@@ -944,7 +944,7 @@ const AmbientBackgroundAnimation = ({
       poseData.landmarks.forEach((landmark, index) => {
         if (landmark && index < 33) {
           // Use the same transformation as SimpleSkeleton
-          const scale = 22; // Use the same default scale as SimpleSkeleton
+          const scale = 38; // Use the same default scale as SimpleSkeleton
           const x = (landmark.x - 0.5) * 200 * scale;
           const y = (0.5 - landmark.y) * 200 * scale;
           

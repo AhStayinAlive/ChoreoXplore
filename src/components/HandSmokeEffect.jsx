@@ -69,11 +69,11 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
     const leftHandPos = leftHandEnabled ? getLeftHandPosition(poseData?.landmarks) : null;
     const rightHandPos = rightHandEnabled ? getRightHandPosition(poseData?.landmarks) : null;
 
-    // Helper to convert MediaPipe coords to match SimpleSkeleton coordinate system
+    // Helper to convert MediaPipe coords to match SimpleSkeleton coordinate system (MIRRORED)
     const transformHandCoords = (handPos) => {
       // Use SimpleSkeleton's coordinate system (scale 22, plane 20000x20000)
-      const scale = 22;
-      const x = (handPos.x - 0.5) * 200 * scale;
+      const scale = 38; // Match SimpleSkeleton
+      const x = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
       const y = (0.5 - handPos.y) * 200 * scale;
       
       // Convert to UV coordinates (0-1 range) for the canvas
