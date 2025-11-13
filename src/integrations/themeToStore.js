@@ -70,7 +70,7 @@ function getComplementaryColor(hexColor) {
  */
 export function wireThemeToStore() {
   // Helper to push colors into the visual hand-effect store
-  function applyHandEffectColors({ baseColor, rippleColor, smokeColor, fluidColor, particleTrailColor, noiseColor1, noiseColor2, energyNearColor, energyFarColor }) {
+  function applyHandEffectColors({ baseColor, rippleColor, smokeColor, fluidColor, particleTrailColor, noiseColor1, noiseColor2 }) {
     const visStoreState = useVisStore.getState();
     const currentParams = visStoreState.params;
     const currentHandEffect = currentParams.handEffect || {};
@@ -98,11 +98,6 @@ export function wireThemeToStore() {
         ...(currentHandEffect.noiseDistortion || {}),
         color1: noiseColor1 ?? (currentHandEffect.noiseDistortion?.color1 || '#00ffff'),
         color2: noiseColor2 ?? (currentHandEffect.noiseDistortion?.color2 || '#ff00ff')
-      },
-      energyLines: {
-        ...(currentHandEffect.energyLines || {}),
-        colorNear: energyNearColor ?? (currentHandEffect.energyLines?.colorNear || '#00ffff'),
-        colorFar: energyFarColor ?? (currentHandEffect.energyLines?.colorFar || '#ff00ff')
       }
     };
 
@@ -124,9 +119,7 @@ export function wireThemeToStore() {
         fluidColor: baseColor,
         particleTrailColor: baseColor,
         noiseColor1: baseColor,
-        noiseColor2: getComplementaryColor(baseColor), // Use complementary for gradient
-        energyNearColor: baseColor,
-        energyFarColor: getComplementaryColor(baseColor) // Use complementary for gradient
+        noiseColor2: getComplementaryColor(baseColor) // Use complementary for gradient
       });
     }, 100);
   }
@@ -172,11 +165,6 @@ export function wireThemeToStore() {
         ...(currentHandEffect.noiseDistortion || {}),
         color1: theme.asset,
         color2: getComplementaryColor(theme.asset) // Complementary for gradient
-      },
-      energyLines: {
-        ...(currentHandEffect.energyLines || {}),
-        colorNear: theme.asset,
-        colorFar: getComplementaryColor(theme.asset) // Complementary for gradient
       }
     };
 
