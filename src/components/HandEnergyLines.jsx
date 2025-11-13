@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
+import useStore from '../core/store';
 import usePoseDetection from '../hooks/usePoseDetection';
 import {
   getLeftHandAnchor as getLeftHandPosition,
@@ -266,9 +267,10 @@ const fragmentShader = `
 `;
 
 const HandEnergyLines = () => {
-  const groupRef = useRef();
+  const meshRef = useRef();
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
+  const inverseHands = useStore(s => s.inverseHands);
   const isActive = useVisStore(s => s.isActive);
   
   // Get energy lines settings with defaults
@@ -276,27 +278,38 @@ const HandEnergyLines = () => {
   const colorNear = energySettings.colorNear || '#00ffff';
   const colorFar = energySettings.colorFar || '#ff00ff';
   const lineCount = energySettings.lineCount || 5;
-  const intensity = energySettings.intensity !== undefined ? energySettings.intensity : 0.4;
+  const intensity = energySettings.intensity !== undefined ? energySettings.intensity : 1.0;
   const noiseScale = energySettings.noiseScale || 3.0;
-  const amplitude = energySettings.amplitude !== undefined ? energySettings.amplitude : 0.0;
+  const amplitude = energySettings.amplitude !== undefined ? energySettings.amplitude : 0.05;
   const sparkleIntensity = energySettings.sparkleIntensity !== undefined ? energySettings.sparkleIntensity : 1.0;
 
   const handSelection = handEffect?.handSelection || 'none';
   
-  // Get hand positions from pose detection
+  // Swap hand selection if inverse is enabled
+  let showLeftEffect = handSelection === 'left' || handSelection === 'both';
+  let showRightEffect = handSelection === 'right' || handSelection === 'both';
+  
+  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+    // Swap the enabled hands
+    const temp = showLeftEffect;
+    showLeftEffect = showRightEffect;
+    showRightEffect = temp;
+  }
+  
+  // Get hand positions from pose detection (these already handle inverse internally)
   const leftHandPos = getLeftHandPosition(poseData?.landmarks);
   const rightHandPos = getRightHandPosition(poseData?.landmarks);
   
-  // Check hand visibility
-  const leftHandVisible = leftHandPos?.visibility > 0.3;
-  const rightHandVisible = rightHandPos?.visibility > 0.3;
+  // Check hand visibility - apply the swap logic here
+  const leftHandVisible = showLeftEffect && leftHandPos?.visibility > 0.3;
+  const rightHandVisible = showRightEffect && rightHandPos?.visibility > 0.3;
   
   // Convert hand positions to shader UV coordinates (matching HandNoiseDistortion approach)
   const convertToShaderCoords = (handPos, fallbackX, fallbackY) => {
     if (handPos?.visibility > 0.3) {
-      // Convert to SimpleSkeleton coordinate system (MIRRORED)
-      const scale = 38; // Match SimpleSkeleton default
-      const x = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
+      // Convert to SimpleSkeleton coordinate system
+      const scale = 22; // Match SimpleSkeleton default
+      const x = (handPos.x - 0.5) * 200 * scale;
       const y = (0.5 - handPos.y) * 200 * scale; // Invert Y axis
       
       // Convert to UV coordinates (0-1 range) for 19500-width viewport

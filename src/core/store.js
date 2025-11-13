@@ -68,6 +68,10 @@ const useStore = create((set, get) => ({
   skeletonVisible: true,
   setSkeletonVisible: (visible) => set({ skeletonVisible: visible }),
   
+  // Inverse hands state - swaps left/right hand tracking
+  inverseHands: false,
+  setInverseHands: (inverse) => set({ inverseHands: inverse }),
+  
   // Ambient animation parameters
   ambientAnimationParams: {
     isActive: true,

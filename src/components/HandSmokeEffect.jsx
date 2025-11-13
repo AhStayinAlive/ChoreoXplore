@@ -3,12 +3,14 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
 import usePoseDetection from '../hooks/usePoseDetection';
+import useStore from '../core/store';
 import { getLeftHandAnchor as getLeftHandPosition, getRightHandAnchor as getRightHandPosition } from '../utils/handTracking';
 
 const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   const meshRef = useRef();
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
+  const inverseHands = useStore(s => s.inverseHands);
   const handSelection = handEffect?.handSelection || 'none';
   const smokeSettings = handEffect?.smoke || {};
   
@@ -63,8 +65,16 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   useFrame(() => {
     if (!smokeTextureInstance) return;
 
-    const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-    const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+    // Swap hand selection if inverse is enabled
+    let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+    let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+    
+    if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+      // Swap the enabled hands
+      const temp = leftHandEnabled;
+      leftHandEnabled = rightHandEnabled;
+      rightHandEnabled = temp;
+    }
     
     const leftHandPos = leftHandEnabled ? getLeftHandPosition(poseData?.landmarks) : null;
     const rightHandPos = rightHandEnabled ? getRightHandPosition(poseData?.landmarks) : null;

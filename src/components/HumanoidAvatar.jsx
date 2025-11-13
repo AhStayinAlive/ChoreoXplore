@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { subscribeToMotionData } from '../core/motionMapping';
 import usePoseDetection from '../hooks/usePoseDetection';
+import useStore from '../core/store';
 import * as THREE from 'three';
 
 const HumanoidAvatar = () => {
@@ -9,6 +10,7 @@ const HumanoidAvatar = () => {
   const motionDataRef = useRef(null);
   const poseDataRef = useRef(null);
   const { poseData } = usePoseDetection();
+  const inverseHands = useStore(s => s.inverseHands);
   
   // Movement detection state
   const lastPoseRef = useRef(null);
@@ -57,6 +59,7 @@ const HumanoidAvatar = () => {
     if (!landmarks || landmarks.length < 33) return null;
 
     // Key landmark indices for MediaPipe pose (official documentation)
+    // Swap left/right when inverse hands is enabled
     const landmarkMap = {
       // Head
       nose: 0,
@@ -71,43 +74,43 @@ const HumanoidAvatar = () => {
       mouthLeft: 9,
       mouthRight: 10,
       
-      // Shoulders
-      leftShoulder: 11,
-      rightShoulder: 12,
+      // Shoulders (swap if inverse)
+      leftShoulder: inverseHands ? 12 : 11,
+      rightShoulder: inverseHands ? 11 : 12,
       
-      // Elbows
-      leftElbow: 13,
-      rightElbow: 14,
+      // Elbows (swap if inverse)
+      leftElbow: inverseHands ? 14 : 13,
+      rightElbow: inverseHands ? 13 : 14,
       
-      // Wrists
-      leftWrist: 15,
-      rightWrist: 16,
+      // Wrists (swap if inverse)
+      leftWrist: inverseHands ? 16 : 15,
+      rightWrist: inverseHands ? 15 : 16,
       
-      // Hands
-      leftPinky: 17,
-      rightPinky: 18,
-      leftIndex: 19,
-      rightIndex: 20,
-      leftThumb: 21,
-      rightThumb: 22,
+      // Hands (swap if inverse)
+      leftPinky: inverseHands ? 18 : 17,
+      rightPinky: inverseHands ? 17 : 18,
+      leftIndex: inverseHands ? 20 : 19,
+      rightIndex: inverseHands ? 19 : 20,
+      leftThumb: inverseHands ? 22 : 21,
+      rightThumb: inverseHands ? 21 : 22,
       
-      // Hips
-      leftHip: 23,
-      rightHip: 24,
+      // Hips (swap if inverse)
+      leftHip: inverseHands ? 24 : 23,
+      rightHip: inverseHands ? 23 : 24,
       
-      // Knees
-      leftKnee: 25,
-      rightKnee: 26,
+      // Knees (swap if inverse)
+      leftKnee: inverseHands ? 26 : 25,
+      rightKnee: inverseHands ? 25 : 26,
       
-      // Ankles
-      leftAnkle: 27,
-      rightAnkle: 28,
+      // Ankles (swap if inverse)
+      leftAnkle: inverseHands ? 28 : 27,
+      rightAnkle: inverseHands ? 27 : 28,
       
-      // Feet
-      leftHeel: 29,
-      rightHeel: 30,
-      leftFootIndex: 31,
-      rightFootIndex: 32
+      // Feet (swap if inverse)
+      leftHeel: inverseHands ? 30 : 29,
+      rightHeel: inverseHands ? 29 : 30,
+      leftFootIndex: inverseHands ? 32 : 31,
+      rightFootIndex: inverseHands ? 31 : 32
     };
 
     const getLandmark = (key) => {

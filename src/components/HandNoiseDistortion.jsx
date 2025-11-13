@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
+import useStore from '../core/store';
 import usePoseDetection from '../hooks/usePoseDetection';
 import {
   getLeftHandAnchor as getLeftHandPosition,
@@ -196,6 +197,7 @@ const HandNoiseDistortion = () => {
   const meshRef = useRef();
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
+  const inverseHands = useStore(s => s.inverseHands);
   const isActive = useVisStore(s => s.isActive);
   
   // Separate tracking state for each hand
@@ -216,12 +218,21 @@ const HandNoiseDistortion = () => {
   const color1 = noiseSettings.color1 || '#00ffff';
   const color2 = noiseSettings.color2 || '#ff00ff';
   const intensity = noiseSettings.intensity !== undefined ? noiseSettings.intensity : 0.8;
-  const distortionStrength = noiseSettings.distortionStrength !== undefined ? noiseSettings.distortionStrength : 0.5;
-  const distortionRadius = noiseSettings.distortionRadius !== undefined ? noiseSettings.distortionRadius : 0.2;
+  const distortionStrength = noiseSettings.distortionStrength !== undefined ? noiseSettings.distortionStrength : 0.2;
+  const distortionRadius = noiseSettings.distortionRadius !== undefined ? noiseSettings.distortionRadius : 0.5;
 
   const handSelection = handEffect?.handSelection || 'none';
-  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  // Swap hand selection if inverse is enabled
+  let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+  let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+    // Swap the enabled hands
+    const temp = leftHandEnabled;
+    leftHandEnabled = rightHandEnabled;
+    rightHandEnabled = temp;
+  }
 
   // Create shader material
   const shaderMaterial = useMemo(() => {
@@ -259,9 +270,9 @@ const HandNoiseDistortion = () => {
       const velocity = calculateHandVelocity(smoothedPos, handRefs.lastPosition.current, delta);
       handRefs.velocity.current = velocity;
       
-      // Convert to SimpleSkeleton coordinate system (NOT mirrored)
-      const scale = 38; // Match SimpleSkeleton default
-      const x = (smoothedPos.x - 0.5) * 200 * scale; // Normal X coordinate
+      // Convert to SimpleSkeleton coordinate system (same as HandFluidEffect)
+      const scale = 22; // Match SimpleSkeleton default
+      const x = (smoothedPos.x - 0.5) * 200 * scale;
       const y = (0.5 - smoothedPos.y) * 200 * scale; // Invert Y axis
       
       // Convert to UV coordinates (0-1 range) for the 20000x20000 plane

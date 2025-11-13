@@ -14,6 +14,8 @@ const MotionInputPanel = () => {
   const setIsActive = useStore(s => s.setMotionCaptureActive);
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const setSkeletonVisible = useStore(s => s.setSkeletonVisible);
+  const inverseHands = useStore(s => s.inverseHands);
+  const setInverseHands = useStore(s => s.setInverseHands);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -384,6 +386,27 @@ const MotionInputPanel = () => {
             }}
           >
             {isLoading ? 'Loading...' : isActive ? 'Stop' : 'Start'}
+          </button>
+          <button
+            onClick={() => {
+              console.log('Toggling inverseHands from', inverseHands, 'to', !inverseHands);
+              setInverseHands(!inverseHands);
+            }}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: inverseHands ? 'rgba(59,130,246,0.8)' : 'rgba(107,114,128,0.8)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: 'auto',
+              flexShrink: 0
+            }}
+          >
+            Inverse Hands
           </button>
           <button
             onClick={() => setSkeletonVisible(!skeletonVisible)}

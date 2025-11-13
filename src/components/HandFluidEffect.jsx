@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { useVisStore } from '../state/useVisStore';
+import useStore from '../core/store';
 import * as THREE from 'three';
 import { 
   handRippleVertexShader, 
@@ -21,6 +22,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const rightMeshRef = useRef();
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
+  const inverseHands = useStore(s => s.inverseHands);
   const isActive = useVisStore(s => s.isActive);
   
   // Separate tracking state for each hand
@@ -48,8 +50,17 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const intensity = rippleSettings.intensity || 0.8;
 
   const handSelection = handEffect?.handSelection || 'none';
-  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  // Swap hand selection if inverse is enabled
+  let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+  let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+    // Swap the enabled hands
+    const temp = leftHandEnabled;
+    leftHandEnabled = rightHandEnabled;
+    rightHandEnabled = temp;
+  }
 
   // Create shader materials for each hand
   const createShaderMaterial = useCallback((settings) => {

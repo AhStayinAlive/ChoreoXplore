@@ -1,4 +1,30 @@
 // Hand tracking utilities for fluid ripple effect
+import useStore from '../core/store';
+
+/**
+ * Get the raw hand position by landmark index
+ * @param {Array} landmarks - MediaPipe pose landmarks array
+ * @param {number} index - Landmark index (15 for left wrist, 16 for right wrist)
+ * @param {boolean} shouldMirrorX - Whether to mirror the X coordinate
+ * @returns {Object|null} - Hand position {x, y, z, visibility} or null if not found
+ */
+const getHandPositionByIndex = (landmarks, index, shouldMirrorX = false) => {
+  if (!landmarks || landmarks.length < 33) {
+    return null;
+  }
+  
+  const wrist = landmarks[index];
+  if (!wrist || wrist.visibility < 0.3) {
+    return null;
+  }
+  
+  return {
+    x: shouldMirrorX ? (1 - wrist.x) : wrist.x,
+    y: wrist.y,
+    z: wrist.z,
+    visibility: wrist.visibility
+  };
+};
 
 /**
  * Extract left hand position from MediaPipe landmarks
@@ -6,21 +32,10 @@
  * @returns {Object|null} - Hand position {x, y, z, visibility} or null if not found
  */
 export const getLeftHandPosition = (landmarks) => {
-  if (!landmarks || landmarks.length < 33) {
-    return null;
-  }
-  
-  const leftWrist = landmarks[15]; // Left wrist landmark (index 15)
-  if (!leftWrist || leftWrist.visibility < 0.3) {
-    return null;
-  }
-  
-  return {
-    x: leftWrist.x,
-    y: leftWrist.y,
-    z: leftWrist.z,
-    visibility: leftWrist.visibility
-  };
+  const inverseHands = useStore.getState().inverseHands;
+  // If inverse is enabled, get right hand data for left hand and mirror X
+  const index = inverseHands ? 16 : 15;
+  return getHandPositionByIndex(landmarks, index, inverseHands);
 };
 
 /**
@@ -29,21 +44,10 @@ export const getLeftHandPosition = (landmarks) => {
  * @returns {Object|null} - Hand position {x, y, visibility} or null if not found
  */
 export const getRightHandPosition = (landmarks) => {
-  if (!landmarks || landmarks.length < 33) {
-    return null;
-  }
-  
-  const rightWrist = landmarks[16]; // Right wrist landmark
-  if (!rightWrist || rightWrist.visibility < 0.3) {
-    return null;
-  }
-  
-  return {
-    x: rightWrist.x,
-    y: rightWrist.y,
-    z: rightWrist.z,
-    visibility: rightWrist.visibility
-  };
+  const inverseHands = useStore.getState().inverseHands;
+  // If inverse is enabled, get left hand data for right hand and mirror X
+  const index = inverseHands ? 15 : 16;
+  return getHandPositionByIndex(landmarks, index, inverseHands);
 };
 
 /**
@@ -234,5 +238,36 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
   return { x: endNorm.x, y: endNorm.y, z: WRI.z ?? 0, visibility };
 };
 
-export const getLeftHandAnchor = (landmarks) => getHandAnchorNormalized(landmarks, 'left');
-export const getRightHandAnchor = (landmarks) => getHandAnchorNormalized(landmarks, 'right');
+export const getLeftHandAnchor = (landmarks) => {
+  const inverseHands = useStore.getState().inverseHands;
+  // If inverse is enabled, get right hand anchor for left hand
+  const side = inverseHands ? 'right' : 'left';
+  const anchor = getHandAnchorNormalized(landmarks, side);
+  
+  // Mirror X coordinate if inverse is enabled
+  if (anchor && inverseHands) {
+    return {
+      ...anchor,
+      x: 1 - anchor.x
+    };
+  }
+  
+  return anchor;
+};
+
+export const getRightHandAnchor = (landmarks) => {
+  const inverseHands = useStore.getState().inverseHands;
+  // If inverse is enabled, get left hand anchor for right hand
+  const side = inverseHands ? 'left' : 'right';
+  const anchor = getHandAnchorNormalized(landmarks, side);
+  
+  // Mirror X coordinate if inverse is enabled
+  if (anchor && inverseHands) {
+    return {
+      ...anchor,
+      x: 1 - anchor.x
+    };
+  }
+  
+  return anchor;
+};

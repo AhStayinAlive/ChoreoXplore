@@ -9,6 +9,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   const poseDataRef = useRef(null);
   const { poseData } = usePoseDetection();
   const skeletonVisible = useStore(s => s.skeletonVisible);
+  const inverseHands = useStore(s => s.inverseHands);
   
   // Object pool for reusing meshes
   const poolRef = useRef({
@@ -64,9 +65,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   const tmpB = useMemo(() => new THREE.Vector3(), []);
 
   // Helpers
-  function toSceneXY(lm, scale) {
+  function toSceneXY(lm, scale, shouldMirrorX = false) {
     return new THREE.Vector3(
-      (lm.x - 0.5) * 200 * scale, // Normal X coordinate (not mirrored)
+      shouldMirrorX ? -(lm.x - 0.5) * 200 * scale : (lm.x - 0.5) * 200 * scale,
       (0.5 - lm.y) * 200 * scale,
       2 // keep in front
     );
@@ -188,6 +189,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     const currentPose = poseDataRef.current;
     const landmarks = currentPose.landmarks;
     if (!landmarks || landmarks.length < 33) return;
+    
+    // Get the latest inverseHands state inside useFrame
+    const inverseHands = useStore.getState().inverseHands;
 
     // Fixed scale - adjusted for optimal visibility (was 22, now 38)
     let scale = 38 * modeScale;
@@ -199,19 +203,33 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     pool.circleIndex = 0;
 
     // Precompute key anchor points in scene space
-    const L_SHO = landmarks[11], R_SHO = landmarks[12];
-    const L_HIP = landmarks[23], R_HIP = landmarks[24];
-    const L_ELB = landmarks[13], R_ELB = landmarks[14];
-    const L_WRI = landmarks[15], R_WRI = landmarks[16];
-    const L_KNE = landmarks[25], R_KNE = landmarks[26];
-    const L_ANK = landmarks[27], R_ANK = landmarks[28];
+    // Swap all left/right landmarks when inverse hands is enabled
+    // Debug: Log inverse state and actual landmark indices being used
+    if (Math.random() < 0.01) {
+      console.log('SimpleSkeleton inverseHands:', inverseHands);
+      console.log('L_WRI will use landmark:', inverseHands ? 16 : 15);
+      console.log('R_WRI will use landmark:', inverseHands ? 15 : 16);
+    }
+    
+    const L_SHO = inverseHands ? landmarks[12] : landmarks[11];
+    const R_SHO = inverseHands ? landmarks[11] : landmarks[12];
+    const L_HIP = inverseHands ? landmarks[24] : landmarks[23];
+    const R_HIP = inverseHands ? landmarks[23] : landmarks[24];
+    const L_ELB = inverseHands ? landmarks[14] : landmarks[13];
+    const R_ELB = inverseHands ? landmarks[13] : landmarks[14];
+    const L_WRI = inverseHands ? landmarks[16] : landmarks[15];
+    const R_WRI = inverseHands ? landmarks[15] : landmarks[16];
+    const L_KNE = inverseHands ? landmarks[26] : landmarks[25];
+    const R_KNE = inverseHands ? landmarks[25] : landmarks[26];
+    const L_ANK = inverseHands ? landmarks[28] : landmarks[27];
+    const R_ANK = inverseHands ? landmarks[27] : landmarks[28];
     const NOSE  = landmarks[0];
 
     if (!(L_SHO && R_SHO && L_HIP && R_HIP)) return;
-    const vLS = toSceneXY(L_SHO, scale);
-    const vRS = toSceneXY(R_SHO, scale);
-    const vLH = toSceneXY(L_HIP, scale);
-    const vRH = toSceneXY(R_HIP, scale);
+    const vLS = toSceneXY(L_SHO, scale, inverseHands);
+    const vRS = toSceneXY(R_SHO, scale, inverseHands);
+    const vLH = toSceneXY(L_HIP, scale, inverseHands);
+    const vRH = toSceneXY(R_HIP, scale, inverseHands);
     const shouldersMid = tmpA.copy(vLS).add(vRS).multiplyScalar(0.5);
     const hipsMid = tmpB.copy(vLH).add(vRH).multiplyScalar(0.5);
 
@@ -238,7 +256,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
 
     // Neck (shoulder mid to just below head center)
     if (NOSE && NOSE.visibility > 0.4) {
-      const headCenter = toSceneXY(NOSE, scale);
+      const headCenter = toSceneXY(NOSE, scale, inverseHands);
       const neckEnd = headCenter.clone().add(new THREE.Vector3(0, -headR * 0.9, 0));
       addCapsule(shouldersMid, neckEnd, neckR);
       // Head - solid filled circle (flat, always faces camera)
@@ -250,7 +268,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     const armExtensionFactor = 1.4; // Make arms 40% longer
     
     if (L_ELB && L_WRI && L_SHO.visibility > 0.2 && L_ELB.visibility > 0.2) {
-      const elbowPos = toSceneXY(L_ELB, scale);
+      const elbowPos = toSceneXY(L_ELB, scale, inverseHands);
       
       // Extend upper arm (shoulder to elbow)
       const upperArmVec = new THREE.Vector3().subVectors(elbowPos, vLS);
@@ -261,7 +279,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       addJointSphere(extendedElbowPos, armUpperR); // elbow
       
       if (L_WRI.visibility > 0.2) {
-        const wristPos = toSceneXY(L_WRI, scale);
+        const wristPos = toSceneXY(L_WRI, scale, inverseHands);
         
         // Extend forearm (elbow to wrist)
         const forearmVec = new THREE.Vector3().subVectors(wristPos, elbowPos);
@@ -271,9 +289,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
         addJointSphere(extendedWristPos, armLowerR); // wrist
         
         // Add hand extension (wrist to index finger)
-        const L_INDEX = landmarks[19]; // Left index finger
+        const L_INDEX = inverseHands ? landmarks[20] : landmarks[19]; // Left index finger (swap if inverse)
         if (L_INDEX && L_INDEX.visibility > 0.2) {
-          const indexPos = toSceneXY(L_INDEX, scale);
+          const indexPos = toSceneXY(L_INDEX, scale, inverseHands);
           const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
           const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
           const handR = armLowerR * 0.7; // Slightly thinner than forearm
@@ -289,7 +307,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     }
     
     if (R_ELB && R_WRI && R_SHO.visibility > 0.2 && R_ELB.visibility > 0.2) {
-      const elbowPos = toSceneXY(R_ELB, scale);
+      const elbowPos = toSceneXY(R_ELB, scale, inverseHands);
       
       // Extend upper arm (shoulder to elbow)
       const upperArmVec = new THREE.Vector3().subVectors(elbowPos, vRS);
@@ -300,7 +318,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       addJointSphere(extendedElbowPos, armUpperR); // elbow
       
       if (R_WRI.visibility > 0.2) {
-        const wristPos = toSceneXY(R_WRI, scale);
+        const wristPos = toSceneXY(R_WRI, scale, inverseHands);
         
         // Extend forearm (elbow to wrist)
         const forearmVec = new THREE.Vector3().subVectors(wristPos, elbowPos);
@@ -310,9 +328,9 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
         addJointSphere(extendedWristPos, armLowerR); // wrist
         
         // Add hand extension (wrist to index finger)
-        const R_INDEX = landmarks[20]; // Right index finger
+        const R_INDEX = inverseHands ? landmarks[19] : landmarks[20]; // Right index finger (swap if inverse)
         if (R_INDEX && R_INDEX.visibility > 0.2) {
-          const indexPos = toSceneXY(R_INDEX, scale);
+          const indexPos = toSceneXY(R_INDEX, scale, inverseHands);
           const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
           const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
           const handR = armLowerR * 0.7; // Slightly thinner than forearm
@@ -329,23 +347,23 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
 
     // Legs
     if (L_KNE && L_ANK && L_HIP.visibility > 0.1 && L_KNE.visibility > 0.1) {
-      const kneePos = toSceneXY(L_KNE, scale);
+      const kneePos = toSceneXY(L_KNE, scale, inverseHands);
       addCapsule(vLH, kneePos, legUpperR);
       addJointSphere(vLH, legUpperR); // hip
       addJointSphere(kneePos, legUpperR); // knee
       if (L_ANK.visibility > 0.1) {
-        const anklePos = toSceneXY(L_ANK, scale);
+        const anklePos = toSceneXY(L_ANK, scale, inverseHands);
         addCapsule(kneePos, anklePos, legLowerR);
         addJointSphere(anklePos, legLowerR); // ankle
       }
     }
     if (R_KNE && R_ANK && R_HIP.visibility > 0.1 && R_KNE.visibility > 0.1) {
-      const kneePos = toSceneXY(R_KNE, scale);
+      const kneePos = toSceneXY(R_KNE, scale, inverseHands);
       addCapsule(vRH, kneePos, legUpperR);
       addJointSphere(vRH, legUpperR); // hip
       addJointSphere(kneePos, legUpperR); // knee
       if (R_ANK.visibility > 0.1) {
-        const anklePos = toSceneXY(R_ANK, scale);
+        const anklePos = toSceneXY(R_ANK, scale, inverseHands);
         addCapsule(kneePos, anklePos, legLowerR);
         addJointSphere(anklePos, legLowerR); // ankle
       }

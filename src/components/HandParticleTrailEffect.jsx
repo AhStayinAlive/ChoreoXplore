@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVisStore } from '../state/useVisStore';
+import useStore from '../core/store';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { getLeftHandAnchor as getLeftHandPosition, getRightHandAnchor as getRightHandPosition } from '../utils/handTracking';
 
@@ -10,6 +11,7 @@ const HandParticleTrailEffect = () => {
   const rightParticlesRef = useRef();
   const { poseData } = usePoseDetection();
   const handEffect = useVisStore(s => s.params.handEffect);
+  const inverseHands = useStore(s => s.inverseHands);
   const handSelection = handEffect?.handSelection || 'none';
   const particleSettings = handEffect?.particleTrail || {};
   
@@ -21,11 +23,11 @@ const HandParticleTrailEffect = () => {
   const leftSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   const rightSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   
-  const trailLength = Math.floor(particleSettings.trailLength || 30);
-  const particleSize = particleSettings.particleSize || 0.25;
+  const trailLength = Math.floor(particleSettings.trailLength || 50);
+  const particleSize = particleSettings.particleSize || 0.15;
   const color = particleSettings.color || '#00ffff';
   const intensity = particleSettings.intensity || 0.8;
-  const fadeSpeed = particleSettings.fadeSpeed || 1.0;
+  const fadeSpeed = particleSettings.fadeSpeed || 0.95;
   const smoothness = particleSettings.smoothness || 0.15; // Lower = less responsive, more smoothing; Higher = more responsive, less smoothing
   
   // Animation constants for smoother trail rendering
@@ -87,9 +89,9 @@ const HandParticleTrailEffect = () => {
   const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef) => {
     if (!handPos || handPos.visibility < 0.3 || !particlesRef.current) return;
     
-    // Convert MediaPipe coords to SimpleSkeleton coordinate system (NOT mirrored)
-    const scale = 38; // Match SimpleSkeleton
-    const x = (handPos.x - 0.5) * 200 * scale; // Normal X coordinate
+    // Convert MediaPipe coords to SimpleSkeleton coordinate system
+    const scale = 22;
+    const x = (handPos.x - 0.5) * 200 * scale;
     const y = (0.5 - handPos.y) * 200 * scale;
     
     // Smooth the position with configurable smoothness
@@ -156,8 +158,16 @@ const HandParticleTrailEffect = () => {
   };
   
   useFrame(() => {
-    const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-    const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+    // Swap hand selection if inverse is enabled
+    let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+    let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+    
+    if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+      // Swap the enabled hands
+      const temp = leftHandEnabled;
+      leftHandEnabled = rightHandEnabled;
+      rightHandEnabled = temp;
+    }
     
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
@@ -170,8 +180,16 @@ const HandParticleTrailEffect = () => {
     }
   });
   
-  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  // Swap hand selection if inverse is enabled
+  let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+  let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
+    // Swap the enabled hands
+    const temp = leftHandEnabled;
+    leftHandEnabled = rightHandEnabled;
+    rightHandEnabled = temp;
+  }
   
   return (
     <>
