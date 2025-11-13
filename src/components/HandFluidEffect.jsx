@@ -50,17 +50,6 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   const intensity = rippleSettings.intensity || 0.8;
 
   const handSelection = handEffect?.handSelection || 'none';
-  
-  // Swap hand selection if inverse is enabled
-  let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
-  
-  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
-    // Swap the enabled hands
-    const temp = leftHandEnabled;
-    leftHandEnabled = rightHandEnabled;
-    rightHandEnabled = temp;
-  }
 
   // Create shader materials for each hand
   const createShaderMaterial = useCallback((settings) => {
@@ -169,47 +158,52 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       fluidTexture.needsUpdate = true;
     }
     
+    const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+    const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+    
     // Update left hand if enabled
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
       updateHandRipple(leftHandPos, leftHandRefs, shaderMaterials.left, delta);
+    } else {
+      // Disable ripple when hand not enabled
+      shaderMaterials.left.uniforms.uRippleStrength.value = 0;
     }
     
     // Update right hand if enabled
     if (rightHandEnabled) {
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
       updateHandRipple(rightHandPos, rightHandRefs, shaderMaterials.right, delta);
+    } else {
+      // Disable ripple when hand not enabled
+      shaderMaterials.right.uniforms.uRippleStrength.value = 0;
     }
   });
 
   // Don't render if no hands are enabled or ChoreoXplore is not active
-  if ((!leftHandEnabled && !rightHandEnabled) || !isActive) {
+  if (handSelection === 'none' || !isActive) {
     return null;
   }
 
   return (
     <>
-      {leftHandEnabled && (
-        <mesh 
-          ref={leftMeshRef}
-          geometry={planeGeometry}
-          material={shaderMaterials.left}
-          position={[0, 0, 0]}
-          rotation={[0, 0, 0]}
-          renderOrder={-1}
-        />
-      )}
+      <mesh 
+        ref={leftMeshRef}
+        geometry={planeGeometry}
+        material={shaderMaterials.left}
+        position={[0, 0, 0]}
+        rotation={[0, 0, 0]}
+        renderOrder={-1}
+      />
       
-      {rightHandEnabled && (
-        <mesh 
-          ref={rightMeshRef}
-          geometry={planeGeometry}
-          material={shaderMaterials.right}
-          position={[0, 0, 0]}
-          rotation={[0, 0, 0]}
-          renderOrder={-1}
-        />
-      )}
+      <mesh 
+        ref={rightMeshRef}
+        geometry={planeGeometry}
+        material={shaderMaterials.right}
+        position={[0, 0, 0]}
+        rotation={[0, 0, 0]}
+        renderOrder={-1}
+      />
     </>
   );
 };

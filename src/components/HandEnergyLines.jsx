@@ -285,24 +285,13 @@ const HandEnergyLines = () => {
 
   const handSelection = handEffect?.handSelection || 'none';
   
-  // Swap hand selection if inverse is enabled
-  let showLeftEffect = handSelection === 'left' || handSelection === 'both';
-  let showRightEffect = handSelection === 'right' || handSelection === 'both';
-  
-  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
-    // Swap the enabled hands
-    const temp = showLeftEffect;
-    showLeftEffect = showRightEffect;
-    showRightEffect = temp;
-  }
-  
   // Get hand positions from pose detection (these already handle inverse internally)
   const leftHandPos = getLeftHandPosition(poseData?.landmarks);
   const rightHandPos = getRightHandPosition(poseData?.landmarks);
   
-  // Check hand visibility - apply the swap logic here
-  const leftHandVisible = showLeftEffect && leftHandPos?.visibility > 0.3;
-  const rightHandVisible = showRightEffect && rightHandPos?.visibility > 0.3;
+  // Check hand visibility
+  const leftHandVisible = leftHandPos?.visibility > 0.3;
+  const rightHandVisible = rightHandPos?.visibility > 0.3;
   
   // Convert hand positions to shader UV coordinates (matching HandNoiseDistortion approach)
   const convertToShaderCoords = (handPos, fallbackX, fallbackY) => {

@@ -3,6 +3,7 @@ import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import usePoseDetection from '../hooks/usePoseDetection';
 import { mapPoseToMotion } from '../core/motionMapping';
 import useStore from '../core/store';
+import { useVisStore } from '../state/useVisStore';
 
 const MotionInputPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +17,8 @@ const MotionInputPanel = () => {
   const setSkeletonVisible = useStore(s => s.setSkeletonVisible);
   const inverseHands = useStore(s => s.inverseHands);
   const setInverseHands = useStore(s => s.setInverseHands);
+  const handEffect = useVisStore(s => s.params.handEffect);
+  const setParams = useVisStore(s => s.setParams);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -389,8 +392,18 @@ const MotionInputPanel = () => {
           </button>
           <button
             onClick={() => {
-              console.log('Toggling inverseHands from', inverseHands, 'to', !inverseHands);
-              setInverseHands(!inverseHands);
+              const newInverseState = !inverseHands;
+              console.log('Toggling inverseHands from', inverseHands, 'to', newInverseState);
+              setInverseHands(newInverseState);
+              
+              // Swap hand selection when toggling inverse
+              const currentSelection = handEffect?.handSelection;
+              if (currentSelection === 'left') {
+                setParams({ handEffect: { handSelection: 'right' } });
+              } else if (currentSelection === 'right') {
+                setParams({ handEffect: { handSelection: 'left' } });
+              }
+              // 'both' and 'none' stay the same
             }}
             style={{
               padding: '6px 12px',

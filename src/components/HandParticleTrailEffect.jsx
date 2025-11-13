@@ -158,16 +158,8 @@ const HandParticleTrailEffect = () => {
   };
   
   useFrame(() => {
-    // Swap hand selection if inverse is enabled
-    let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-    let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
-    
-    if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
-      // Swap the enabled hands
-      const temp = leftHandEnabled;
-      leftHandEnabled = rightHandEnabled;
-      rightHandEnabled = temp;
-    }
+    const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+    const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
     
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
@@ -180,16 +172,8 @@ const HandParticleTrailEffect = () => {
     }
   });
   
-  // Swap hand selection if inverse is enabled
-  let leftHandEnabled = handSelection === 'left' || handSelection === 'both';
-  let rightHandEnabled = handSelection === 'right' || handSelection === 'both';
-  
-  if (inverseHands && handSelection !== 'both' && handSelection !== 'none') {
-    // Swap the enabled hands
-    const temp = leftHandEnabled;
-    leftHandEnabled = rightHandEnabled;
-    rightHandEnabled = temp;
-  }
+  const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
+  const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
   
   return (
     <>
