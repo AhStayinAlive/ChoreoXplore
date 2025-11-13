@@ -88,7 +88,7 @@ export default function HandEffectsPanel() {
         <div style={{ display: 'flex', gap: 8 }}>
           <ToggleButton
             label="Preview"
-            selected={handEffect.showQuickView !== false}
+            selected={handEffect.showQuickView === true}
             onChange={(val) => {
               setParams({ handEffect: { ...handEffect, showQuickView: !!val } });
             }}
@@ -470,36 +470,6 @@ export default function HandEffectsPanel() {
                 showValue={false}
                 onChange={(val) => handleEffectChange({
                   particleTrail: { ...handEffect.particleTrail, trailLength: val }
-                })}
-              />
-            </div>
-
-            {/* Fade Speed */}
-            <div style={{ marginBottom: 12 }}>
-              <Slider
-                label="Fade Speed"
-                value={handEffect.particleTrail?.fadeSpeed || 0.95}
-                min={0.8}
-                max={0.99}
-                step={0.01}
-                showValue={false}
-                onChange={(val) => handleEffectChange({
-                  particleTrail: { ...handEffect.particleTrail, fadeSpeed: val }
-                })}
-              />
-            </div>
-
-            {/* Smoothness */}
-            <div style={{ marginBottom: 12 }}>
-              <Slider
-                label="Smoothness"
-                value={handEffect.particleTrail?.smoothness || 0.15}
-                min={0.05}
-                max={0.4}
-                step={0.01}
-                showValue={false}
-                onChange={(val) => handleEffectChange({
-                  particleTrail: { ...handEffect.particleTrail, smoothness: val }
                 })}
               />
             </div>

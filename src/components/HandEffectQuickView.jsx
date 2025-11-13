@@ -2143,7 +2143,7 @@ export default function HandEffectQuickView() {
   
   const effectType = handEffect.type || 'none';
   const handSelection = handEffect.handSelection || 'none';
-  const showQuickView = handEffect.showQuickView !== false; // Default to true
+  const showQuickView = handEffect.showQuickView === true; // Default to false
   
   // Draggable state
   const [position, setPosition] = useState({

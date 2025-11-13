@@ -197,21 +197,6 @@ export default function ChoreoXploreControlPanel() {
           />
         </div>
 
-
-        {/* Music Reactivity */}
-        <div style={{ marginBottom: 16 }}>
-          <Slider
-            label="Music Reactivity"
-            value={params.musicReact}
-            min={0.0}
-            max={1.0}
-            step={0.05}
-            format={(v) => v.toFixed(2)}
-            onChange={(value) => handleParamChange('musicReact', value)}
-            showValue={false}
-          />
-        </div>
-
       </div>
     </div>
   );
