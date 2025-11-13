@@ -295,20 +295,6 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Motion Sensitivity Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Motion Sensitivity"
-                value={handEffect.smoke?.velocitySensitivity || 1.0}
-                min={0.0}
-                max={2.0}
-                step={0.1}
-                format={(v) => v.toFixed(2)}
-                showValue={false}
-                onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
-              />
-            </div>
-
             {/* Trail Length Slider */}
             <div style={{ marginBottom: 16 }}>
               <Slider
