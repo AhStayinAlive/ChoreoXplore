@@ -295,6 +295,20 @@ export default function HandEffectsPanel() {
               />
             </div>
 
+            {/* Motion Sensitivity Slider */}
+            <div style={{ marginBottom: 16 }}>
+              <Slider
+                label="Motion Sensitivity"
+                value={handEffect.smoke?.velocitySensitivity || 1.0}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+                format={(v) => v.toFixed(2)}
+                showValue={false}
+                onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
+              />
+            </div>
+
             {/* Trail Length Slider */}
             <div style={{ marginBottom: 16 }}>
               <Slider
@@ -331,53 +345,6 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Only show intensity, force, distortion when NOT both hands */}
-            {handEffect.handSelection !== 'both' && (
-              <>
-                {/* Intensity Slider */}
-                <div style={{ marginBottom: 16 }}>
-                  <Slider
-                    label="Intensity"
-                    value={handEffect.fluidDistortion?.intensity || 1}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                    format={(v) => v.toFixed(2)}
-                    showValue={false}
-                    onChange={(value) => handleFluidDistortionChange({ intensity: value })}
-                  />
-                </div>
-
-                {/* Force Slider */}
-                <div style={{ marginBottom: 16 }}>
-                  <Slider
-                    label="Force"
-                    value={handEffect.fluidDistortion?.force || 1.5}
-                    min={0}
-                    max={20}
-                    step={0.5}
-                    format={(v) => v.toFixed(2)}
-                    showValue={false}
-                    onChange={(value) => handleFluidDistortionChange({ force: value })}
-                  />
-                </div>
-
-                {/* Distortion Slider */}
-                <div style={{ marginBottom: 16 }}>
-                  <Slider
-                    label="Distortion"
-                    value={handEffect.fluidDistortion?.distortion || 1}
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    format={(v) => v.toFixed(2)}
-                    showValue={false}
-                    onChange={(value) => handleFluidDistortionChange({ distortion: value })}
-                  />
-                </div>
-              </>
-            )}
-
             {/* Radius Slider - Always shown */}
             <div style={{ marginBottom: 16 }}>
               <Slider
@@ -392,23 +359,9 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Only show curl, swirl, and rainbow when NOT both hands */}
+            {/* Show Swirl and Rainbow for left/right hand only */}
             {handEffect.handSelection !== 'both' && (
               <>
-                {/* Curl Slider */}
-                <div style={{ marginBottom: 16 }}>
-                  <Slider
-                    label="Curl"
-                    value={handEffect.fluidDistortion?.curl || 6}
-                    min={0}
-                    max={50}
-                    step={1}
-                    format={(v) => v.toFixed(0)}
-                    showValue={false}
-                    onChange={(value) => handleFluidDistortionChange({ curl: value })}
-                  />
-                </div>
-
                 {/* Swirl Slider */}
                 <div style={{ marginBottom: 16 }}>
                   <Slider
