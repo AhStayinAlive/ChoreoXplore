@@ -66,7 +66,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   // Helpers
   function toSceneXY(lm, scale) {
     return new THREE.Vector3(
-      -(lm.x - 0.5) * 200 * scale, // INVERTED: negate X to mirror the skeleton
+      (lm.x - 0.5) * 200 * scale, // Normal X coordinate (not mirrored)
       (0.5 - lm.y) * 200 * scale,
       2 // keep in front
     );

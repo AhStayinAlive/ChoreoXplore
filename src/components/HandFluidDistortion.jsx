@@ -100,9 +100,9 @@ const HandFluidDistortion = () => {
     // Get canvas dimensions
     const canvasRect = gl.domElement.getBoundingClientRect();
     
-    // Transform hand position using SimpleSkeleton coordinate system (MIRRORED)
+    // Transform hand position using SimpleSkeleton coordinate system (NOT mirrored)
     const scale = 38; // Match SimpleSkeleton
-    const sceneX = -(handPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
+    const sceneX = (handPos.x - 0.5) * 200 * scale; // Normal X coordinate
     const sceneY = (0.5 - handPos.y) * 200 * scale;
     const sceneZ = 2; // Same Z as avatar (in front)
     

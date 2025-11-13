@@ -117,9 +117,9 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       // Calculate ripple parameters
       const rippleParams = calculateRippleParams(smoothedPos, velocity, currentHandPos.visibility);
       
-          // Use SimpleSkeleton's coordinate system (MIRRORED)
+          // Use SimpleSkeleton's coordinate system (NOT mirrored)
           const scale = 38; // Match SimpleSkeleton default
-          const x = -(smoothedPos.x - 0.5) * 200 * scale; // MIRROR X coordinate
+          const x = (smoothedPos.x - 0.5) * 200 * scale; // Normal X coordinate
           const y = (0.5 - smoothedPos.y) * 200 * scale;
 
           // Convert to UV coordinates (0-1 range) for the 20000x20000 plane

@@ -129,14 +129,14 @@ const ARM_EXTENSION_FACTOR = 1.4; // Keep in sync with SimpleSkeleton
 const toSceneXY = (lm, scale = SKELETON_SCALE) => {
   if (!lm) return { x: 0, y: 0 };
   return {
-    x: -(lm.x - 0.5) * 200 * scale, // Mirrored X coordinate
+    x: (lm.x - 0.5) * 200 * scale, // Normal X coordinate (not mirrored)
     y: (0.5 - lm.y) * 200 * scale
   };
 };
 
 const sceneToNormalized = (pt, scale = SKELETON_SCALE) => {
   return {
-    x: 0.5 - (pt.x / (200 * scale)), // Reverse the mirrored X
+    x: (pt.x / (200 * scale)) + 0.5, // Normal X coordinate
     y: 0.5 - (pt.y / (200 * scale))
   };
 };
