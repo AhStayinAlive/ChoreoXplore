@@ -70,7 +70,7 @@ const HandParticleTrailEffect = () => {
   const material = useMemo(() => {
     return new THREE.PointsMaterial({
       color: new THREE.Color(color),
-      size: particleSize * 150, // Scale up significantly for SimpleSkeleton coordinate system (22 * 200 scale)
+      size: particleSize * 500, // Very large initial size for visibility
       transparent: true,
       opacity: 0, // Start invisible until hand is detected
       blending: THREE.AdditiveBlending,
@@ -87,10 +87,25 @@ const HandParticleTrailEffect = () => {
   
   // Update hand positions and trail
   const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef) => {
-    if (!handPos || handPos.visibility < 0.3 || !particlesRef.current) return;
+    if (!particlesRef.current) return;
     
-    // Convert MediaPipe coords to SimpleSkeleton coordinate system
-    const scale = 22;
+    // If hand not detected, fade out all particles
+    if (!handPos || handPos.visibility < 0.3) {
+      const sizes = particlesRef.current.geometry.attributes.size.array;
+      for (let i = 0; i < sizes.length; i++) {
+        sizes[i] *= 0.9; // Fade out existing particles
+      }
+      particlesRef.current.geometry.attributes.size.needsUpdate = true;
+      
+      // Also fade material opacity
+      if (particlesRef.current.material) {
+        particlesRef.current.material.opacity *= 0.9;
+      }
+      return;
+    }
+    
+    // Use SimpleSkeleton's coordinate system (scale 38, plane 20000x20000) - same as HandSmokeEffect
+    const scale = 38; // Match SimpleSkeleton and other effects
     const x = (handPos.x - 0.5) * 200 * scale;
     const y = (0.5 - handPos.y) * 200 * scale;
     
@@ -144,8 +159,8 @@ const HandParticleTrailEffect = () => {
       // Smoother z-spacing with slight curve for depth perception
       positions[i * 3 + 2] = -i * Z_SPACING * (1 + linearFade * DEPTH_CURVE_FACTOR) + energy * 5;
       
-      // Smooth size transition with combined fade
-      sizes[i] = particleSize * 150 * combinedFade * (1 + energy * 0.2);
+      // Smooth size transition with combined fade - very large initial size
+      sizes[i] = particleSize * 500 * combinedFade * (1 + energy * 0.2);
     }
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
