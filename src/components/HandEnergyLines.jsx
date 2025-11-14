@@ -412,7 +412,7 @@ const HandEnergyLines = () => {
   }
   
   return (
-    <lineSegments ref={groupRef} geometry={geometry} material={material} position={[0, 0, 2]} />
+    <lineSegments ref={groupRef} geometry={geometry} material={material} position={[0, 0, 10]} renderOrder={100} />
   );
 };
 

@@ -193,7 +193,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
         material={shaderMaterials.left}
         position={[0, 0, 0]}
         rotation={[0, 0, 0]}
-        renderOrder={-1}
+        renderOrder={100}
       />
       
       <mesh 
@@ -202,7 +202,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
         material={shaderMaterials.right}
         position={[0, 0, 0]}
         rotation={[0, 0, 0]}
-        renderOrder={-1}
+        renderOrder={100}
       />
     </>
   );

@@ -193,10 +193,10 @@ const HandParticleTrailEffect = () => {
   return (
     <>
       {leftHandEnabled && (
-        <points ref={leftParticlesRef} geometry={leftGeometry} material={leftMaterial} />
+        <points ref={leftParticlesRef} geometry={leftGeometry} material={leftMaterial} position={[0, 0, 10]} renderOrder={100} />
       )}
       {rightHandEnabled && (
-        <points ref={rightParticlesRef} geometry={rightGeometry} material={rightMaterial} />
+        <points ref={rightParticlesRef} geometry={rightGeometry} material={rightMaterial} position={[0, 0, 10]} renderOrder={100} />
       )}
     </>
   );

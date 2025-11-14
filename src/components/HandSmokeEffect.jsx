@@ -120,9 +120,9 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
       ref={meshRef}
       geometry={planeGeometry}
       material={material}
-      position={[0, 0, -1]}
+      position={[0, 0, 0]}
       rotation={[0, 0, 0]}
-      renderOrder={-2}
+      renderOrder={100}
     />
   );
 };
