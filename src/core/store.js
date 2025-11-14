@@ -109,15 +109,17 @@ const useStore = create((set, get) => ({
   // Setup wizard state
   setupStep: 1,
   songSearched: false, // Track if user has searched for a song
+  selectedCameraIndex: 0, // Track which camera is selected (0-based index)
   setSetupStep: (step) => set({ setupStep: step }),
   setSongSearched: (searched) => set({ songSearched: searched }),
+  setSelectedCameraIndex: (index) => set({ selectedCameraIndex: index }),
   advanceToStep: (targetStep) => {
     const current = get().setupStep;
     if (targetStep > current) {
       set({ setupStep: targetStep });
     }
   },
-  resetWizard: () => set({ setupStep: 1, songSearched: false }),
+  resetWizard: () => set({ setupStep: 1, songSearched: false, selectedCameraIndex: 0 }),
 }));
 
 // Helper function to convert hex color to hue value

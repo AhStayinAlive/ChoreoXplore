@@ -19,6 +19,7 @@ const MotionInputPanel = () => {
   const setSkeletonVisible = useStore(s => s.setSkeletonVisible);
   const inverseHands = useStore(s => s.inverseHands);
   const setInverseHands = useStore(s => s.setInverseHands);
+  const setSelectedCameraIndex = useStore(s => s.setSelectedCameraIndex);
   const handEffect = useVisStore(s => s.params.handEffect);
   const setParams = useVisStore(s => s.setParams);
   
@@ -480,6 +481,13 @@ const MotionInputPanel = () => {
               const newCameraId = e.target.value;
               console.log('Camera selection changed to:', newCameraId.substring(0, 20) + '...');
               setSelectedCameraId(newCameraId);
+              
+              // Update camera index in store for wizard tracking
+              const cameraIndex = availableCameras.findIndex(cam => cam.deviceId === newCameraId);
+              if (cameraIndex !== -1) {
+                setSelectedCameraIndex(cameraIndex);
+                console.log('Camera index updated to:', cameraIndex);
+              }
               
               // If motion detection is active, restart everything properly
               if (isActive) {

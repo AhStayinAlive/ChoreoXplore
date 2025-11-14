@@ -71,7 +71,8 @@ function AppContent({
   const advanceToStep = useStore(s => s.advanceToStep);
   const songSearched = useStore(s => s.songSearched);
   const motionCaptureActive = useStore(s => s.motionCaptureActive);
-  const visualsEnabled = useVisStore(s => s.isActive);
+  const selectedCameraIndex = useStore(s => s.selectedCameraIndex);
+  const visualMode = useVisStore(s => s.params.mode);
   const handEffectType = useVisStore(s => s.params.handEffect?.type);
   const handSelection = useVisStore(s => s.params.handEffect?.handSelection);
 
@@ -84,11 +85,11 @@ function AppContent({
   }, [songSearched, setupStep, advanceToStep]);
 
   React.useEffect(() => {
-    // Step 2 → 3: Visuals enabled (user toggled "Enable Visuals" to ON)
-    if (visualsEnabled && setupStep === 2) {
+    // Step 2 → 3: Visual mode selected (any mode other than 'empty')
+    if (visualMode && visualMode !== 'empty' && setupStep === 2) {
       advanceToStep(3);
     }
-  }, [visualsEnabled, setupStep, advanceToStep]);
+  }, [visualMode, setupStep, advanceToStep]);
 
   React.useEffect(() => {
     // Step 3 → 4: Motion capture started
@@ -98,13 +99,25 @@ function AppContent({
   }, [motionCaptureActive, setupStep, advanceToStep]);
 
   React.useEffect(() => {
-    // Step 4 → 5: Hand effect type chosen (not 'none') AND hand selected (not 'none')
-    if (handEffectType && handEffectType !== 'none' && 
-        handSelection && handSelection !== 'none' && 
-        setupStep === 4) {
+    // Step 4 → 5: Hand effect type chosen (not 'none')
+    if (handEffectType && handEffectType !== 'none' && setupStep === 4) {
       advanceToStep(5);
     }
-  }, [handEffectType, handSelection, setupStep, advanceToStep]);
+  }, [handEffectType, setupStep, advanceToStep]);
+
+  React.useEffect(() => {
+    // Step 5 → 6: Hand selection chosen (not 'none')
+    if (handSelection && handSelection !== 'none' && setupStep === 5) {
+      advanceToStep(6);
+    }
+  }, [handSelection, setupStep, advanceToStep]);
+
+  React.useEffect(() => {
+    // Step 6 → 7: Camera 2 selected (index 1)
+    if (selectedCameraIndex >= 1 && setupStep === 6) {
+      advanceToStep(7);
+    }
+  }, [selectedCameraIndex, setupStep, advanceToStep]);
 
   return (
     <>

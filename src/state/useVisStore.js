@@ -4,14 +4,14 @@ import { create } from 'zustand';
 const useVisStore = create((set, get) => ({
   music: { rms: 0, energy: 0, centroid: 0, bpmish: 0 },
   motion: null,
-  isActive: false, // Global toggle for Irina visuals
+  isActive: true, // Global toggle for Irina visuals - always enabled
   params: { 
     speed: 1.2, 
     intensity: 0.8, 
     hue: 210, 
     musicReact: 0.9,  // Restored to original value
     motionReact: 0.9, 
-    mode: "quand_cest",
+    mode: "empty",
     // New hand effect settings
     handEffect: {
       type: 'none',           // 'none' | 'ripple' | 'smoke' | 'fluidDistortion' | 'particleTrail'

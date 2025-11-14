@@ -46,18 +46,10 @@ export default function ChoreoXploreControlPanel() {
       
       <div className="glass-scrollbar" style={{ flex: 1, overflow: "auto", paddingRight: "4px", marginBottom: "8px", minHeight: 0 }}>
         
-        {/* Activation Toggle with Color Pickers */}
+        {/* Color Pickers */}
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ flex: 1 }}>
-            <ToggleButton
-              label="Enable Visuals"
-              selected={isActive}
-              onChange={setIsActive}
-            />
-          </div>
-          
           {/* Background Color Picker */}
-          <div style={{ minWidth: '60px' }}>
+          <div style={{ flex: 1 }}>
             <label style={{
               display: 'block',
               color: 'white',
@@ -85,7 +77,7 @@ export default function ChoreoXploreControlPanel() {
           </div>
 
           {/* Visual Assets Color Picker */}
-          <div style={{ minWidth: '60px' }}>
+          <div style={{ flex: 1 }}>
             <label style={{
               display: 'block',
               color: 'white',

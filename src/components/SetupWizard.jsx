@@ -6,7 +6,9 @@ const STEPS = [
   { id: 2, label: 'Select Visuals', icon: '✨' },
   { id: 3, label: 'Start Motion', icon: '📹' },
   { id: 4, label: 'Select Hand Effects', icon: '✋' },
-  { id: 5, label: 'Dance!', icon: '💃' }
+  { id: 5, label: 'Choose Hand Selection', icon: '👆' },
+  { id: 6, label: 'Select Camera 2', icon: '📷' },
+  { id: 7, label: 'Go to dance space and Dance!', icon: '💃' }
 ];
 
 const SetupWizard = () => {
@@ -45,7 +47,7 @@ const SetupWizard = () => {
             fontSize: '12px',
             color: '#6B7280'
           }}>
-            {currentStep}/5
+            {currentStep}/7
           </span>
         </div>
 
@@ -60,7 +62,7 @@ const SetupWizard = () => {
           <div style={{
             height: '100%',
             background: 'linear-gradient(to right, #3B82F6, #60A5FA)',
-            width: `${(currentStep / 5) * 100}%`,
+            width: `${(currentStep / 7) * 100}%`,
             transition: 'width 0.5s ease-out'
           }} />
         </div>
@@ -130,7 +132,7 @@ const SetupWizard = () => {
         </div>
 
         {/* Current Step Hint */}
-        {currentStep < 5 && (
+        {currentStep < 7 && (
           <div style={{
             marginTop: '16px',
             paddingTop: '12px',
@@ -143,15 +145,17 @@ const SetupWizard = () => {
               margin: 0
             }}>
               {currentStep === 1 && 'Search and play a song to begin'}
-              {currentStep === 2 && 'Click "Enable Visuals" on the left'}
+              {currentStep === 2 && 'Select a visual mode from the left panel'}
               {currentStep === 3 && 'Click "Start" to begin tracking'}
               {currentStep === 4 && 'Choose a hand effect from the left panel'}
+              {currentStep === 5 && 'Select which hand(s) to use for effects'}
+              {currentStep === 6 && 'Select Camera 2 from the dropdown'}
             </p>
           </div>
         )}
 
         {/* Success Message */}
-        {currentStep === 5 && (
+        {currentStep === 7 && (
           <div style={{
             marginTop: '16px',
             paddingTop: '12px',
