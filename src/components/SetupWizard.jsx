@@ -2,7 +2,7 @@ import React from 'react';
 import useStore from '../core/store';
 
 const STEPS = [
-  { id: 1, label: 'Choose Song', icon: '🎵' },
+  { id: 1, label: 'Type a Song', icon: '🎵' },
   { id: 2, label: 'Select Visuals', icon: '✨' },
   { id: 3, label: 'Start Motion', icon: '📹' },
   { id: 4, label: 'Select Hand Effects', icon: '✋' },
@@ -181,7 +181,7 @@ const SetupWizard = () => {
         )}
       </div>
       
-      {/* Add pulse animation */}
+      {/* Add pulse animation and wizard highlighting */}
       <style>{`
         @keyframes pulse {
           0%, 100% {
@@ -190,6 +190,21 @@ const SetupWizard = () => {
           50% {
             opacity: 0.7;
           }
+        }
+        
+        @keyframes wizardHighlight {
+          0%, 100% {
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.8), 0 0 25px rgba(255, 107, 0, 0.6);
+          }
+          50% {
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 1), 0 0 35px rgba(255, 107, 0, 0.8);
+          }
+        }
+        
+        [data-wizard-step="${currentStep}"] {
+          animation: wizardHighlight 2s ease-in-out infinite !important;
+          position: relative;
+          z-index: 9999 !important;
         }
       `}</style>
     </div>

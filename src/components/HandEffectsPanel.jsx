@@ -104,6 +104,7 @@ export default function HandEffectsPanel() {
             Effect Type
           </label>
           <select
+            data-wizard-step="4"
             value={handEffect.type}
             onChange={(e) => handleEffectChange({ type: e.target.value })}
             style={dropdownStyle}
@@ -133,6 +134,7 @@ export default function HandEffectsPanel() {
               Hand Selection
             </label>
             <select
+              data-wizard-step="5"
               value={handEffect.handSelection}
               onChange={(e) => handleEffectChange({ handSelection: e.target.value })}
               style={dropdownStyle}

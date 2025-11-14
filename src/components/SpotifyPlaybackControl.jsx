@@ -252,12 +252,13 @@ const SpotifyPlaybackControl = () => {
         </div>
         
         {/* Search Inputs and Button */}
-        <div style={{
+        <div data-wizard-step="1" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           minWidth: '300px',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          transition: 'all 0.3s ease'
         }}>
           <input
             type="text"

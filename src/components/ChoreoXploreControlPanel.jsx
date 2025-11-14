@@ -110,6 +110,7 @@ export default function ChoreoXploreControlPanel() {
           <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0" }}>Visual Mode</h4>
           <div style={{ position: "relative" }}>
             <select
+              data-wizard-step="2"
               value={params.mode}
               onChange={(e) => handleModeChange(e.target.value)}
               style={{
@@ -124,7 +125,7 @@ export default function ChoreoXploreControlPanel() {
                 outline: "none",
                 backdropFilter: "blur(10px)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                transition: "all 0.2s ease",
+                transition: "all 0.3s ease",
                 fontWeight: "500",
                 appearance: "none",
                 backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,

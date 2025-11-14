@@ -476,6 +476,7 @@ const MotionInputPanel = () => {
         }}>
           {/* Camera Selection Dropdown */}
           <select
+            data-wizard-step="6"
             value={selectedCameraId}
             onChange={async (e) => {
               const newCameraId = e.target.value;
@@ -559,6 +560,7 @@ const MotionInputPanel = () => {
           </select>
 
           <button
+            data-wizard-step="3"
             onClick={toggleMotionDetection}
             disabled={isLoading}
             style={{
@@ -570,7 +572,7 @@ const MotionInputPanel = () => {
               fontSize: '10px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.5 : 1,
-              transition: 'all 0.2s ease',
+              transition: 'all 0.3s ease',
               whiteSpace: 'nowrap',
               minWidth: '50px',
               flexShrink: 0
