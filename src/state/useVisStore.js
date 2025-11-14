@@ -24,7 +24,7 @@ const useVisStore = create((set, get) => ({
       ripple: {
         baseColor: '#00ccff',
         rippleColor: '#ff00cc',
-        radius: 0.1,
+        radius: 0.5,
         intensity: 0.8
       },
       
@@ -32,7 +32,7 @@ const useVisStore = create((set, get) => ({
       smoke: {
         color: '#ffffff',
         intensity: 0.7,
-        radius: 0.8,
+        radius: 1.5,
         velocitySensitivity: 1.0,
         trailLength: 0.5
       },
