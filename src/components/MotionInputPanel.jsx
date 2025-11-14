@@ -609,7 +609,7 @@ const MotionInputPanel = () => {
               flexShrink: 0
             }}
           >
-            Inverse Hands
+            Mirrored
           </button>
           <button
             onClick={() => setSkeletonVisible(!skeletonVisible)}

@@ -2,12 +2,12 @@ import React from 'react';
 import useStore from '../core/store';
 
 const STEPS = [
-  { id: 1, label: 'Type a Song', icon: '🎵' },
-  { id: 2, label: 'Select Visuals', icon: '✨' },
-  { id: 3, label: 'Start Motion', icon: '📹' },
-  { id: 4, label: 'Select Hand Effects', icon: '✋' },
-  { id: 5, label: 'Choose Hand Selection', icon: '👆' },
-  { id: 6, label: 'Select Camera 2', icon: '📷' },
+  { id: 1, label: 'Type a Song', location: 'Bottom Middle Panel', icon: '🎵' },
+  { id: 2, label: 'Select Visuals', location: 'Top Left Panel', icon: '✨' },
+  { id: 3, label: 'Start Motion', location: 'Top Right Panel', icon: '📹' },
+  { id: 4, label: 'Select Hand Effects', location: 'Bottom Left Panel', icon: '✋' },
+  { id: 5, label: 'Choose Hand', location: 'Bottom Left Panel', icon: '👆' },
+  { id: 6, label: 'Select Camera 2', location: 'Top Right Panel', icon: '📷' },
   { id: 7, label: 'Go to dance space and Dance!', icon: '💃' }
 ];
 
@@ -24,8 +24,8 @@ const SetupWizard = () => {
       <div style={{
         background: 'rgba(17, 24, 39, 0.95)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '16px',
-        padding: '16px',
+        borderRadius: '12px',
+        padding: '12px',
         border: '1px solid rgba(55, 65, 81, 1)',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         minWidth: '240px'
@@ -35,16 +35,16 @@ const SetupWizard = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '12px'
+          marginBottom: '8px'
         }}>
           <h3 style={{
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: '600',
             color: '#D1D5DB',
             margin: 0
           }}>Getting Started</h3>
           <span style={{
-            fontSize: '12px',
+            fontSize: '11px',
             color: '#6B7280'
           }}>
             {currentStep}/7
@@ -53,10 +53,10 @@ const SetupWizard = () => {
 
         {/* Progress Bar */}
         <div style={{
-          height: '6px',
+          height: '4px',
           background: '#1F2937',
           borderRadius: '9999px',
-          marginBottom: '16px',
+          marginBottom: '10px',
           overflow: 'hidden'
         }}>
           <div style={{
@@ -68,7 +68,7 @@ const SetupWizard = () => {
         </div>
 
         {/* Steps List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {STEPS.map((step) => {
             const isCompleted = currentStep > step.id;
             const isCurrent = currentStep === step.id;
@@ -80,9 +80,9 @@ const SetupWizard = () => {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
-                  padding: '8px',
-                  borderRadius: '8px',
+                  gap: '8px',
+                  padding: '6px',
+                  borderRadius: '6px',
                   background: isCurrent ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
                   border: isCurrent ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent',
                   opacity: isCompleted ? 0.6 : isLocked ? 0.3 : 1,
@@ -92,13 +92,13 @@ const SetupWizard = () => {
                 {/* Icon/Checkbox */}
                 <div
                   style={{
-                    width: '24px',
-                    height: '24px',
+                    width: '20px',
+                    height: '20px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 'bold',
                     flexShrink: 0,
                     background: isCompleted ? '#10B981' : isCurrent ? '#3B82F6' : '#374151',
@@ -110,21 +110,38 @@ const SetupWizard = () => {
                 </div>
 
                 {/* Label */}
-                <span
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: isCurrent ? '#FFFFFF' : isCompleted ? '#34D399' : '#6B7280',
-                    textDecoration: isCompleted ? 'line-through' : 'none',
-                    transition: 'color 0.3s'
-                  }}
-                >
-                  {step.label}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: isCurrent ? '#FFFFFF' : isCompleted ? '#34D399' : '#6B7280',
+                      textDecoration: isCompleted ? 'line-through' : 'none',
+                      transition: 'color 0.3s',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {step.label}
+                  </div>
+                  {step.location && (
+                    <div
+                      style={{
+                        fontSize: '9px',
+                        color: isCurrent ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 0.8)',
+                        marginTop: '1px',
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      ({step.location})
+                    </div>
+                  )}
+                </div>
 
                 {/* Lock indicator */}
                 {isLocked && (
-                  <span style={{ marginLeft: 'auto', color: '#4B5563', fontSize: '12px' }}>🔒</span>
+                  <span style={{ marginLeft: 'auto', color: '#4B5563', fontSize: '11px', flexShrink: 0 }}>🔒</span>
                 )}
               </div>
             );
@@ -134,14 +151,14 @@ const SetupWizard = () => {
         {/* Current Step Hint */}
         {currentStep < 7 && (
           <div style={{
-            marginTop: '16px',
-            paddingTop: '12px',
+            marginTop: '10px',
+            paddingTop: '8px',
             borderTop: '1px solid #1F2937'
           }}>
             <p style={{
-              fontSize: '12px',
+              fontSize: '11px',
               color: '#9CA3AF',
-              lineHeight: '1.5',
+              lineHeight: '1.4',
               margin: 0
             }}>
               {currentStep === 1 && 'Search and play a song to begin'}
@@ -157,19 +174,19 @@ const SetupWizard = () => {
         {/* Success Message */}
         {currentStep === 7 && (
           <div style={{
-            marginTop: '16px',
-            paddingTop: '12px',
+            marginTop: '10px',
+            paddingTop: '8px',
             borderTop: '1px solid rgba(16, 185, 129, 0.5)',
             background: 'rgba(16, 185, 129, 0.1)',
-            marginLeft: '-16px',
-            marginRight: '-16px',
-            marginBottom: '-16px',
-            padding: '12px 16px',
-            borderBottomLeftRadius: '16px',
-            borderBottomRightRadius: '16px'
+            marginLeft: '-12px',
+            marginRight: '-12px',
+            marginBottom: '-12px',
+            padding: '8px 12px',
+            borderBottomLeftRadius: '12px',
+            borderBottomRightRadius: '12px'
           }}>
             <p style={{
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: '600',
               color: '#34D399',
               textAlign: 'center',
