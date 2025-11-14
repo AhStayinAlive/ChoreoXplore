@@ -152,42 +152,41 @@ export default function ChoreoXploreControlPanel() {
               <option value="heat_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Heat Wave</option>
               <option value="flowing" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Flowing</option>
               <option value="gentle_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Gentle Wave</option>
-              <option value="silk_veil" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Silk Veil</option>
-              <option value="lotus_bloom" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Lotus Bloom</option>
-              <option value="stained_glass_rose" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Stained Glass Rose</option>
-              <option value="ink_water" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ink & Water</option>
-              <option value="opaline_wave" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Opaline Wave</option>
             </select>
           </div>
         </div>
 
         {/* Speed Control */}
-        <div style={{ marginBottom: 16 }}>
-          <Slider
-            label="Speed"
-            value={params.speed}
-            min={0}
-            max={2.0}
-            step={0.01}
-            format={(v) => Math.round(v * 100).toString()}
-            onChange={(value) => handleParamChange('speed', value)}
-            showValue={false}
-          />
-        </div>
+        {params.mode !== 'pulsating_circle' && params.mode !== 'vertical_lines' && (
+          <div style={{ marginBottom: 16 }}>
+            <Slider
+              label="Speed"
+              value={params.speed}
+              min={0}
+              max={2.0}
+              step={0.01}
+              format={(v) => Math.round(v * 100).toString()}
+              onChange={(value) => handleParamChange('speed', value)}
+              showValue={false}
+            />
+          </div>
+        )}
 
         {/* Transparency Control */}
-        <div style={{ marginBottom: 16 }}>
-          <Slider
-            label="Transparency"
-            value={params.intensity}
-            min={0.0}
-            max={1.0}
-            step={0.05}
-            format={(v) => v.toFixed(2)}
-            onChange={(value) => handleParamChange('intensity', value)}
-            showValue={false}
-          />
-        </div>
+        {params.mode !== 'vertical_lines' && (
+          <div style={{ marginBottom: 16 }}>
+            <Slider
+              label="Transparency"
+              value={params.intensity}
+              min={0.0}
+              max={1.0}
+              step={0.05}
+              format={(v) => v.toFixed(2)}
+              onChange={(value) => handleParamChange('intensity', value)}
+              showValue={false}
+            />
+          </div>
+        )}
 
       </div>
     </div>

@@ -24,9 +24,9 @@ void main() {
   
   // Base radius with audio-reactive pulsing
   float baseRadius = 0.15;
-  float energyPulse = uEnergy * 0.3; // Energy-based pulsing
-  float beatPulse = uBeat * 0.2;     // Beat-based pulsing
-  float rmsPulse = uRms * 0.25;      // RMS-based pulsing
+  float energyPulse = uEnergy * 0.5; // Energy-based pulsing (increased from 0.3)
+  float beatPulse = uBeat * 0.35;     // Beat-based pulsing (increased from 0.2)
+  float rmsPulse = uRms * 0.4;      // RMS-based pulsing (increased from 0.25)
   
   // Audio-reactive pulsation based on loudness
   float audioThreshold = 0.01; // Minimum audio level to consider "music playing"
@@ -34,7 +34,7 @@ void main() {
   
   // Pulsation directly proportional to audio loudness
   float audioLoudness = uEnergy + uRms + uBeat; // Combined audio level
-  float pulsationSize = audioLoudness * 0.4; // Scale pulsation to audio level
+  float pulsationSize = audioLoudness * 0.7; // Scale pulsation to audio level (increased from 0.4)
   
   // Combine base radius with audio-reactive pulsation
   float radius = baseRadius + pulsationSize;
@@ -47,14 +47,14 @@ void main() {
   innerGlow *= 0.3;
   
   // Add outer glow based on audio intensity
-  float outerGlow = 1.0 - smoothstep(radius, radius + 0.1 + pulsationSize * 0.8, dist);
-  outerGlow *= 0.2 * uIntensity;
+  float outerGlow = 1.0 - smoothstep(radius, radius + 0.15 + pulsationSize * 1.2, dist);
+  outerGlow *= 0.3 * uIntensity;
   
   // Combine all effects
   float pattern = circle + innerGlow + outerGlow;
   
   // Add wave distortion based on audio (only when music is playing)
-  float waveDistortion = sin(dist * 20.0 + t * 3.0) * 0.01 * uEnergy * isMusicPlaying;
+  float waveDistortion = sin(dist * 20.0 + t * 3.0) * 0.02 * uEnergy * isMusicPlaying;
   pattern += waveDistortion;
   
   // Use RGB color directly
@@ -70,8 +70,8 @@ void main() {
   vec3 finalColor = accent + colorVariation;
   vec3 col = finalColor * pattern * uIntensity;
   
-  // Add brightness based on audio intensity
-  float brightness = 1.0 + uEnergy * 0.5 + uBeat * 0.3 + uRms * 0.4;
+  // Add brightness based on audio intensity (increased multipliers)
+  float brightness = 1.0 + uEnergy * 0.8 + uBeat * 0.5 + uRms * 0.6;
   col *= brightness;
   
   // Reduce visibility when no music is playing
