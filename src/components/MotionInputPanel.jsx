@@ -9,6 +9,8 @@ const MotionInputPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fps, setFps] = useState(0);
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
   const { updatePoseData } = usePoseDetection();
   const setPoseData = useStore(s => s.setPoseData);
   const isActive = useStore(s => s.motionCaptureActive);
@@ -27,9 +29,84 @@ const MotionInputPanel = () => {
   const animationRef = useRef(null);
   const fpsRef = useRef({ frameCount: 0, lastTime: 0 });
 
-  // Initialize MediaPipe
-  const initializeMediaPipe = useCallback(async () => {
+  // Enumerate available cameras
+  const enumerateCameras = useCallback(async () => {
     try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevicesBefore = devices.filter(device => device.kind === 'videoinput');
+      
+      // Sort cameras by deviceId to maintain consistent order
+      videoDevicesBefore.sort((a, b) => a.deviceId.localeCompare(b.deviceId));
+      
+      // Set cameras immediately
+      setAvailableCameras(videoDevicesBefore);
+      
+      // IMPORTANT: Set default camera BEFORE requesting permission
+      if (!selectedCameraId && videoDevicesBefore.length > 0) {
+        setSelectedCameraId(videoDevicesBefore[0].deviceId);
+        console.log('Set default camera to first in list:', videoDevicesBefore[0].deviceId.substring(0, 20) + '...');
+      }
+      
+      // Check if any cameras need labels
+      const needsPermission = videoDevicesBefore.some(device => !device.label);
+      
+      if (needsPermission) {
+        try {
+          const permissionStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 640 }, height: { ideal: 480 } }
+          });
+          
+          permissionStream.getTracks().forEach(track => track.stop());
+          
+          // Wait and re-enumerate
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const devicesAfter = await navigator.mediaDevices.enumerateDevices();
+          const videoDevicesAfter = devicesAfter.filter(device => device.kind === 'videoinput');
+          
+          // Sort again after re-enumeration
+          videoDevicesAfter.sort((a, b) => a.deviceId.localeCompare(b.deviceId));
+          
+          setAvailableCameras(videoDevicesAfter);
+        } catch (permErr) {
+          // Keep the cameras we already set
+        }
+      }
+    } catch (err) {
+      console.error('Error enumerating cameras:', err);
+    }
+  }, [selectedCameraId]);
+
+  // Enumerate cameras on mount
+  useEffect(() => {
+    enumerateCameras();
+    
+    // Listen for device changes
+    const handleDeviceChange = () => enumerateCameras();
+    
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+    };
+  }, [enumerateCameras]);
+
+  // Initialize MediaPipe
+  const initializeMediaPipe = useCallback(async (forceReinit = false) => {
+    try {
+      // If forcing reinitialization, close the existing landmarker first
+      if (forceReinit && poseLandmarkerRef.current) {
+        console.log('Closing existing MediaPipe instance...');
+        try {
+          poseLandmarkerRef.current.close();
+        } catch (closeErr) {
+          console.warn('Error closing MediaPipe:', closeErr);
+        }
+        poseLandmarkerRef.current = null;
+        // Wait a bit for cleanup
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
       setIsLoading(true);
       setError(null);
 
@@ -51,6 +128,7 @@ const MotionInputPanel = () => {
       });
 
       poseLandmarkerRef.current = poseLandmarker;
+      console.log('MediaPipe initialized successfully');
       setIsLoading(false);
     } catch (err) {
       console.error('Error initializing MediaPipe:', err);
@@ -83,9 +161,10 @@ const MotionInputPanel = () => {
   }, []);
 
   // Start camera
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (deviceId = null) => {
     try {
-      console.log('Starting camera access...');
+      const cameraId = deviceId || selectedCameraId;
+      console.log('Starting camera with ID:', cameraId ? cameraId.substring(0, 20) + '...' : 'default');
       
       // First, clean up any existing streams
       if (videoRef.current && videoRef.current.srcObject) {
@@ -105,73 +184,96 @@ const MotionInputPanel = () => {
       
       console.log('MediaDevices API is available');
       
-      // Try exact 1080p first
-      console.log('Requesting camera access with 1920x1080...');
       let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: {
-            width: { exact: 1920 },
-            height: { exact: 1080 }
-          },
-          audio: false
-        });
-      } catch (exactError) {
-        console.log('1920x1080 not supported, trying with ideal constraints...', exactError.message);
-        // Fallback to ideal constraints if exact fails
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: {
-            width: { min: 640, ideal: 1920, max: 3840 },
-            height: { min: 480, ideal: 1080, max: 2160 },
-            facingMode: 'user'
-          },
-          audio: false
-        });
+      
+      if (cameraId) {
+        // When a specific camera is selected, use exact deviceId
+        try {
+          // Try with ideal resolution first (not exact to avoid camera switch)
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+              deviceId: { exact: cameraId },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          });
+        } catch (idealError) {
+          // If that fails, try with just the deviceId (no resolution constraints)
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+              deviceId: { exact: selectedCameraId }
+            },
+            audio: false
+          });
+        }
+      } else {
+        // No specific camera selected, use default with resolution preferences
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+              facingMode: 'user',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          });
+        } catch (error) {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true,
+            audio: false
+          });
+        }
       }
       
-      console.log('✅ Camera access successful');
-      console.log('Stream tracks:', stream.getTracks());
-
-      // Log actual stream settings
+      // Log which camera was actually activated
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         const settings = videoTrack.getSettings();
-        console.log('📹 Video track settings:', settings);
-        console.log('📐 Actual resolution:', settings.width, 'x', settings.height);
-        console.log('🎥 Frame rate:', settings.frameRate);
+        console.log('Active camera:', videoTrack.label, '- DeviceId:', settings.deviceId.substring(0, 20) + '...');
+        
+        // Warn if wrong camera
+        if (selectedCameraId && settings.deviceId !== selectedCameraId) {
+          console.warn('WARNING: Requested camera', selectedCameraId.substring(0, 20) + '... but got', settings.deviceId.substring(0, 20) + '...');
+        }
       }
       
-      // Check what devices are available after getting permission
+      // Update available cameras list after getting permission
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        console.log('Available cameras after permission:', videoDevices);
+        videoDevices.sort((a, b) => a.deviceId.localeCompare(b.deviceId));
+        setAvailableCameras(videoDevices);
       } catch (enumError) {
-        console.log('Device enumeration failed:', enumError);
+        // Ignore enumeration errors
       }
 
       if (videoRef.current && stream) {
-        console.log('Attaching stream to video element...');
         videoRef.current.srcObject = stream;
         
-        // Add event listeners for debugging
-        videoRef.current.onloadedmetadata = () => {
-          console.log('✅ Video metadata loaded');
-          console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
-        };
-        
-        videoRef.current.oncanplay = () => {
-          console.log('✅ Video can play');
-        };
-        
-        videoRef.current.onerror = (e) => {
-          console.error('❌ Video element error:', e);
-        };
+        // Wait for video to be fully ready
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
+          
+          videoRef.current.onloadedmetadata = () => {
+            console.log('Video metadata loaded');
+          };
+          
+          videoRef.current.oncanplay = () => {
+            console.log('Video can play');
+            clearTimeout(timeout);
+            resolve();
+          };
+          
+          videoRef.current.onerror = (e) => {
+            clearTimeout(timeout);
+            reject(new Error('Video error: ' + e));
+          };
+        });
         
         // Try to play the video
         try {
           await videoRef.current.play();
-          console.log('✅ Video play() successful');
           setError(null); // Clear any previous errors
         } catch (playError) {
           console.error('❌ Video play() failed:', playError);
@@ -187,7 +289,7 @@ const MotionInputPanel = () => {
       console.error('Error accessing camera:', err);
       setError(`Failed to access camera: ${err.message}. Please check permissions and make sure a camera is connected.`);
     }
-  }, []);
+  }, [selectedCameraId, setAvailableCameras]);
 
   // Stop camera
   const stopCamera = useCallback(() => {
@@ -354,11 +456,12 @@ const MotionInputPanel = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '16px'
+        marginBottom: '12px',
+        gap: '8px'
       }}>
         <h3 style={{
           color: 'white',
-          fontSize: '18px',
+          fontSize: '12px',
           fontWeight: '600',
           margin: 0
         }}>
@@ -367,24 +470,101 @@ const MotionInputPanel = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '6px',
           flexWrap: 'nowrap'
         }}>
-          <button
-            onClick={toggleMotionDetection}
+          {/* Camera Selection Dropdown */}
+          <select
+            value={selectedCameraId}
+            onChange={async (e) => {
+              const newCameraId = e.target.value;
+              console.log('Camera selection changed to:', newCameraId.substring(0, 20) + '...');
+              setSelectedCameraId(newCameraId);
+              
+              // If motion detection is active, restart everything properly
+              if (isActive) {
+                console.log('Motion detection active, restarting with new camera...');
+                
+                // Stop animation loop first
+                if (animationRef.current) {
+                  cancelAnimationFrame(animationRef.current);
+                  animationRef.current = null;
+                }
+                
+                // Stop the current camera stream
+                if (videoRef.current && videoRef.current.srcObject) {
+                  const stream = videoRef.current.srcObject;
+                  stream.getTracks().forEach(track => {
+                    console.log('Stopping track:', track.label);
+                    track.stop();
+                  });
+                  videoRef.current.srcObject = null;
+                }
+                
+                // Reinitialize MediaPipe (this fixes the crash)
+                console.log('Reinitializing MediaPipe for new camera...');
+                await initializeMediaPipe(true);
+                
+                // Start new camera with the new deviceId
+                try {
+                  await startCamera(newCameraId);
+                  // Wait for video to be fully ready
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  // Reset lastVideoTime to force new frame processing
+                  lastVideoTimeRef.current = -1;
+                  // Restart processing loop
+                  processFrame();
+                  console.log('Camera switched and motion detection restarted');
+                } catch (error) {
+                  console.error('Error restarting camera:', error);
+                  setIsActive(false);
+                }
+              }
+            }}
             disabled={isLoading}
             style={{
-              padding: '6px 12px',
-              backgroundColor: isActive ? 'rgba(220,38,38,0.8)' : 'rgba(34,197,94,0.8)',
+              padding: '4px 6px',
+              backgroundColor: 'rgba(107,114,128,0.8)',
               border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '10px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.5 : 1,
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap',
-              minWidth: 'auto',
+              minWidth: '90px',
+              maxWidth: '130px',
+              flexShrink: 0,
+              outline: 'none'
+            }}
+          >
+            {availableCameras.length === 0 ? (
+              <option>No cameras found</option>
+            ) : (
+              availableCameras.map((camera, index) => (
+                <option key={camera.deviceId} value={camera.deviceId}>
+                  Camera {index + 1}
+                </option>
+              ))
+            )}
+          </select>
+
+          <button
+            onClick={toggleMotionDetection}
+            disabled={isLoading}
+            style={{
+              padding: '4px 10px',
+              backgroundColor: isActive ? 'rgba(220,38,38,0.8)' : 'rgba(34,197,94,0.8)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '10px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.5 : 1,
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              minWidth: '50px',
               flexShrink: 0
             }}
           >
@@ -406,12 +586,12 @@ const MotionInputPanel = () => {
               // 'both' and 'none' stay the same
             }}
             style={{
-              padding: '6px 12px',
-              backgroundColor: inverseHands ? 'rgba(59,130,246,0.8)' : 'rgba(107,114,128,0.8)',
+              padding: '4px 10px',
+              backgroundColor: inverseHands ? 'rgba(34,197,94,0.8)' : 'rgba(107,114,128,0.8)',
               border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '10px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap',
@@ -424,12 +604,12 @@ const MotionInputPanel = () => {
           <button
             onClick={() => setSkeletonVisible(!skeletonVisible)}
             style={{
-              padding: '6px 12px',
+              padding: '4px 10px',
               backgroundColor: skeletonVisible ? 'rgba(34,197,94,0.8)' : 'rgba(107,114,128,0.8)',
               border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '10px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap',
