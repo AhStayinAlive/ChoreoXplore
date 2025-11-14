@@ -16,10 +16,10 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
   
   // Extract individual values for proper dependency tracking (like particle trail does)
   const smokeColor = smokeSettings.color || '#ffffff';
-  const smokeIntensity = smokeSettings.intensity || 0.7;
-  const smokeRadius = smokeSettings.radius || 0.8;
-  const smokeVelocitySensitivity = smokeSettings.velocitySensitivity || 1.0;
-  const smokeTrailLength = smokeSettings.trailLength || 0.5;
+  const smokeIntensity = smokeSettings.intensity ?? 0.7;
+  const smokeRadius = smokeSettings.radius ?? 0.8;
+  const smokeVelocitySensitivity = smokeSettings.velocitySensitivity ?? 1.0;
+  const smokeTrailLength = smokeSettings.trailLength ?? 0.5;
   
   const [hasParticles, setHasParticles] = useState(false);
 

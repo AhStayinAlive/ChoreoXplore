@@ -122,7 +122,7 @@ export default function HandEffectsPanel() {
             <option value="ripple" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Ripple Effect</option>
             <option value="smoke" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Smoke Effect</option>
             <option value="fluidDistortion" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Fluid Effect</option>
-            <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Particle Trail</option>
+            <option value="particleTrail" style={{ backgroundColor: "rgba(0,0,0,0.9)", color: "#ffffff" }}>Square Particle Effect</option>
           </select>
         </div>
 
@@ -267,10 +267,10 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Trail Intensity Slider */}
+            {/* Opacity Slider */}
             <div style={{ marginBottom: 16 }}>
               <Slider
-                label="Trail Intensity"
+                label="Opacity"
                 value={handEffect.smoke?.intensity || 0.7}
                 min={0.1}
                 max={1.0}
@@ -281,10 +281,10 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Trail Radius Slider */}
+            {/* Radius Slider */}
             <div style={{ marginBottom: 16 }}>
               <Slider
-                label="Trail Radius"
+                label="Radius"
                 value={handEffect.smoke?.radius || 0.8}
                 min={0.5}
                 max={3.0}
@@ -292,20 +292,6 @@ export default function HandEffectsPanel() {
                 format={(v) => v.toFixed(2)}
                 showValue={false}
                 onChange={(value) => handleSmokeChange({ radius: value })}
-              />
-            </div>
-
-            {/* Motion Sensitivity Slider */}
-            <div style={{ marginBottom: 16 }}>
-              <Slider
-                label="Motion Sensitivity"
-                value={handEffect.smoke?.velocitySensitivity || 1.0}
-                min={0.0}
-                max={2.0}
-                step={0.1}
-                format={(v) => v.toFixed(2)}
-                showValue={false}
-                onChange={(value) => handleSmokeChange({ velocitySensitivity: value })}
               />
             </div>
 
@@ -402,10 +388,10 @@ export default function HandEffectsPanel() {
             )}
           </>
         )}
-        {/* Particle Trail Effect Settings */}
+        {/* Square Particle Effect Settings */}
         {handEffect.type === 'particleTrail' && handEffect.handSelection !== 'none' && (
           <div style={{ marginBottom: 16 }}>
-            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Particle Trail Settings</h4>
+            <h4 style={{ color: "white", fontSize: "12px", margin: "0 0 8px 0", fontWeight: "500" }}>Square Particle Effect Settings</h4>
             
             {/* Trail Color */}
             <div style={{ marginBottom: 12 }}>
@@ -429,11 +415,11 @@ export default function HandEffectsPanel() {
               />
             </div>
 
-            {/* Intensity */}
+            {/* Opacity */}
             <div style={{ marginBottom: 12 }}>
               <Slider
-                label="Intensity"
-                value={handEffect.particleTrail?.intensity || 0.8}
+                label="Opacity"
+                value={handEffect.particleTrail?.intensity ?? 0.8}
                 min={0}
                 max={1}
                 step={0.05}

@@ -24,7 +24,7 @@ const useVisStore = create((set, get) => ({
       ripple: {
         baseColor: '#00ccff',
         rippleColor: '#ff00cc',
-        radius: 0.5,
+        radius: 0.2,
         intensity: 0.8
       },
       
@@ -43,7 +43,7 @@ const useVisStore = create((set, get) => ({
         intensity: 1,
         force: 1.5,
         distortion: 1,
-        radius: 0.3,
+        radius: 0.8,
         curl: 6,
         swirl: 1,
         velocityDissipation: 0.99,

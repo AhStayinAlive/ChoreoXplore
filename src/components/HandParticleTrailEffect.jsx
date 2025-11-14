@@ -23,12 +23,12 @@ const HandParticleTrailEffect = () => {
   const leftSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   const rightSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
   
-  const trailLength = Math.floor(particleSettings.trailLength || 50);
-  const particleSize = particleSettings.particleSize || 0.15;
+  const trailLength = Math.floor(particleSettings.trailLength ?? 50);
+  const particleSize = particleSettings.particleSize ?? 0.15;
   const color = particleSettings.color || '#00ffff';
-  const intensity = particleSettings.intensity || 0.8;
-  const fadeSpeed = particleSettings.fadeSpeed || 0.95;
-  const smoothness = particleSettings.smoothness || 0.15; // Lower = less responsive, more smoothing; Higher = more responsive, less smoothing
+  const intensity = particleSettings.intensity ?? 0.8;
+  const fadeSpeed = particleSettings.fadeSpeed ?? 0.95;
+  const smoothness = particleSettings.smoothness ?? 0.15; // Lower = less responsive, more smoothing; Higher = more responsive, less smoothing
   
   // Animation constants for smoother trail rendering
   const POSITION_BLEND_FACTOR = 0.3; // How much to blend particle positions with next particle
@@ -72,7 +72,7 @@ const HandParticleTrailEffect = () => {
       color: new THREE.Color(color),
       size: particleSize * 500, // Very large initial size for visibility
       transparent: true,
-      opacity: 0, // Start invisible until hand is detected
+      opacity: intensity, // Start with configured intensity
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true

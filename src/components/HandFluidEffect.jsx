@@ -46,8 +46,8 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   // Extract individual values for proper dependency tracking (like particle trail does)
   const baseColor = rippleSettings.baseColor || '#00ccff';
   const rippleColor = rippleSettings.rippleColor || '#ff00cc';
-  const radius = rippleSettings.radius || 0.1;
-  const intensity = rippleSettings.intensity || 0.8;
+  const radius = rippleSettings.radius ?? 0.1;
+  const intensity = rippleSettings.intensity ?? 0.8;
 
   const handSelection = handEffect?.handSelection || 'none';
 
