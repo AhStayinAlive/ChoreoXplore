@@ -43,9 +43,12 @@ const MotionInputPanel = () => {
       setAvailableCameras(videoDevicesBefore);
       
       // IMPORTANT: Set default camera BEFORE requesting permission
+      // Default to index 1 (Camera 1) if available, otherwise use first camera
       if (!selectedCameraId && videoDevicesBefore.length > 0) {
-        setSelectedCameraId(videoDevicesBefore[0].deviceId);
-        console.log('Set default camera to first in list:', videoDevicesBefore[0].deviceId.substring(0, 20) + '...');
+        const defaultIndex = videoDevicesBefore.length > 1 ? 1 : 0;
+        setSelectedCameraId(videoDevicesBefore[defaultIndex].deviceId);
+        setSelectedCameraIndex(defaultIndex);
+        console.log('Set default camera to index', defaultIndex, '(Camera ' + (defaultIndex === 0 ? '2' : '1') + '):', videoDevicesBefore[defaultIndex].deviceId.substring(0, 20) + '...');
       }
       
       // Check if any cameras need labels
@@ -553,7 +556,7 @@ const MotionInputPanel = () => {
             ) : (
               availableCameras.map((camera, index) => (
                 <option key={camera.deviceId} value={camera.deviceId}>
-                  Camera {index + 1}
+                  {index === 0 ? 'Camera 2' : 'Camera 1'}
                 </option>
               ))
             )}

@@ -166,7 +166,7 @@ const SetupWizard = () => {
               {currentStep === 3 && 'Click "Start" to begin tracking'}
               {currentStep === 4 && 'Choose a hand effect from the left panel'}
               {currentStep === 5 && 'Select which hand(s) to use for effects'}
-              {currentStep === 6 && 'Select Camera 2 from the dropdown'}
+              {currentStep === 6 && 'Keep Camera 2 selected (default)'}
             </p>
           </div>
         )}

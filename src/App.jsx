@@ -113,8 +113,8 @@ function AppContent({
   }, [handSelection, setupStep, advanceToStep]);
 
   React.useEffect(() => {
-    // Step 6 → 7: Camera 2 selected (index 1)
-    if (selectedCameraIndex >= 1 && setupStep === 6) {
+    // Step 6 → 7: Camera 2 selected (index 0, displays as "Camera 2")
+    if (selectedCameraIndex >= 0 && setupStep === 6) {
       advanceToStep(7);
     }
   }, [selectedCameraIndex, setupStep, advanceToStep]);
