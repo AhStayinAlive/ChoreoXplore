@@ -71,10 +71,11 @@ const FlowingMode = () => {
           float colorMix = abs(totalFlow) * 14.0 * (1.0 + energyBoost * 0.4);
           vec3 color = mix(u_bgColor, u_assetColor, colorMix);
           
-          gl_FragColor = vec4(color, 1.0);
+          gl_FragColor = vec4(color, colorMix * u_intensity);
         }
       `,
-      transparent: false,
+      transparent: true,
+      depthWrite: false,
       side: THREE.DoubleSide
     });
   }, [bgColor, assetColor]);
@@ -98,7 +99,7 @@ const FlowingMode = () => {
   });
   
   return (
-    <mesh ref={meshRef} position={[0, 0, 1]}>
+    <mesh ref={meshRef} position={[0, 0, -5]} renderOrder={-10}>
       <planeGeometry args={[20000, 10000]} />
       <primitive object={shaderMaterial} />
     </mesh>

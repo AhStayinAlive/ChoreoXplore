@@ -7,6 +7,7 @@ import * as THREE from 'three';
 const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   const groupRef = useRef();
   const poseDataRef = useRef(null);
+  const distanceScaleRef = useRef(1.0);
   const { poseData } = usePoseDetection();
   const skeletonVisible = useStore(s => s.skeletonVisible);
   const inverseHands = useStore(s => s.inverseHands);
@@ -66,9 +67,10 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
 
   // Helpers
   function toSceneXY(lm, scale, shouldMirrorX = false) {
+    const distanceScale = distanceScaleRef.current;
     return new THREE.Vector3(
-      shouldMirrorX ? -(lm.x - 0.5) * 200 * scale : (lm.x - 0.5) * 200 * scale,
-      (0.5 - lm.y) * 200 * scale,
+      shouldMirrorX ? -(lm.x - 0.5) * 200 * scale * distanceScale : (lm.x - 0.5) * 200 * scale * distanceScale,
+      (0.5 - lm.y) * 200 * scale * distanceScale,
       2 // keep in front
     );
   }
@@ -196,6 +198,34 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     // Fixed scale - adjusted for optimal visibility (was 22, now 38)
     let scale = 38 * modeScale;
 
+    // Calculate bounding box area to determine distance scaling
+    let minX = 1, maxX = 0, minY = 1, maxY = 0;
+    landmarks.forEach(landmark => {
+      if (landmark.visibility > 0.01) { // Lowered from 0.5 to trust any MediaPipe detection
+        minX = Math.min(minX, landmark.x);
+        maxX = Math.max(maxX, landmark.x);
+        minY = Math.min(minY, landmark.y);
+        maxY = Math.max(maxY, landmark.y);
+      }
+    });
+
+    const bboxWidth = maxX - minX;
+    const bboxHeight = maxY - minY;
+    const bboxArea = bboxWidth * bboxHeight;
+
+    // Dynamic distance scaling based on bounding box area
+    // Baseline area: 0.25 (typical standing pose at normal camera distance)
+    // When camera is far, bboxArea becomes smaller, so distanceScale increases
+    const BASELINE_AREA = 0.25;
+    const rawDistanceScale = Math.sqrt(BASELINE_AREA / Math.max(bboxArea, 0.01));
+    
+    // Clamp distance scale between 0.8 and 2.5 to prevent extreme distortion
+    const distanceScale = Math.max(0.8, Math.min(2.5, rawDistanceScale));
+    distanceScaleRef.current = distanceScale;
+
+    // Store distanceScale in zustand for hand effects to use
+    useStore.getState().setDistanceScale(distanceScale);
+
     // Reset pool indices to reuse existing objects
     const pool = poolRef.current;
     pool.cylinderIndex = 0;
@@ -267,7 +297,8 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
     // Arms (extended by 40% for better proportions)
     const armExtensionFactor = 1.4; // Make arms 40% longer
     
-    if (L_ELB && L_WRI && L_SHO.visibility > 0.2 && L_ELB.visibility > 0.2) {
+    // LEFT ARM - Render if MediaPipe detects it with any visibility
+    if (L_ELB && L_WRI && L_SHO.visibility > 0.01 && L_ELB.visibility > 0.01) {
       const elbowPos = toSceneXY(L_ELB, scale, inverseHands);
       
       // Extend upper arm (shoulder to elbow)
@@ -278,7 +309,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       addJointSphere(vLS, armUpperR); // shoulder
       addJointSphere(extendedElbowPos, armUpperR); // elbow
       
-      if (L_WRI.visibility > 0.2) {
+      if (L_WRI.visibility > 0.01) { // Trust any detection from MediaPipe
         const wristPos = toSceneXY(L_WRI, scale, inverseHands);
         
         // Extend forearm (elbow to wrist)
@@ -290,7 +321,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
         
         // Add hand extension (wrist to index finger)
         const L_INDEX = inverseHands ? landmarks[20] : landmarks[19]; // Left index finger (swap if inverse)
-        if (L_INDEX && L_INDEX.visibility > 0.2) {
+        if (L_INDEX && L_INDEX.visibility > 0.01) { // Trust any detection
           const indexPos = toSceneXY(L_INDEX, scale, inverseHands);
           const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
           const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
@@ -306,7 +337,8 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       }
     }
     
-    if (R_ELB && R_WRI && R_SHO.visibility > 0.2 && R_ELB.visibility > 0.2) {
+    // RIGHT ARM - Render if MediaPipe detects it with any visibility
+    if (R_ELB && R_WRI && R_SHO.visibility > 0.01 && R_ELB.visibility > 0.01) {
       const elbowPos = toSceneXY(R_ELB, scale, inverseHands);
       
       // Extend upper arm (shoulder to elbow)
@@ -317,7 +349,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       addJointSphere(vRS, armUpperR); // shoulder
       addJointSphere(extendedElbowPos, armUpperR); // elbow
       
-      if (R_WRI.visibility > 0.2) {
+      if (R_WRI.visibility > 0.01) { // Trust any detection from MediaPipe
         const wristPos = toSceneXY(R_WRI, scale, inverseHands);
         
         // Extend forearm (elbow to wrist)
@@ -329,7 +361,7 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
         
         // Add hand extension (wrist to index finger)
         const R_INDEX = inverseHands ? landmarks[19] : landmarks[20]; // Right index finger (swap if inverse)
-        if (R_INDEX && R_INDEX.visibility > 0.2) {
+        if (R_INDEX && R_INDEX.visibility > 0.01) { // Trust any detection
           const indexPos = toSceneXY(R_INDEX, scale, inverseHands);
           const handVec = new THREE.Vector3().subVectors(indexPos, wristPos);
           const extendedIndexPos = extendedWristPos.clone().add(handVec.multiplyScalar(armExtensionFactor));
@@ -345,24 +377,24 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
       }
     }
 
-    // Legs
-    if (L_KNE && L_ANK && L_HIP.visibility > 0.1 && L_KNE.visibility > 0.1) {
+    // Legs - Render if MediaPipe detects them with any visibility
+    if (L_KNE && L_ANK && L_HIP.visibility > 0.01 && L_KNE.visibility > 0.01) {
       const kneePos = toSceneXY(L_KNE, scale, inverseHands);
       addCapsule(vLH, kneePos, legUpperR);
       addJointSphere(vLH, legUpperR); // hip
       addJointSphere(kneePos, legUpperR); // knee
-      if (L_ANK.visibility > 0.1) {
+      if (L_ANK.visibility > 0.01) { // Trust any detection
         const anklePos = toSceneXY(L_ANK, scale, inverseHands);
         addCapsule(kneePos, anklePos, legLowerR);
         addJointSphere(anklePos, legLowerR); // ankle
       }
     }
-    if (R_KNE && R_ANK && R_HIP.visibility > 0.1 && R_KNE.visibility > 0.1) {
+    if (R_KNE && R_ANK && R_HIP.visibility > 0.01 && R_KNE.visibility > 0.01) {
       const kneePos = toSceneXY(R_KNE, scale, inverseHands);
       addCapsule(vRH, kneePos, legUpperR);
       addJointSphere(vRH, legUpperR); // hip
       addJointSphere(kneePos, legUpperR); // knee
-      if (R_ANK.visibility > 0.1) {
+      if (R_ANK.visibility > 0.01) { // Trust any detection
         const anklePos = toSceneXY(R_ANK, scale, inverseHands);
         addCapsule(kneePos, anklePos, legLowerR);
         addJointSphere(anklePos, legLowerR); // ankle

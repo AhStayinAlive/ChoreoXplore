@@ -60,6 +60,10 @@ const useStore = create((set, get) => ({
   poseData: null,
   setPoseData: (poseData) => set({ poseData }),
   
+  // Distance scale for avatar positioning (calculated from bounding box)
+  distanceScale: 1.0,
+  setDistanceScale: (distanceScale) => set({ distanceScale }),
+  
   // Motion capture state
   motionCaptureActive: false,
   setMotionCaptureActive: (active) => set({ motionCaptureActive: active }),

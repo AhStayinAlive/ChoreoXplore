@@ -20,15 +20,15 @@ const HandFluidDistortion = () => {
   
   // Separate tracking state for each hand
   const leftHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0),
     lastScreenPosition: useRef({ x: 0, y: 0 })
   };
 
   const rightHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0),
     lastScreenPosition: useRef({ x: 0, y: 0 })
   };
@@ -100,10 +100,10 @@ const HandFluidDistortion = () => {
     // Get canvas dimensions
     const canvasRect = gl.domElement.getBoundingClientRect();
     
-    // Transform hand position using SimpleSkeleton coordinate system (NOT mirrored)
-    const scale = 38; // Match SimpleSkeleton
-    const sceneX = (handPos.x - 0.5) * 200 * scale; // Normal X coordinate
-    const sceneY = (0.5 - handPos.y) * 200 * scale;
+    // handPos is now in scene coordinates from handTracking.js
+    // Use coordinates directly (already in SimpleSkeleton system)
+    const sceneX = handPos.x;
+    const sceneY = handPos.y;
     const sceneZ = 2; // Same Z as avatar (in front)
     
     // Create 3D vector in scene space

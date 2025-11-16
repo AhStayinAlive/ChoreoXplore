@@ -96,5 +96,5 @@ export default function ChoreoXplore() {
     );
   });
 
-  return <mesh geometry={geom} material={material} position={[0, 0, 1]} />;
+  return <mesh geometry={geom} material={material} position={[0, 0, -5]} renderOrder={-10} />;
 }

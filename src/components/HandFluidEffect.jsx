@@ -27,14 +27,14 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   
   // Separate tracking state for each hand
   const leftHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0)
   };
 
   const rightHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0)
   };
 
@@ -106,7 +106,7 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
   // Helper function to update hand ripple
   const updateHandRipple = useCallback((currentHandPos, handRefs, material, delta) => {
     if (currentHandPos) {
-      // Smooth hand position to reduce jitter
+      // Smooth hand position
       const smoothedPos = smoothHandPosition(currentHandPos, handRefs.smoothedPosition.current, 0.6);
       handRefs.smoothedPosition.current = smoothedPos;
       
@@ -117,14 +117,10 @@ const HandFluidEffect = ({ fluidTexture, fluidCanvas }) => {
       // Calculate ripple parameters
       const rippleParams = calculateRippleParams(smoothedPos, velocity, currentHandPos.visibility);
       
-          // Use SimpleSkeleton's coordinate system (NOT mirrored)
-          const scale = 38; // Match SimpleSkeleton default
-          const x = (smoothedPos.x - 0.5) * 200 * scale; // Normal X coordinate
-          const y = (0.5 - smoothedPos.y) * 200 * scale;
-
-          // Convert to UV coordinates (0-1 range) for the 20000x20000 plane
-          const shaderX = (x / 20000) + 0.5;
-          const shaderY = (y / 20000) + 0.5;
+      // smoothedPos is now in scene coordinates from handTracking.js
+      // Convert to UV coordinates (0-1 range) for the 20000x20000 plane
+      const shaderX = (smoothedPos.x / 20000) + 0.5;
+      const shaderY = (smoothedPos.y / 20000) + 0.5;
       
       // Use slider values directly, modulated by velocity and visibility
   const velocityMultiplier = 1.0 + velocity * 0.5; // 1.0 to 1.5x based on movement

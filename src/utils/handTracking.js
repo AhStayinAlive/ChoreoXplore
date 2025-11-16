@@ -14,7 +14,7 @@ const getHandPositionByIndex = (landmarks, index, shouldMirrorX = false) => {
   }
   
   const wrist = landmarks[index];
-  if (!wrist || wrist.visibility < 0.3) {
+  if (!wrist || wrist.visibility < 0.01) { // Lowered from 0.3 to keep hand effects active when occluded
     return null;
   }
   
@@ -52,8 +52,8 @@ export const getRightHandPosition = (landmarks) => {
 
 /**
  * Calculate hand movement velocity between frames
- * @param {Object} currentPos - Current hand position
- * @param {Object} lastPos - Previous hand position
+ * @param {Object} currentPos - Current hand position (in scene coordinates)
+ * @param {Object} lastPos - Previous hand position (in scene coordinates)
  * @param {number} deltaTime - Time difference in seconds
  * @returns {number} - Velocity magnitude (0-1)
  */
@@ -68,7 +68,8 @@ export const calculateHandVelocity = (currentPos, lastPos, deltaTime = 0.016) =>
   const velocity = distance / deltaTime;
   
   // Scale and clamp velocity for effect intensity
-  return Math.min(velocity * 0.1, 1.0);
+  // Adjusted scaling factor for scene coordinates (larger range than normalized [0,1])
+  return Math.min(velocity * 0.00013, 1.0);
 };
 
 /**
@@ -88,13 +89,13 @@ export const landmarkToScreenCoords = (landmark, scale = 1) => {
 
 /**
  * Smooth hand position using exponential moving average
- * @param {Object} currentPos - Current hand position
- * @param {Object} smoothedPos - Previous smoothed position
+ * @param {Object} currentPos - Current hand position (in scene coordinates)
+ * @param {Object} smoothedPos - Previous smoothed position (in scene coordinates)
  * @param {number} smoothingFactor - Smoothing factor (0-1, higher = more smoothing)
  * @returns {Object} - Smoothed position
  */
 export const smoothHandPosition = (currentPos, smoothedPos, smoothingFactor = 0.1) => {
-  if (!currentPos) return smoothedPos || { x: 0.5, y: 0.5 };
+  if (!currentPos) return smoothedPos || { x: 0, y: 0 };
   if (!smoothedPos) return currentPos;
   
   return {
@@ -130,23 +131,19 @@ export const calculateRippleParams = (handPos, velocity, visibility = 1) => {
 const SKELETON_SCALE = 38; // Keep in sync with SimpleSkeleton
 const ARM_EXTENSION_FACTOR = 1.4; // Keep in sync with SimpleSkeleton
 
-const toSceneXY = (lm, scale = SKELETON_SCALE) => {
+const toSceneXY = (lm, scale = SKELETON_SCALE, distanceScale = 1.0) => {
   if (!lm) return { x: 0, y: 0 };
   return {
-    x: (lm.x - 0.5) * 200 * scale, // Normal X coordinate (not mirrored)
-    y: (0.5 - lm.y) * 200 * scale
+    x: (lm.x - 0.5) * 200 * scale * distanceScale,
+    y: (0.5 - lm.y) * 200 * scale * distanceScale
   };
 };
 
-const sceneToNormalized = (pt, scale = SKELETON_SCALE) => {
-  return {
-    x: (pt.x / (200 * scale)) + 0.5, // Normal X coordinate
-    y: 0.5 - (pt.y / (200 * scale))
-  };
-};
-
-const getHandAnchorNormalized = (landmarks, side = 'left') => {
+const getHandAnchorSceneCoords = (landmarks, side = 'left') => {
   if (!landmarks || landmarks.length < 33) return null;
+
+  // Get distance scale from store
+  const distanceScale = useStore.getState().distanceScale || 1.0;
 
   const isLeft = side === 'left';
   const SHO_L = landmarks[11];
@@ -161,8 +158,8 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
   // Shoulder width in scene space (for radius estimation)
   let shoulderW = 80; // fallback if shoulders not reliable
   if (SHO_L && SHO_R && SHO_L.visibility > 0.1 && SHO_R.visibility > 0.1) {
-    const vLS = toSceneXY(SHO_L);
-    const vRS = toSceneXY(SHO_R);
+    const vLS = toSceneXY(SHO_L, SKELETON_SCALE, distanceScale);
+    const vRS = toSceneXY(SHO_R, SKELETON_SCALE, distanceScale);
     shoulderW = Math.hypot(vLS.x - vRS.x, vLS.y - vRS.y);
   }
   // Same formula used in SimpleSkeleton for the lower arm radius
@@ -170,13 +167,14 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
 
   // Calculate extended wrist position
   if (!ELB || ELB.visibility < 0.2 || !SHO || SHO.visibility < 0.2) {
-    // Fallback: just use wrist center if we don't have full arm data
-    return { x: WRI.x, y: WRI.y, z: WRI.z ?? 0, visibility: WRI.visibility };
+    // Fallback: just use wrist center in scene coordinates
+    const wriScene = toSceneXY(WRI, SKELETON_SCALE, distanceScale);
+    return { x: wriScene.x, y: wriScene.y, z: WRI.z ?? 0, visibility: WRI.visibility };
   }
 
-  const pSho = toSceneXY(SHO);
-  const pElb = toSceneXY(ELB);
-  const pWri = toSceneXY(WRI);
+  const pSho = toSceneXY(SHO, SKELETON_SCALE, distanceScale);
+  const pElb = toSceneXY(ELB, SKELETON_SCALE, distanceScale);
+  const pWri = toSceneXY(WRI, SKELETON_SCALE, distanceScale);
   
   // Apply arm extension factor to get extended elbow position
   const upperArmX = pElb.x - pSho.x;
@@ -199,7 +197,7 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
   
   if (INDEX && INDEX.visibility > 0.2) {
     // Use index finger if available
-    const pIndex = toSceneXY(INDEX);
+    const pIndex = toSceneXY(INDEX, SKELETON_SCALE, distanceScale);
     const handX = pIndex.x - pWri.x;
     const handY = pIndex.y - pWri.y;
     handEndpoint = {
@@ -233,22 +231,22 @@ const getHandAnchorNormalized = (landmarks, side = 'left') => {
     y: handEndpoint.y + ny * handR
   };
   
-  const endNorm = sceneToNormalized(finalEndpoint);
   const visibility = Math.min(WRI.visibility ?? 1, ELB.visibility ?? 1);
-  return { x: endNorm.x, y: endNorm.y, z: WRI.z ?? 0, visibility };
+  // Return scene coordinates directly, not normalized
+  return { x: finalEndpoint.x, y: finalEndpoint.y, z: WRI.z ?? 0, visibility };
 };
 
 export const getLeftHandAnchor = (landmarks) => {
   const inverseHands = useStore.getState().inverseHands;
   // If inverse is enabled, get right hand anchor for left hand
   const side = inverseHands ? 'right' : 'left';
-  const anchor = getHandAnchorNormalized(landmarks, side);
+  const anchor = getHandAnchorSceneCoords(landmarks, side);
   
-  // Mirror X coordinate if inverse is enabled
+  // Mirror X coordinate if inverse is enabled (negate scene X)
   if (anchor && inverseHands) {
     return {
       ...anchor,
-      x: 1 - anchor.x
+      x: -anchor.x
     };
   }
   
@@ -259,13 +257,13 @@ export const getRightHandAnchor = (landmarks) => {
   const inverseHands = useStore.getState().inverseHands;
   // If inverse is enabled, get left hand anchor for right hand
   const side = inverseHands ? 'left' : 'right';
-  const anchor = getHandAnchorNormalized(landmarks, side);
+  const anchor = getHandAnchorSceneCoords(landmarks, side);
   
-  // Mirror X coordinate if inverse is enabled
+  // Mirror X coordinate if inverse is enabled (negate scene X)
   if (anchor && inverseHands) {
     return {
       ...anchor,
-      x: 1 - anchor.x
+      x: -anchor.x
     };
   }
   

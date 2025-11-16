@@ -202,14 +202,14 @@ const HandNoiseDistortion = () => {
   
   // Separate tracking state for each hand
   const leftHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0),
   };
 
   const rightHandRefs = {
-    lastPosition: useRef({ x: 0.5, y: 0.5 }),
-    smoothedPosition: useRef({ x: 0.5, y: 0.5 }),
+    lastPosition: useRef({ x: 0, y: 0 }),
+    smoothedPosition: useRef({ x: 0, y: 0 }),
     velocity: useRef(0),
   };
 
@@ -261,14 +261,10 @@ const HandNoiseDistortion = () => {
       const velocity = calculateHandVelocity(smoothedPos, handRefs.lastPosition.current, delta);
       handRefs.velocity.current = velocity;
       
-      // Convert to SimpleSkeleton coordinate system (same as HandFluidEffect)
-      const scale = 22; // Match SimpleSkeleton default
-      const x = (smoothedPos.x - 0.5) * 200 * scale;
-      const y = (0.5 - smoothedPos.y) * 200 * scale; // Invert Y axis
-      
+      // smoothedPos is now in scene coordinates from handTracking.js
       // Convert to UV coordinates (0-1 range) for the 20000x20000 plane
-      const shaderX = (x / 20000) + 0.5;
-      const shaderY = (y / 20000) + 0.5;
+      const shaderX = (smoothedPos.x / 20000) + 0.5;
+      const shaderY = (smoothedPos.y / 20000) + 0.5;
       
       // Store current position for next frame
       handRefs.lastPosition.current = smoothedPos;

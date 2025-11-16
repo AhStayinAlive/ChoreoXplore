@@ -33,17 +33,8 @@ const HandFluidCanvas = ({ width = 512, height = 512, onCanvasReady }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Clear canvas with gradient background
-    const gradient = ctx.createRadialGradient(
-      width / 2, height / 2, 0,
-      width / 2, height / 2, Math.max(width, height) / 2
-    );
-    gradient.addColorStop(0, 'rgba(30, 30, 60, 0.1)');
-    gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.2)');
-    gradient.addColorStop(1, 'rgba(10, 10, 20, 0.3)');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    // Clear canvas to fully transparent (removes white overlay issue)
+    ctx.clearRect(0, 0, width, height);
 
     // Update and render particles
     particlesRef.current.forEach((particle, index) => {

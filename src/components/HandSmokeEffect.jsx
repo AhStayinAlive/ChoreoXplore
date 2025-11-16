@@ -71,16 +71,13 @@ const HandSmokeEffect = ({ smokeTexture, smokeTextureInstance }) => {
     const leftHandPos = leftHandEnabled ? getLeftHandPosition(poseData?.landmarks) : null;
     const rightHandPos = rightHandEnabled ? getRightHandPosition(poseData?.landmarks) : null;
 
-    // Helper to convert MediaPipe coords to match SimpleSkeleton coordinate system (MIRRORED)
+    // Transform scene coordinates to UV coordinates for the canvas
+    // handPos is now in scene coordinates from handTracking.js
     const transformHandCoords = (handPos) => {
-      // Use SimpleSkeleton's coordinate system (scale 38, plane 20000x20000)
-      const scale = 38; // Match SimpleSkeleton
-      const x = (handPos.x - 0.5) * 200 * scale; // Normal X coordinate
-      const y = (0.5 - handPos.y) * 200 * scale;
-      
-      // Convert to UV coordinates (0-1 range) for the canvas
-      const uvX = (x / 20000) + 0.5;
-      const uvY = (y / 20000) + 0.5;
+      // handPos.x and handPos.y are already in scene coordinates
+      // Convert to UV coordinates (0-1 range) for the canvas (20000x20000 plane)
+      const uvX = (handPos.x / 20000) + 0.5;
+      const uvY = (handPos.y / 20000) + 0.5;
       
       return { x: uvX, y: uvY };
     };

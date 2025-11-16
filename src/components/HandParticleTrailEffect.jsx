@@ -18,10 +18,10 @@ const HandParticleTrailEffect = () => {
   // Separate trail state for each hand
   const leftTrailPositions = useRef([]);
   const rightTrailPositions = useRef([]);
-  const leftLastPosition = useRef({ x: 0.5, y: 0.5 });
-  const rightLastPosition = useRef({ x: 0.5, y: 0.5 });
-  const leftSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
-  const rightSmoothedPosition = useRef({ x: 0.5, y: 0.5 });
+  const leftLastPosition = useRef({ x: 0, y: 0 }); // Scene coordinates center
+  const rightLastPosition = useRef({ x: 0, y: 0 }); // Scene coordinates center
+  const leftSmoothedPosition = useRef({ x: 0, y: 0 });
+  const rightSmoothedPosition = useRef({ x: 0, y: 0 });
   
   const trailLength = Math.floor(particleSettings.trailLength ?? 50);
   const particleSize = particleSettings.particleSize ?? 0.15;
@@ -42,12 +42,12 @@ const HandParticleTrailEffect = () => {
   
   // Initialize trail arrays
   useEffect(() => {
-    leftTrailPositions.current = new Array(trailLength).fill(null).map(() => ({ x: 0.5, y: 0.5, age: 0 }));
-    rightTrailPositions.current = new Array(trailLength).fill(null).map(() => ({ x: 0.5, y: 0.5, age: 0 }));
+    leftTrailPositions.current = new Array(trailLength).fill(null).map(() => ({ x: 0, y: 0, age: 0 }));
+    rightTrailPositions.current = new Array(trailLength).fill(null).map(() => ({ x: 0, y: 0, age: 0 }));
   }, [trailLength]);
   
-  // Create geometry for particles
-  const createGeometry = useMemo(() => {
+  // Create separate geometries for each hand (not cloned - independent buffers)
+  const leftGeometry = useMemo(() => {
     const geom = new THREE.BufferGeometry();
     const positions = new Float32Array(trailLength * 3);
     const sizes = new Float32Array(trailLength);
@@ -56,41 +56,64 @@ const HandParticleTrailEffect = () => {
       positions[i * 3] = 0;
       positions[i * 3 + 1] = 0;
       positions[i * 3 + 2] = 0;
-      // Initialize with size 0 to hide particles until hand is detected
-      sizes[i] = 0;
+      sizes[i] = 0; // Initialize with size 0 to hide particles until hand is detected
     }
     
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     return geom;
-  }, [trailLength, particleSize]);
+  }, [trailLength]);
   
-  // Create material
-  const material = useMemo(() => {
+  const rightGeometry = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    const positions = new Float32Array(trailLength * 3);
+    const sizes = new Float32Array(trailLength);
+    
+    for (let i = 0; i < trailLength; i++) {
+      positions[i * 3] = 0;
+      positions[i * 3 + 1] = 0;
+      positions[i * 3 + 2] = 0;
+      sizes[i] = 0; // Initialize with size 0 to hide particles until hand is detected
+    }
+    
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    return geom;
+  }, [trailLength]);
+  
+  // Create separate materials for each hand (not cloned - independent instances)
+  const leftMaterial = useMemo(() => {
     return new THREE.PointsMaterial({
       color: new THREE.Color(color),
-      size: particleSize * 500, // Very large initial size for visibility
+      size: particleSize * 500,
       transparent: true,
-      opacity: intensity, // Start with configured intensity
+      opacity: intensity,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true
     });
   }, [color, intensity, particleSize]);
   
-  // Clone geometry and material for second hand
-  const leftGeometry = useMemo(() => createGeometry.clone(), [createGeometry]);
-  const rightGeometry = useMemo(() => createGeometry.clone(), [createGeometry]);
-  const leftMaterial = useMemo(() => material.clone(), [material]);
-  const rightMaterial = useMemo(() => material.clone(), [material]);
+  const rightMaterial = useMemo(() => {
+    return new THREE.PointsMaterial({
+      color: new THREE.Color(color),
+      size: particleSize * 500,
+      transparent: true,
+      opacity: intensity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+  }, [color, intensity, particleSize]);
   
   // Update hand positions and trail
   const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef) => {
     if (!particlesRef.current) return;
     
     // If hand not detected, fade out all particles
-    if (!handPos || handPos.visibility < 0.3) {
+    if (!handPos || handPos.visibility < 0.01) { // Lowered from 0.3 to match other effects
       const sizes = particlesRef.current.geometry.attributes.size.array;
       for (let i = 0; i < sizes.length; i++) {
         sizes[i] *= 0.9; // Fade out existing particles
@@ -104,10 +127,10 @@ const HandParticleTrailEffect = () => {
       return;
     }
     
-    // Use SimpleSkeleton's coordinate system (scale 38, plane 20000x20000) - same as HandSmokeEffect
-    const scale = 38; // Match SimpleSkeleton and other effects
-    const x = (handPos.x - 0.5) * 200 * scale;
-    const y = (0.5 - handPos.y) * 200 * scale;
+    // handPos is now in scene coordinates from handTracking.js
+    // No transformation needed - already in SimpleSkeleton coordinate system
+    const x = handPos.x;
+    const y = handPos.y;
     
     // Smooth the position with configurable smoothness
     // Use exponential moving average for smoother transitions
@@ -189,6 +212,11 @@ const HandParticleTrailEffect = () => {
   
   const leftHandEnabled = handSelection === 'left' || handSelection === 'both';
   const rightHandEnabled = handSelection === 'right' || handSelection === 'both';
+  
+  // Early return if no hands are enabled
+  if (!leftHandEnabled && !rightHandEnabled) {
+    return null;
+  }
   
   return (
     <>

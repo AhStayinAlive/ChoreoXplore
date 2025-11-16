@@ -293,17 +293,14 @@ const HandEnergyLines = () => {
   const leftHandVisible = leftHandPos?.visibility > 0.3;
   const rightHandVisible = rightHandPos?.visibility > 0.3;
   
-  // Convert hand positions to shader UV coordinates (matching HandNoiseDistortion approach)
+  // Convert hand positions to shader UV coordinates
+  // handPos is now in scene coordinates from handTracking.js
   const convertToShaderCoords = (handPos, fallbackX, fallbackY) => {
     if (handPos?.visibility > 0.3) {
-      // Convert to SimpleSkeleton coordinate system
-      const scale = 22; // Match SimpleSkeleton default
-      const x = (handPos.x - 0.5) * 200 * scale;
-      const y = (0.5 - handPos.y) * 200 * scale; // Invert Y axis
-      
+      // handPos.x and handPos.y are already in scene coordinates
       // Convert to UV coordinates (0-1 range) for 19500-width viewport
-      const shaderX = (x / 19500) + 0.5;
-      const shaderY = (y / 19500) + 0.5;
+      const shaderX = (handPos.x / 19500) + 0.5;
+      const shaderY = (handPos.y / 19500) + 0.5;
       
       return { x: shaderX, y: shaderY };
     }
