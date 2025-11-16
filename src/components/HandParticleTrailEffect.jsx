@@ -22,6 +22,8 @@ const HandParticleTrailEffect = () => {
   const rightLastPosition = useRef({ x: 0, y: 0 }); // Scene coordinates center
   const leftSmoothedPosition = useRef({ x: 0, y: 0 });
   const rightSmoothedPosition = useRef({ x: 0, y: 0 });
+  const leftInitialized = useRef(false); // Track if left hand trail has been initialized
+  const rightInitialized = useRef(false); // Track if right hand trail has been initialized
   
   const trailLength = Math.floor(particleSettings.trailLength ?? 50);
   const particleSize = particleSettings.particleSize ?? 0.15;
@@ -108,21 +110,44 @@ const HandParticleTrailEffect = () => {
     });
   }, [color, intensity, particleSize]);
   
+  // Reset materials and geometries when effect is re-enabled
+  useEffect(() => {
+    if (leftMaterial && rightMaterial && leftGeometry && rightGeometry) {
+      // Reset material opacity to base intensity
+      leftMaterial.opacity = intensity;
+      rightMaterial.opacity = intensity;
+      
+      // Reset all particle sizes to 0
+      const leftSizes = leftGeometry.getAttribute('size').array;
+      const rightSizes = rightGeometry.getAttribute('size').array;
+      for (let i = 0; i < trailLength; i++) {
+        leftSizes[i] = 0;
+        rightSizes[i] = 0;
+      }
+      leftGeometry.getAttribute('size').needsUpdate = true;
+      rightGeometry.getAttribute('size').needsUpdate = true;
+      
+      // Reset initialization flags so hands will reinitialize when detected
+      leftInitialized.current = false;
+      rightInitialized.current = false;
+    }
+  }, [leftMaterial, rightMaterial, leftGeometry, rightGeometry, intensity, trailLength]);
+  
   // Update hand positions and trail
-  const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef) => {
+  const updateTrail = (handPos, trailPositions, lastPosition, smoothedPosition, particlesRef, initializedRef) => {
     if (!particlesRef.current) return;
     
-    // If hand not detected, fade out all particles
-    if (!handPos || handPos.visibility < 0.01) { // Lowered from 0.3 to match other effects
+    // If hand not detected, fade out all particles quickly and completely
+    if (!handPos || handPos.visibility < 0.01) {
       const sizes = particlesRef.current.geometry.attributes.size.array;
       for (let i = 0; i < sizes.length; i++) {
-        sizes[i] *= 0.9; // Fade out existing particles
+        sizes[i] *= 0.85; // Faster fade (was 0.9)
       }
       particlesRef.current.geometry.attributes.size.needsUpdate = true;
       
-      // Also fade material opacity
+      // Fade material opacity to zero completely
       if (particlesRef.current.material) {
-        particlesRef.current.material.opacity *= 0.9;
+        particlesRef.current.material.opacity *= 0.85; // Fade to 0 (removed minimum)
       }
       return;
     }
@@ -131,6 +156,22 @@ const HandParticleTrailEffect = () => {
     // No transformation needed - already in SimpleSkeleton coordinate system
     const x = handPos.x;
     const y = handPos.y;
+    
+    // Initialize or reinitialize when:
+    // 1. Never initialized before (!initializedRef.current)
+    // 2. Opacity faded below threshold (hand disappeared and came back)
+    const needsReinit = !initializedRef.current || 
+                        (particlesRef.current.material && particlesRef.current.material.opacity < 0.1);
+    
+    if (needsReinit) {
+      smoothedPosition.current.x = x;
+      smoothedPosition.current.y = y;
+      initializedRef.current = true; // Mark as initialized
+      // Restore full opacity when hand appears/reappears
+      if (particlesRef.current.material) {
+        particlesRef.current.material.opacity = intensity;
+      }
+    }
     
     // Smooth the position with configurable smoothness
     // Use exponential moving average for smoother transitions
@@ -201,12 +242,12 @@ const HandParticleTrailEffect = () => {
     
     if (leftHandEnabled) {
       const leftHandPos = getLeftHandPosition(poseData?.landmarks);
-      updateTrail(leftHandPos, leftTrailPositions, leftLastPosition, leftSmoothedPosition, leftParticlesRef);
+      updateTrail(leftHandPos, leftTrailPositions, leftLastPosition, leftSmoothedPosition, leftParticlesRef, leftInitialized);
     }
     
     if (rightHandEnabled) {
       const rightHandPos = getRightHandPosition(poseData?.landmarks);
-      updateTrail(rightHandPos, rightTrailPositions, rightLastPosition, rightSmoothedPosition, rightParticlesRef);
+      updateTrail(rightHandPos, rightTrailPositions, rightLastPosition, rightSmoothedPosition, rightParticlesRef, rightInitialized);
     }
   });
   
@@ -221,10 +262,10 @@ const HandParticleTrailEffect = () => {
   return (
     <>
       {leftHandEnabled && (
-        <points ref={leftParticlesRef} geometry={leftGeometry} material={leftMaterial} position={[0, 0, 10]} renderOrder={100} />
+        <points key="left-hand-particles" ref={leftParticlesRef} geometry={leftGeometry} material={leftMaterial} position={[0, 0, 10]} renderOrder={100} />
       )}
       {rightHandEnabled && (
-        <points ref={rightParticlesRef} geometry={rightGeometry} material={rightMaterial} position={[0, 0, 10]} renderOrder={100} />
+        <points key="right-hand-particles" ref={rightParticlesRef} geometry={rightGeometry} material={rightMaterial} position={[0, 0, 10.1]} renderOrder={100} />
       )}
     </>
   );
