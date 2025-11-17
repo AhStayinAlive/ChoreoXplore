@@ -12,6 +12,7 @@ const SpotifyPlaybackControl = () => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
+  const [repeatMode, setRepeatMode] = useState('off'); // 'off' | 'track' | 'context'
   const [songName, setSongName] = useState('');
   const [artistName, setArtistName] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -35,6 +36,7 @@ const SpotifyPlaybackControl = () => {
           setProgress(data.progress_ms || 0);
           setDuration(data.item?.duration_ms || 0);
           setVolume(data.device?.volume_percent || 50);
+          setRepeatMode(data.repeat_state || 'off');
         }
       }
     } catch (error) {
@@ -93,6 +95,28 @@ const SpotifyPlaybackControl = () => {
       setTimeout(fetchPlaybackState, 500);
     } catch (error) {
       console.error('Error skipping to previous:', error);
+    }
+  };
+
+  const toggleRepeat = async () => {
+    if (!accessToken) return;
+    
+    // Toggle: off <-> track (repeat current song)
+    const nextMode = repeatMode === 'track' ? 'off' : 'track';
+    
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${nextMode}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (response.ok) {
+        setRepeatMode(nextMode);
+      }
+    } catch (error) {
+      console.error('Error toggling repeat:', error);
     }
   };
 
@@ -611,6 +635,36 @@ const SpotifyPlaybackControl = () => {
           onMouseLeave={(e) => e.target.style.background = 'none'}
         >
           ⏭
+        </button>
+        
+        {/* Loop/Repeat Button */}
+        <button
+          onClick={toggleRepeat}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: repeatMode === 'track' ? 'rgba(0,150,255,1)' : 'rgba(237,238,242,0.6)',
+            fontSize: '20px',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '50%',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'rgba(0,150,255,0.1)';
+            if (repeatMode !== 'track') {
+              e.target.style.color = '#EDEEF2';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'none';
+            if (repeatMode !== 'track') {
+              e.target.style.color = 'rgba(237,238,242,0.6)';
+            }
+          }}
+          title={repeatMode === 'track' ? 'Loop: On (Repeat Current Song)' : 'Loop: Off'}
+        >
+          🔁
         </button>
         
         {/* Volume Control */}
