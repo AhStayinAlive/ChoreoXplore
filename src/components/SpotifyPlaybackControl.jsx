@@ -16,6 +16,9 @@ const SpotifyPlaybackControl = () => {
   const [songName, setSongName] = useState('');
   const [artistName, setArtistName] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
   // Fetch current playback state
   const fetchPlaybackState = async () => {
@@ -171,9 +174,57 @@ const SpotifyPlaybackControl = () => {
     }
   };
 
+  const fetchSearchSuggestions = async (query) => {
+    if (!query.trim() || !accessToken || query.length < 2) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=5`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSearchSuggestions(data.tracks?.items || []);
+        setShowSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  };
+
+  const selectSuggestion = async (track) => {
+    setShowSuggestions(false);
+    setSongName('');
+    setArtistName('');
+    
+    // Play the selected track immediately
+    setSongSearched(true);
+    setIsSearching(true);
+    try {
+      const success = await playTrack(track.uri, accessToken);
+      if (success) {
+        setTimeout(fetchPlaybackState, 1000);
+      }
+    } catch (error) {
+      console.error('Error playing suggestion:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleSearch = async () => {
     if (!songName.trim() || !accessToken || isSearching) return;
     
+    setShowSuggestions(false);
     // Mark that user has searched for a song (for wizard progression)
     setSongSearched(true);
     
@@ -282,17 +333,30 @@ const SpotifyPlaybackControl = () => {
           gap: '8px',
           minWidth: '300px',
           justifyContent: 'center',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          position: 'relative'
         }}>
           <input
             type="text"
             placeholder="Song name..."
             value={songName}
             onChange={(e) => {
-              console.log('🎵 Song input changed:', e.target.value);
-              setSongName(e.target.value);
+              const value = e.target.value;
+              console.log('🎵 Song input changed:', value);
+              setSongName(value);
+              
+              // Debounce search suggestions
+              if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+              const timer = setTimeout(() => fetchSearchSuggestions(value), 300);
+              setSearchDebounceTimer(timer);
             }}
             onKeyPress={handleKeyPress}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => {
+              if (songName.length >= 2 && searchSuggestions.length > 0) {
+                setShowSuggestions(true);
+              }
+            }}
             disabled={isSearching}
             style={{
               flex: 1,
@@ -363,6 +427,72 @@ const SpotifyPlaybackControl = () => {
           >
             {isSearching ? '⏳' : '🔍'}
           </button>
+          
+          {/* Search Suggestions Dropdown */}
+          {showSuggestions && searchSuggestions.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              marginBottom: '4px',
+              background: 'rgba(20, 20, 20, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 150, 255, 0.3)',
+              borderRadius: '8px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              zIndex: 1001,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+            }}>
+              {searchSuggestions.map((track) => (
+                <div
+                  key={track.id}
+                  onClick={() => selectSuggestion(track)}
+                  style={{
+                    padding: '12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 150, 255, 0.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  {track.album?.images?.[2] && (
+                    <img 
+                      src={track.album.images[2].url} 
+                      alt={track.name}
+                      style={{ width: '40px', height: '40px', borderRadius: '4px' }}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: '#EDEEF2',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {track.name}
+                    </div>
+                    <div style={{
+                      color: 'rgba(237, 238, 242, 0.6)',
+                      fontSize: '11px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {track.artists.map(a => a.name).join(', ')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -440,17 +570,30 @@ const SpotifyPlaybackControl = () => {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          minWidth: '300px'
+          minWidth: '300px',
+          position: 'relative'
         }}>
           <input
             type="text"
             placeholder="Song name..."
             value={songName}
             onChange={(e) => {
-              console.log('🎵 Song input changed:', e.target.value);
-              setSongName(e.target.value);
+              const value = e.target.value;
+              console.log('🎵 Song input changed:', value);
+              setSongName(value);
+              
+              // Debounce search suggestions
+              if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+              const timer = setTimeout(() => fetchSearchSuggestions(value), 300);
+              setSearchDebounceTimer(timer);
             }}
             onKeyPress={handleKeyPress}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => {
+              if (songName.length >= 2 && searchSuggestions.length > 0) {
+                setShowSuggestions(true);
+              }
+            }}
             disabled={isSearching}
             style={{
               flex: 1,
@@ -521,6 +664,72 @@ const SpotifyPlaybackControl = () => {
           >
             {isSearching ? '⏳' : '🔍'}
           </button>
+          
+          {/* Search Suggestions Dropdown */}
+          {showSuggestions && searchSuggestions.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              marginBottom: '4px',
+              background: 'rgba(20, 20, 20, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 150, 255, 0.3)',
+              borderRadius: '8px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              zIndex: 1001,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+            }}>
+              {searchSuggestions.map((track) => (
+                <div
+                  key={track.id}
+                  onClick={() => selectSuggestion(track)}
+                  style={{
+                    padding: '12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 150, 255, 0.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  {track.album?.images?.[2] && (
+                    <img 
+                      src={track.album.images[2].url} 
+                      alt={track.name}
+                      style={{ width: '40px', height: '40px', borderRadius: '4px' }}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: '#EDEEF2',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {track.name}
+                    </div>
+                    <div style={{
+                      color: 'rgba(237, 238, 242, 0.6)',
+                      fontSize: '11px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {track.artists.map(a => a.name).join(', ')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
