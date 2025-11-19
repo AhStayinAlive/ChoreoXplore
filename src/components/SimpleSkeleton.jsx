@@ -68,8 +68,10 @@ const SimpleSkeleton = ({ scale: modeScale = 1.0 }) => {
   // Helpers
   function toSceneXY(lm, scale, shouldMirrorX = false) {
     const distanceScale = distanceScaleRef.current;
+    // Increase horizontal range for better arm extension (1.6x multiplier)
+    const horizontalScale = 1.6;
     return new THREE.Vector3(
-      shouldMirrorX ? -(lm.x - 0.5) * 200 * scale * distanceScale : (lm.x - 0.5) * 200 * scale * distanceScale,
+      shouldMirrorX ? -(lm.x - 0.5) * 200 * scale * distanceScale * horizontalScale : (lm.x - 0.5) * 200 * scale * distanceScale * horizontalScale,
       (0.5 - lm.y) * 200 * scale * distanceScale,
       2 // keep in front
     );

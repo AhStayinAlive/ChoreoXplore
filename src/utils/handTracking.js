@@ -117,7 +117,7 @@ export const calculateRippleParams = (handPos, velocity, visibility = 1) => {
   
   return {
     strength: baseStrength * visibilityMultiplier,
-    radius: 0.2 + velocity * 0.3, // Larger radius for faster movement
+    radius: 0.12 + velocity * 0.2, // Smaller base radius for better control
     frequency: 15 + velocity * 10, // Higher frequency for faster movement
     speed: 1.5 + velocity * 1.0 // Wave propagation speed
   };
@@ -130,11 +130,12 @@ export const calculateRippleParams = (handPos, velocity, visibility = 1) => {
 
 const SKELETON_SCALE = 38; // Keep in sync with SimpleSkeleton
 const ARM_EXTENSION_FACTOR = 1.4; // Keep in sync with SimpleSkeleton
+const HORIZONTAL_SCALE = 1.6; // Keep in sync with SimpleSkeleton horizontal scale
 
 const toSceneXY = (lm, scale = SKELETON_SCALE, distanceScale = 1.0) => {
   if (!lm) return { x: 0, y: 0 };
   return {
-    x: (lm.x - 0.5) * 200 * scale * distanceScale,
+    x: (lm.x - 0.5) * 200 * scale * distanceScale * HORIZONTAL_SCALE,
     y: (0.5 - lm.y) * 200 * scale * distanceScale
   };
 };

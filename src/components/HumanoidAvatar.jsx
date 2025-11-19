@@ -182,13 +182,16 @@ const HumanoidAvatar = () => {
     return { x: pitch, y: yaw, z: 0 };
   };
 
-  // Calculate position from landmark
-  const landmarkToPosition = (landmark, scale = 100) => {
+  // Calculate position from landmark with body-relative scaling
+  const landmarkToPosition = (landmark, scale = 100, bodyScale = 1) => {
     if (!landmark) return { x: 0, y: 0, z: 0 };
     
+    // Increase horizontal range to better capture 1920x1080 camera width
+    const horizontalScale = scale * 1.8;
+    
     return {
-      x: (landmark.x - 0.5) * scale, // Normal X coordinate (not mirrored)
-      y: (0.5 - landmark.y) * scale, // Flip Y for 3D space
+      x: -(landmark.x - 0.5) * horizontalScale, // INVERTED: negate X to mirror the avatar with wider range
+      y: (0.5 - landmark.y) * scale * bodyScale, // Flip Y for 3D space, apply body scale normalization
       z: landmark.z * scale
     };
   };
@@ -200,6 +203,11 @@ const HumanoidAvatar = () => {
     const landmarks = currentPose.landmarks;
     
     if (!landmarks) return;
+
+    // Body scale set to 1.0 - no vertical normalization needed
+    // The horizontal scaling fix (1.8x) addresses the camera tracking issue
+    // Vertical normalization was causing stretching when hands moved in/out of frame
+    const bodyScale = 1;
 
     // Debug logging
 
@@ -228,13 +236,13 @@ const HumanoidAvatar = () => {
 
       // Update head
       if (bodyParts.head.position) {
-        const headPos = landmarkToPosition(bodyParts.head.position, 60);
+        const headPos = landmarkToPosition(bodyParts.head.position, 60, bodyScale);
         avatar.children[0].position.set(headPos.x, headPos.y + 30, headPos.z);
       }
 
       // Update left arm
       if (bodyParts.leftArm.shoulder && bodyParts.leftArm.elbow) {
-        const shoulderPos = landmarkToPosition(bodyParts.leftArm.shoulder, 60);
+        const shoulderPos = landmarkToPosition(bodyParts.leftArm.shoulder, 60, bodyScale);
         
         avatar.children[1].position.set(shoulderPos.x - 12, shoulderPos.y + 15, shoulderPos.z);
         
@@ -250,7 +258,7 @@ const HumanoidAvatar = () => {
 
       // Update right arm
       if (bodyParts.rightArm.shoulder && bodyParts.rightArm.elbow) {
-        const shoulderPos = landmarkToPosition(bodyParts.rightArm.shoulder, 60);
+        const shoulderPos = landmarkToPosition(bodyParts.rightArm.shoulder, 60, bodyScale);
         
         avatar.children[2].position.set(shoulderPos.x + 12, shoulderPos.y + 15, shoulderPos.z);
         
@@ -267,10 +275,10 @@ const HumanoidAvatar = () => {
       // Update torso
       if (bodyParts.torso.leftShoulder && bodyParts.torso.rightShoulder && 
           bodyParts.torso.leftHip && bodyParts.torso.rightHip) {
-        const leftShoulder = landmarkToPosition(bodyParts.torso.leftShoulder, 60);
-        const rightShoulder = landmarkToPosition(bodyParts.torso.rightShoulder, 60);
-        const leftHip = landmarkToPosition(bodyParts.torso.leftHip, 60);
-        const rightHip = landmarkToPosition(bodyParts.torso.rightHip, 60);
+        const leftShoulder = landmarkToPosition(bodyParts.torso.leftShoulder, 60, bodyScale);
+        const rightShoulder = landmarkToPosition(bodyParts.torso.rightShoulder, 60, bodyScale);
+        const leftHip = landmarkToPosition(bodyParts.torso.leftHip, 60, bodyScale);
+        const rightHip = landmarkToPosition(bodyParts.torso.rightHip, 60, bodyScale);
         
         const torsoCenter = {
           x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
@@ -283,7 +291,7 @@ const HumanoidAvatar = () => {
 
       // Update left leg
       if (bodyParts.leftLeg.hip && bodyParts.leftLeg.knee) {
-        const hipPos = landmarkToPosition(bodyParts.leftLeg.hip, 60);
+        const hipPos = landmarkToPosition(bodyParts.leftLeg.hip, 60, bodyScale);
         
         avatar.children[4].position.set(hipPos.x - 6, hipPos.y - 15, hipPos.z);
         
@@ -299,7 +307,7 @@ const HumanoidAvatar = () => {
 
       // Update right leg
       if (bodyParts.rightLeg.hip && bodyParts.rightLeg.knee) {
-        const hipPos = landmarkToPosition(bodyParts.rightLeg.hip, 60);
+        const hipPos = landmarkToPosition(bodyParts.rightLeg.hip, 60, bodyScale);
         
         avatar.children[5].position.set(hipPos.x + 6, hipPos.y - 15, hipPos.z);
         
