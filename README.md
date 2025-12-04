@@ -1,25 +1,52 @@
-# 🎭 ChoreoXplore
+# ChoreoXplore
 
-A real-time motion tracking and visual effects application that combines pose detection, AI-powered sentiment analysis, and 3D visualizations. Create stunning visual experiences by mapping your movements to dynamic effects and analyzing music lyrics with AI.
+An interactive web-based tool for dancers and choreographers to create real-time motion-reactive visual performances. ChoreoXplore combines pose tracking, Spotify integration, and Three.js-powered visuals to enable exploration and creation of dance visualizations with projection mapping support.
 
-## ✨ Features
+## Features
 
-- **Real-time Pose Tracking**: MediaPipe-powered skeleton detection with responsive avatar
-- **AI-Powered Analysis**: Sentiment analysis and visual recommendations for song lyrics
-- **3D Visualizations**: Three.js-powered 3D canvas with motion-reactive effects
-- **Audio-Reactive Background**: Dynamic visuals that respond to music frequencies in real-time
-- **Multiple Input Sources**: YouTube links, file uploads, and manual lyrics input
-- **Dynamic Scaling**: Avatar automatically scales based on distance from camera
-- **Clean Interface**: Intuitive controls for motion sensitivity and visual effects
+### Song Integration
+- Spotify API integration for song search and selection
+- Playback controls with volume adjustment
+- Loop track functionality
+- Automatic color extraction from album artwork (Vibrant.js)
 
-## 🚀 Quick Start
+### Visual System
+- Three.js-based visual rendering
+- Background and asset color customization
+- Transparency controls
+- Music loudness affects visual intensity
+- Pre-validated visual assets (lines, surfaces, 3D geometries)
+
+### Motion Tracking
+- MediaPipe Pose detection for real-time movement tracking
+- Avatar visualization (can be toggled on/off)
+- Dual camera support: seated user mode and dance space mode
+- Mirrored movement feature
+- Hand movement tracking with visual effects
+
+### Hand Effects
+- Multiple effect types (Fluid, Smoke, Particle Trails, etc.)
+- Color customization
+- Size adjustment
+- Map effects to specific hand or both hands
+
+### User Interface
+- Step-by-step guide panel
+- Orange highlighting for next step in workflow
+- ChoreoXplore Mode (Editor mode) for setup and customization
+- Performance Mode for live performances
+- Projection mapping support for montage space integration
+
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js** (v18 or higher)
-- **npm** or **yarn**
-- **Webcam** (for motion tracking)
-- **Modern browser** (Chrome, Firefox, Safari, Edge)
+- Node.js (v18 or higher)
+- npm or yarn
+- 2 Webcams (for motion tracking)
+- Modern browser (Chrome recommended for best performance)
+- Spotify account (optional, for music integration)
+- Voicemeeter (for audio routing from Spotify to browser)
 
 ### Installation
 
@@ -34,7 +61,7 @@ A real-time motion tracking and visual effects application that combines pose de
    npm install
    ```
 
-3. **Set up environment variables** (Optional - for AI features and Spotify)
+3. **Set up environment variables** (for Spotify integration)
    ```bash
    # Create .env.local file
    touch .env.local
@@ -42,91 +69,59 @@ A real-time motion tracking and visual effects application that combines pose de
    
    Add to `.env.local`:
    ```env
-   # AI Features (Optional)
-   VITE_GROQ_API_KEY=your_groq_api_key_here
-   
-   # Spotify Auto-Color Feature (Optional)
+   # Spotify Integration
    VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
    ```
 
-   See [Spotify Setup](#spotify-auto-color-feature) for details on configuring Spotify integration.
-
 4. **Start the application**
    ```bash
-   # Terminal 1: Start the main app
    npm run dev
-   
-   # Terminal 2: Start lyrics proxy server
-   npm run server
    ```
 
 5. **Open your browser**
    Navigate to `http://localhost:5173`
 
-## 🎯 Usage Guide
+## Usage Guide
 
-### Basic Motion Tracking
+### Getting Started
 
-1. **Allow camera access** when prompted
-2. **Position yourself** in front of the camera (full body visible for best results)
-3. **Watch your avatar** - a green skeleton will appear and follow your movements
-4. **Adjust sensitivity** using the Motion Controls panel on the right
+The interface includes a step-by-step guide panel that highlights the next action in orange. Follow the guided workflow:
 
-### AI-Powered Lyrics Analysis
+1. **Connect to Spotify** (optional) - Link your Spotify account for music playback
+2. **Select Camera** - Choose between seated user camera or dance space camera
+3. **Enable Motion Tracking** - Allow camera access for pose detection
+4. **Select Song** - Search and select a track from Spotify
+5. **Configure Visuals** - Customize background and asset colors (or use auto-color from album)
+6. **Add Hand Effects** - Choose and configure hand tracking effects
+7. **Choose Mode** - Switch between ChoreoXplore Mode and Performance Mode
 
-1. **Get lyrics** using one of these methods:
-   - **YouTube**: Paste a YouTube URL in the Music Input panel
-   - **File Upload**: Upload an audio file
-   - **Manual**: Type lyrics directly
+### ChoreoXplore Mode (Editor Mode)
 
-2. **Click "Think AI"** to analyze the lyrics
-3. **View recommendations** for visual parameters based on sentiment analysis
+Use this mode for setup and customization:
 
-### Visual Effects
+- Configure visual assets and effects
+- Adjust colors, transparency, and reactivity settings
+- Test hand effects and motion mapping
+- Fine-tune parameters before performance
+- Toggle avatar visibility for reference
 
-1. **Add assets** in the Asset Panel (lines, surfaces, 3D geometries)
-2. **Adjust parameters** using the sliders
-3. **Enable reactivity** to make effects respond to your movements
-4. **Experiment** with different presets and settings
+### Performance Mode
 
-### Audio-Reactive Background Visuals
+Optimized for live performances:
 
-1. **Grant microphone permission** when prompted (required for audio analysis)
-2. **Play music** through your system (or use VB-Audio Virtual Cable to route audio)
-3. **Open Ambient Animation panel** (appears when background image is present)
-4. **Toggle "Audio Reactive"** to ON
-5. **Adjust sensitivity** to control how strongly visuals respond to music
-6. **Fine-tune frequency response**:
-   - **Bass Influence**: How much kicks/bass notes affect visuals
-   - **Mid Influence**: How much vocals/instruments affect visuals
-   - **High Influence**: How much cymbals/hi-hats affect visuals
-7. **Choose effect type**:
-   - **Water Ripple**: Gentle ripples that pulse with music
-   - **Heat Wave**: Heat shimmer synchronized to music energy
-   - **Flowing Distortion**: Organic flows responding to all frequencies
-   - **Gentle Wave**: Subtle waves for minimal distraction
+- Clean, distraction-free interface
+- Full-screen visual output
+- Essential playback controls only
+- Suitable for projection mapping
+- Real-time motion-reactive visuals
 
-**Tip**: Start with a preset (Gentle/Dynamic/Flowing/Subtle) and adjust from there!
 
-## 🔧 Advanced Setup
+## Advanced Setup
 
-### AI Integration
+### Spotify Integration
 
-For AI-powered lyrics analysis, you need an API key:
-
-#### Groq API (Recommended - Free)
-1. Go to [https://console.groq.com/](https://console.groq.com/)
-2. Sign up for a free account
-3. Create an API key
-4. Add to `.env.local`:
-   ```env
-   VITE_GROQ_API_KEY=your_groq_api_key_here
-   ```
-
-### Spotify Auto-Color Feature
-
-ChoreoXplore can automatically select background and visual asset colors based on your currently playing Spotify track. The colors are derived from the album artwork palette and audio features (energy, valence, key, etc.).
+ChoreoXplore uses Spotify API for song selection and playback, and can automatically extract colors from album artwork using Vibrant.js.
 
 #### Setup
 
@@ -145,138 +140,66 @@ ChoreoXplore can automatically select background and visual asset colors based o
    ```
 
 3. **How to Use**
-   - On the landing page, click **"Connect to Spotify"**
-   - Authorize the app
-   - Start playing a track on Spotify
-   - Toggle **"Auto from Spotify"** ON
-   - Colors will update automatically when the track changes (~5s)
-   - Toggle OFF to manually override colors
+   - Connect to Spotify from the web tool
+   - Search and select a song
+   - Use playback controls (play/pause, volume, loop)
+   - Toggle "Auto from Spotify" to extract colors from album artwork
+   - Colors update automatically based on the currently playing track
 
-#### How It Works
+#### Automatic Color Extraction
 
-- **Album Art**: Extracts a vibrant color palette from album artwork
-- **Audio Features**: Maps energy, valence, key, and mode to color properties
-  - Energy → Saturation (more energy = more vibrant)
-  - Valence → Hue shift (positive = warmer, negative = cooler)
-  - Key/Mode → Base hue (musical key mapped to color wheel)
-- **Fallback**: If album art is unavailable or CORS-blocked, uses audio features only
-- **Performance**: Polls every 5 seconds, updates only when track changes
+- Uses Vibrant.js to extract dominant colors from album artwork
+- Applies colors to background and visual assets
+- Can be toggled on/off for manual color selection
+- Provides cohesive visual theme based on song's album art
 
+### Audio Routing with Voicemeeter
 
+ChoreoXplore's audio-reactive visuals require the browser to receive audio input. Since Spotify plays through your system audio, you need Voicemeeter to route the audio to the browser's microphone input.
 
+#### Setup
 
-## 📁 Project Structure
+1. **Download and Install Voicemeeter**
+   - Go to [VB-Audio Voicemeeter](https://vb-audio.com/Voicemeeter/)
+   - Download Voicemeeter (standard version is sufficient)
+   - Install and restart your computer if prompted
 
-```
-ChoreoXplore/
-├── src/
-│   ├── components/          # React components
-│   │   ├── SimpleSkeleton.jsx    # Main avatar component
-│   │   ├── MotionInputPanel.jsx  # Camera and pose detection
-│   │   └── ...
-│   ├── core/               # Core functionality
-│   │   ├── motionMapping.js      # Motion-to-visual mapping
-│   │   ├── pose.js              # Pose detection logic
-│   │   └── ...
-│   ├── services/           # External services
-│   │   └── sentimentAnalysis.js  # AI sentiment analysis
-│   └── lib/                # Utilities
-├── server/                 # Backend services
-│   └── index.js           # AI proxy server
-├── public/                 # Static assets
-└── packs/                  # Visual effect presets
-```
+2. **Configure Voicemeeter**
+   - Open Voicemeeter
+   - Set your default audio output device to "Voicemeeter Input"
+     - Right-click speaker icon in Windows taskbar
+     - Select "Open Sound settings"
+     - Choose "Voicemeeter Input (VB-Audio Voicemeeter VAIO)" as output device
+   - In Voicemeeter, set Hardware Out (A1) to your physical speakers/headphones
 
-## 🛠️ Development
+3. **Configure Browser Microphone**
+   - In Chrome, go to Settings > Privacy and security > Site Settings > Microphone
+   - Set default microphone to "Voicemeeter Output (VB-Audio Voicemeeter VAIO)"
+   - Or allow ChoreoXplore to prompt for microphone selection
+   - When prompted, select "Voicemeeter Output" as the audio input device
 
-### Available Scripts
+4. **Test Audio Routing**
+   - Play music through Spotify
+   - Grant microphone permission when ChoreoXplore requests it
+   - Visuals should now react to the music playing through Spotify
+   - Adjust input levels in Voicemeeter if needed
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run server` - Start lyrics proxy server
-- `npm run dev:server` - Start AI proxy server
-- `npm run lint` - Run ESLint
+**Calibration:**
+1. Position projector for optimal wall coverage
+2. Set up camera to capture full dance space
+3. Launch ChoreoXplore
+4. Test motion tracking coverage
 
-### Key Components
+## License
 
-- **SimpleSkeleton**: Real-time pose tracking avatar
-- **MotionInputPanel**: Camera feed and MediaPipe integration
-- **AIThinkingPanel**: AI-powered lyrics analysis
-- **AssetPanel**: Visual asset management
-- **MotionControlPanel**: Motion sensitivity controls
+This project is for academic research purposes only and adheres to all copyright and licensing requirements for third-party libraries and APIs.
 
-## 🔍 Troubleshooting
+## Acknowledgments
 
-### Common Issues
-
-**Camera not working:**
-- Ensure camera permissions are granted
-- Try refreshing the page
-- Check if another application is using the camera
-
-**Avatar not appearing:**
-- Make sure you're visible in the camera frame
-- Check browser console for errors
-- Try adjusting the camera angle
-
-**AI features not working:**
-- Verify API key is set in `.env.local`
-- Check if proxy server is running (`npm run server`)
-- Ensure internet connection for API calls
-
-**Legs not rendering:**
-- Position camera to capture your full body
-- The system uses lower visibility thresholds for legs
-- Try stepping back from the camera
-
-### Performance Tips
-
-- **Close other applications** using the camera
-- **Use Chrome** for best MediaPipe performance
-- **Adjust FPS settings** if experiencing lag
-- **Position camera** at eye level for optimal tracking
-
-## 🎨 Customization
-
-
-
-
-## 📚 API Reference
-
-### Motion Detection
-- Uses MediaPipe Pose Landmarker
-- 33 body landmarks detected
-- Real-time pose estimation
-
-### AI Analysis
-- Sentiment analysis (positive/negative/neutral)
-- Emotion detection (joy, sadness, anger, etc.)
-- Visual parameter recommendations
-
-### Visual Effects
-- Three.js-based 3D rendering
-- Motion-reactive transformations
-- Real-time parameter adjustment
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project would adhere to all copyright materials and for academic research purposes only.
-
-## 🙏 Acknowledgments
-
-- **MediaPipe** for pose detection
-- **Three.js** for 3D graphics
+- **MediaPipe** by Google for pose and hand tracking
+- **Three.js** for WebGL-based 3D rendering
+- **Spotify Web API** for music integration
+- **Vibrant.js** for color extraction
 - **React** for UI framework
-- **Groq** for AI API services
 
 ---
-
-**Ready to explore?** Start the application and begin creating amazing motion-reactive visual experiences! 🎭✨
