@@ -8,7 +8,7 @@ export default function MainPanel({
   setNegPrompt,
   canGenerate,
   onGenerate,
-  onInsertMusic, 
+  onInsertMusic,
 }) {
   const [aiOut, setAiOut] = useState('');
   const [loading, setLoading] = useState(false);

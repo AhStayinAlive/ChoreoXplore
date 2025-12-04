@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    host: '127.0.0.1',
+    port: 5137,
     proxy: {
       '/api/chat': {
         target: 'http://127.0.0.1:1234',
