@@ -70,8 +70,9 @@ An interactive web-based tool for dancers and choreographers to create real-time
    Add to `.env.local`:
    ```env
    # Spotify Integration
-   VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-   VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
+   VITE_SPOTIFY_CLIENT_ID=04045f997bec4d1fb519e6f4c804ef39
+   VITE_SPOTIFY_CLIENT_SECRET=e759eb7d2a794eb8a3ddf43c310c46b6
+   VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
    ```
 
 4. **Start the application**
@@ -129,14 +130,15 @@ ChoreoXplore uses Spotify API for song selection and playback, and can automatic
    - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
    - Click "Create an App"
    - Give it a name (e.g., "ChoreoXplore")
-   - Add `http://localhost:5173` to "Redirect URIs"
-   - Save and copy your **Client ID**
+   - Add `http://127.0.0.1:5137/callback` to "Redirect URIs"
+   - Save and copy your **Client ID** and **Client Secret**
 
 2. **Configure Environment Variables**
    Add to `.env.local`:
    ```env
-   VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-   VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
+   VITE_SPOTIFY_CLIENT_ID=04045f997bec4d1fb519e6f4c804ef39
+   VITE_SPOTIFY_CLIENT_SECRET=e759eb7d2a794eb8a3ddf43c310c46b6
+   VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
    ```
 
 3. **How to Use**
