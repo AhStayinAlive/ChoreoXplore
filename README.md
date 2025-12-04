@@ -70,8 +70,8 @@ An interactive web-based tool for dancers and choreographers to create real-time
    Add to `.env.local`:
    ```env
    # Spotify Integration
-   VITE_SPOTIFY_CLIENT_ID=04045f997bec4d1fb519e6f4c804ef39
-   VITE_SPOTIFY_CLIENT_SECRET=e759eb7d2a794eb8a3ddf43c310c46b6
+   VITE_SPOTIFY_CLIENT_ID=spotify-client-id-here
+   VITE_SPOTIFY_CLIENT_SECRET=spotify-secret-id-here
    VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
    ```
 
