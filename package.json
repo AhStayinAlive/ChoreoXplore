@@ -5,13 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "node server/index.js",
-    "server": "node lyrics-proxy-server-simple.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "setup-groq": "node setup-groq.js",
-    "test-groq": "node test-groq.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@funtech-inc/use-shader-fx": "^2.0.5",
