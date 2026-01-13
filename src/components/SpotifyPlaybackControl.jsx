@@ -351,8 +351,12 @@ const SpotifyPlaybackControl = () => {
               setSearchDebounceTimer(timer);
             }}
             onKeyPress={handleKeyPress}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            onFocus={() => {
+            onBlur={(e) => {
+              e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)';
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)';
               if (songName.length >= 2 && searchSuggestions.length > 0) {
                 setShowSuggestions(true);
               }
@@ -371,8 +375,6 @@ const SpotifyPlaybackControl = () => {
               boxSizing: 'border-box'
             }}
             className="search-input"
-            onFocus={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)'}
-            onBlur={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)'}
           />
           <input
             type="text"
@@ -588,8 +590,12 @@ const SpotifyPlaybackControl = () => {
               setSearchDebounceTimer(timer);
             }}
             onKeyPress={handleKeyPress}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            onFocus={() => {
+            onBlur={(e) => {
+              e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)';
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)';
               if (songName.length >= 2 && searchSuggestions.length > 0) {
                 setShowSuggestions(true);
               }
@@ -608,8 +614,6 @@ const SpotifyPlaybackControl = () => {
               boxSizing: 'border-box'
             }}
             className="search-input"
-            onFocus={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.6)'}
-            onBlur={(e) => e.target.style.borderColor = 'rgba(0, 150, 255, 0.3)'}
           />
           <input
             type="text"
