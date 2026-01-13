@@ -6,16 +6,42 @@ import {
   disableSpotifyTheme, 
   forceUpdateTheme
 } from '../integrations/spotifyThemeBootstrap';
+import { getMoodColorScheme, getAvailableMoods } from '../theme/moodColorSchemes';
 
 export default function WelcomeMode() {
   const [bgColor, setBgColor] = useState('#000000'); // Default black
   const [assetColor, setAssetColor] = useState('#ffffff'); // Default white
   const [autoFromSpotify, setAutoFromSpotify] = useState(false);
   const [trackInfo, setTrackInfo] = useState(null);
+  const [selectedMood, setSelectedMood] = useState(null);
   
   const setMode = useStore(s => s.setMode);
   const setUserColors = useStore(s => s.setUserColors);
   const { isAuthenticated, authenticate, accessToken } = useSpotify();
+
+  const availableMoods = getAvailableMoods();
+
+  // Handle mood selection - immediately update color pickers
+  const handleMoodSelect = (mood) => {
+    const scheme = getMoodColorScheme(mood);
+    if (scheme) {
+      setBgColor(scheme.bgColor);
+      setAssetColor(scheme.assetColor);
+      setSelectedMood(mood);
+      // Disable auto from Spotify when manually selecting mood
+      setAutoFromSpotify(false);
+    }
+  };
+
+  // Clear selected mood when user manually changes colors
+  const handleManualColorChange = (type, color) => {
+    if (type === 'bg') {
+      setBgColor(color);
+    } else {
+      setAssetColor(color);
+    }
+    setSelectedMood(null);
+  };
 
   // Listen for theme updates
   useEffect(() => {
@@ -36,6 +62,8 @@ export default function WelcomeMode() {
   useEffect(() => {
     if (autoFromSpotify && accessToken) {
       enableSpotifyTheme();
+      // Clear mood selection when enabling Spotify auto-theme
+      setSelectedMood(null);
       // Force immediate update
       forceUpdateTheme()
         .then(theme => {
@@ -100,8 +128,91 @@ export default function WelcomeMode() {
           marginBottom: '32px',
           margin: '0 0 32px 0'
         }}>
-          What colors are we feeling today?
+          What are we feeling today?
         </p>
+
+        {/* Mood Selector */}
+        {!autoFromSpotify && (
+          <div style={{
+            marginBottom: '24px'
+          }}>
+            <label style={{
+              display: 'block',
+              color: '#EDEEF2',
+              fontSize: '14px',
+              fontWeight: '500',
+              marginBottom: '12px'
+            }}>
+              Select your mood
+            </label>
+            
+            {/* Scrollable mood grid container */}
+            <div style={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              marginBottom: '8px',
+              paddingBottom: '8px'
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, minmax(100px, 1fr))',
+                gridTemplateRows: 'repeat(2, auto)',
+                gap: '8px',
+                minWidth: 'min-content'
+              }}>
+                {availableMoods.map((mood) => (
+                  <button
+                    key={mood}
+                    onClick={() => handleMoodSelect(mood)}
+                    style={{
+                      padding: '10px 12px',
+                      background: selectedMood === mood 
+                        ? 'rgba(0, 150, 255, 0.4)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: selectedMood === mood 
+                        ? '2px solid rgba(0, 150, 255, 0.8)' 
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      color: '#EDEEF2',
+                      fontSize: '13px',
+                      fontWeight: selectedMood === mood ? '600' : '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedMood !== mood) {
+                        e.target.style.background = 'rgba(0, 150, 255, 0.2)';
+                        e.target.style.borderColor = 'rgba(0, 150, 255, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedMood !== mood) {
+                        e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      }
+                    }}
+                  >
+                    {mood}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selected mood indicator */}
+            {selectedMood && (
+              <div style={{
+                fontSize: '12px',
+                color: 'rgba(0, 150, 255, 0.9)',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                Colors suggested for {selectedMood} mood
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Color Pickers */}
         <div style={{
@@ -128,7 +239,7 @@ export default function WelcomeMode() {
             <input
               type="color"
               value={bgColor}
-              onChange={(e) => setBgColor(e.target.value)}
+              onChange={(e) => handleManualColorChange('bg', e.target.value)}
               style={{
                 width: '60px',
                 height: '60px',
@@ -158,7 +269,7 @@ export default function WelcomeMode() {
             <input
               type="color"
               value={assetColor}
-              onChange={(e) => setAssetColor(e.target.value)}
+              onChange={(e) => handleManualColorChange('asset', e.target.value)}
               style={{
                 width: '60px',
                 height: '60px',
