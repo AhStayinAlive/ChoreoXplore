@@ -1,196 +1,157 @@
 # ChoreoXplore
 
-An interactive web-based tool for dancers and choreographers to create real-time motion-reactive visual performances. ChoreoXplore combines pose tracking, Spotify integration, and Three.js-powered visuals to enable exploration and creation of dance visualizations with projection mapping support.
+An interactive web-based tool for dancers and choreographers to create real-time motion-reactive visual performances. ChoreoXplore combines pose tracking, Spotify integration, and Three.js-powered visuals for live dance performances and projection mapping.
 
 ## Features
 
-### Song Integration
-- Spotify API integration for song search and selection
-- Playback controls with volume adjustment
-- Loop track functionality
-- Automatic color extraction from album artwork (Vibrant.js)
+### Visual Modes
 
-### Visual System
-- Three.js-based visual rendering
-- Background and asset color customization
-- Transparency controls
-- Music loudness affects visual intensity
-- Pre-validated visual assets (lines, surfaces, 3D geometries)
+13 switchable visualization modes, all reactive to music and movement:
 
-### Motion Tracking
-- MediaPipe Pose detection for real-time movement tracking
-- Avatar visualization (can be toggled on/off)
-- Dual camera support: seated user mode and dance space mode
-- Mirrored movement feature
-- Hand movement tracking with visual effects
+| Mode | Description |
+|---|---|
+| Lines | 1D reactive line system |
+| Quand C'est | Gestural line visualization |
+| Pulsating Circle | Audio-driven radial pulses |
+| Vertical Lines | Columnar motion-reactive bands |
+| Water Ripple | Fluid ripple simulation |
+| Heat Wave | Thermal distortion effect |
+| Flowing | Continuous motion streams |
+| Gentle Wave | Soft undulating waves |
+| Silk Veil | Cloth-like flowing surface |
+| Lotus Bloom | Organic bloom expansion |
+| Stained Glass Rose | Geometric petal patterns |
+| Ink Water | Ink diffusion in water |
+| Opaline Wave | Iridescent wave shaders |
 
 ### Hand Effects
-- Multiple effect types (Fluid, Smoke, Particle Trails, etc.)
-- Color customization
-- Size adjustment
-- Map effects to specific hand or both hands
 
-### User Interface
-- Step-by-step guide panel
-- Orange highlighting for next step in workflow
-- ChoreoXplore Mode (Editor mode) for setup and customization
-- Performance Mode for live performances
-- Projection mapping support for montage space integration
+Real-time effects rendered at your tracked hands:
+
+- **Ripple** — water ripple emanating from hand position; configurable base color, ripple color, radius, and intensity
+- **Smoke** — trailing smoke plume; configurable color, opacity, radius, and trail length
+- **Fluid Distortion** — fluid lens distortion; configurable color, radius, and swirl
+- **Square Particle Trail** — particle stream trailing behind movement; configurable color, opacity, particle size, and trail length
+
+All effects can be assigned to left hand, right hand, or both.
+
+### Motion Tracking
+
+- MediaPipe Pose detection for full-body tracking
+- Hand tracking for effect positioning
+- Humanoid avatar and skeleton overlay (toggleable)
+- Dancer silhouette segmentation
+- Dual camera support: seated operator view + dance space view
+- Mirror mode
+
+### Music Integration
+
+- Spotify OAuth for track search and playback
+- Play/pause, volume, and loop controls
+- Automatic color palette extraction from album artwork (Vibrant.js)
+- Audio-reactive visuals via microphone input (RMS, spectral centroid, energy)
+- Mood-based color scheme generation
+
+### Interface Modes
+
+- **ChoreoXplore Mode** — full editor with all control panels visible
+- **Performance Mode** — clean, distraction-free full-screen output for live use
+
+A step-by-step setup wizard guides new users through the workflow with highlighted prompts.
+
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- 2 Webcams (for motion tracking)
-- Modern browser (Chrome recommended for best performance)
-- Spotify account (optional, for music integration)
-- Voicemeeter (for audio routing from Spotify to browser)
+- Node.js v18+
+- Chrome (recommended for best WebGL and MediaPipe performance)
+- Spotify account (optional)
+- 2 webcams (one for the operator, one pointed at the dance space)
+- Voicemeeter (to route Spotify audio to the browser's microphone input)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ChoreoXplore
-   ```
+```bash
+git clone <repository-url>
+cd ChoreoXplore
+npm install
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### Environment Variables
 
-3. **Set up environment variables** (for Spotify integration)
-   ```bash
-   # Create .env.local file
-   touch .env.local
-   ```
-   
-   Add to `.env.local`:
-   ```env
-   # Spotify Integration
-   VITE_SPOTIFY_CLIENT_ID=spotify-client-id-here
-   VITE_SPOTIFY_CLIENT_SECRET=spotify-secret-id-here
-   VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
-   ```
+Create `.env.local` in the project root:
 
-4. **Start the application**
-   ```bash
-   npm run dev
-   ```
+```env
+VITE_SPOTIFY_CLIENT_ID=your_client_id
+VITE_SPOTIFY_CLIENT_SECRET=your_client_secret
+VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
+```
 
-5. **Open your browser**
-   Navigate to `http://localhost:5173`
+### Run
 
-## Usage Guide
+```bash
+npm run dev
+```
 
-### Getting Started
+Open `http://127.0.0.1:5137` in Chrome.
 
-The interface includes a step-by-step guide panel that highlights the next action in orange. Follow the guided workflow:
+---
 
-1. **Connect to Spotify** (optional) - Link your Spotify account for music playback
-2. **Select Camera** - Choose between seated user camera or dance space camera
-3. **Enable Motion Tracking** - Allow camera access for pose detection
-4. **Select Song** - Search and select a track from Spotify
-5. **Configure Visuals** - Customize background and asset colors (or use auto-color from album)
-6. **Add Hand Effects** - Choose and configure hand tracking effects
-7. **Choose Mode** - Switch between ChoreoXplore Mode and Performance Mode
+## Spotify Setup
 
-### ChoreoXplore Mode (Editor Mode)
+1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and create an app.
+2. Add `http://127.0.0.1:5137/callback` to the app's **Redirect URIs**.
+3. Copy the **Client ID** and **Client Secret** into `.env.local` as shown above.
+4. Click **Connect to Spotify** in the app to authenticate.
 
-Use this mode for setup and customization:
+Once connected, search for a track and use the playback controls at the bottom of the screen. Enable **Auto from Spotify** to sync the color palette to the currently playing track's album art.
 
-- Configure visual assets and effects
-- Adjust colors, transparency, and reactivity settings
-- Test hand effects and motion mapping
-- Fine-tune parameters before performance
-- Toggle avatar visibility for reference
+---
 
-### Performance Mode
+## Audio Routing (Voicemeeter)
 
-Optimized for live performances:
+ChoreoXplore's audio-reactive visuals read from the browser's microphone input. To route Spotify's output there:
 
-- Clean, distraction-free interface
-- Full-screen visual output
-- Essential playback controls only
-- Suitable for projection mapping
-- Real-time motion-reactive visuals
+1. **Install Voicemeeter** from [vb-audio.com/Voicemeeter](https://vb-audio.com/Voicemeeter/).
+2. Set your system default audio output to **Voicemeeter Input (VB-Audio VAIO)**.
+3. In Voicemeeter, set Hardware Out (A1) to your physical speakers or headphones.
+4. In Chrome settings, set the default microphone to **Voicemeeter Output (VB-Audio VAIO)**.
+5. Grant microphone permission when ChoreoXplore prompts — the visuals will now react to whatever is playing through Spotify.
 
+---
 
-## Advanced Setup
+## Build
 
-### Spotify Integration
+```bash
+npm run build
+```
 
-ChoreoXplore uses Spotify API for song selection and playback, and can automatically extract colors from album artwork using Vibrant.js.
+Output goes to `dist/`. Preview the production build with:
 
-#### Setup
+```bash
+npm run preview
+```
 
-1. **Create a Spotify App**
-   - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-   - Click "Create an App"
-   - Give it a name (e.g., "ChoreoXplore")
-   - Add `http://127.0.0.1:5137/callback` to "Redirect URIs"
-   - Save and copy your **Client ID** and **Client Secret**
+---
 
-2. **Configure Environment Variables**
-   Add to `.env.local`:
-   ```env
-   VITE_SPOTIFY_CLIENT_ID=spotify-client-id-here
-   VITE_SPOTIFY_CLIENT_SECRET=spotify-secret-id-here
-   VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5137/callback
-   ```
+## Tech Stack
 
-3. **How to Use**
-   - Connect to Spotify from the web tool
-   - Search and select a song
-   - Use playback controls (play/pause, volume, loop)
-   - Toggle "Auto from Spotify" to extract colors from album artwork
-   - Colors update automatically based on the currently playing track
+| Layer | Library |
+|---|---|
+| UI | React 19, Tailwind CSS |
+| 3D Rendering | Three.js, @react-three/fiber, @react-three/drei |
+| Post-processing | postprocessing, @react-three/postprocessing |
+| Pose/Hand Tracking | @mediapipe/tasks-vision |
+| Audio Analysis | Meyda |
+| State | Zustand |
+| Music | Spotify Web API |
+| Color Extraction | node-vibrant |
+| Animation | GSAP |
+| Build | Vite 7 |
 
-#### Automatic Color Extraction
-
-- Uses Vibrant.js to extract dominant colors from album artwork
-- Applies colors to background and visual assets
-- Can be toggled on/off for manual color selection
-- Provides cohesive visual theme based on song's album art
-
-### Audio Routing with Voicemeeter
-
-ChoreoXplore's audio-reactive visuals require the browser to receive audio input. Since Spotify plays through your system audio, you need Voicemeeter to route the audio to the browser's microphone input.
-
-#### Setup
-
-1. **Download and Install Voicemeeter**
-   - Go to [VB-Audio Voicemeeter](https://vb-audio.com/Voicemeeter/)
-   - Download Voicemeeter (standard version is sufficient)
-   - Install and restart your computer if prompted
-
-2. **Configure Voicemeeter**
-   - Open Voicemeeter
-   - Set your default audio output device to "Voicemeeter Input"
-     - Right-click speaker icon in Windows taskbar
-     - Select "Open Sound settings"
-     - Choose "Voicemeeter Input (VB-Audio Voicemeeter VAIO)" as output device
-   - In Voicemeeter, set Hardware Out (A1) to your physical speakers/headphones
-
-3. **Configure Browser Microphone**
-   - In Chrome, go to Settings > Privacy and security > Site Settings > Microphone
-   - Set default microphone to "Voicemeeter Output (VB-Audio Voicemeeter VAIO)"
-   - Or allow ChoreoXplore to prompt for microphone selection
-   - When prompted, select "Voicemeeter Output" as the audio input device
-
-4. **Test Audio Routing**
-   - Play music through Spotify
-   - Grant microphone permission when ChoreoXplore requests it
-   - Visuals should now react to the music playing through Spotify
-   - Adjust input levels in Voicemeeter if needed
-
-**Calibration:**
-1. Position projector for optimal wall coverage
-2. Set up camera to capture full dance space
-3. Launch ChoreoXplore
-4. Test motion tracking coverage
+---
 
 ## License
 
@@ -198,10 +159,8 @@ This project is for academic research purposes only and adheres to all copyright
 
 ## Acknowledgments
 
-- **MediaPipe** by Google for pose and hand tracking
-- **Three.js** for WebGL-based 3D rendering
-- **Spotify Web API** for music integration
-- **Vibrant.js** for color extraction
-- **React** for UI framework
-
----
+- **MediaPipe** by Google — pose and hand tracking
+- **Three.js** — WebGL 3D rendering
+- **Spotify Web API** — music integration
+- **Vibrant.js** — color extraction from album art
+- **Meyda** — real-time audio feature extraction
