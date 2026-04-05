@@ -138,7 +138,6 @@ npm run preview
 | 3D Rendering | Three.js, @react-three/fiber, @react-three/drei |
 | Post-processing | postprocessing, @react-three/postprocessing |
 | Pose/Hand Tracking | @mediapipe/tasks-vision |
-| Audio Analysis | Meyda |
 | State | Zustand |
 | Music | Spotify Web API |
 | Color Extraction | node-vibrant |
@@ -157,4 +156,3 @@ This project is for academic research purposes only and adheres to all copyright
 - **Three.js** — WebGL 3D rendering
 - **Spotify Web API** — music integration
 - **Vibrant.js** — color extraction from album art
-- **Meyda** — real-time audio feature extraction
