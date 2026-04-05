@@ -6,23 +6,17 @@ An interactive web-based tool for dancers and choreographers to create real-time
 
 ### Visual Modes
 
-13 switchable visualization modes, all reactive to music and movement:
+7 switchable visualization modes, all reactive to music and movement:
 
 | Mode | Description |
 |---|---|
-| Lines | 1D reactive line system |
 | Quand C'est | Gestural line visualization |
 | Pulsating Circle | Audio-driven radial pulses |
-| Vertical Lines | Columnar motion-reactive bands |
+| Raindrop | Columnar motion-reactive bands |
 | Water Ripple | Fluid ripple simulation |
 | Heat Wave | Thermal distortion effect |
 | Flowing | Continuous motion streams |
 | Gentle Wave | Soft undulating waves |
-| Silk Veil | Cloth-like flowing surface |
-| Lotus Bloom | Organic bloom expansion |
-| Stained Glass Rose | Geometric petal patterns |
-| Ink Water | Ink diffusion in water |
-| Opaline Wave | Iridescent wave shaders |
 
 ### Hand Effects
 
